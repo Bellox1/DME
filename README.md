@@ -61,11 +61,3 @@ cd frontend
 npm install
 npm run dev
 ```
-
-## Équipe
-
-- **OKOTCHE Jean Marie** - Backend
-- **SALOU Mouhamed** - Frontend
-- **ISSOUMA Nafissath** - Base de données
-- **DAMASSOH Denise** - Intégration API
-- **BELLO Mantinou** - Tests & Qualité
