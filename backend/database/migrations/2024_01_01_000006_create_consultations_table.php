@@ -24,6 +24,7 @@ return new class extends Migration
             $table->text('traitement')->nullable();
             $table->string('duree_traitement', 50)->nullable();
             $table->decimal('prix', 10, 2)->nullable();
+            $table->boolean('paye')->default(false);
             $table->timestamp('date_creation')->useCurrent();
             $table->timestamp('date_modification')->useCurrent()->useCurrentOnUpdate();
         });

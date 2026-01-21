@@ -25,12 +25,13 @@ class Utilisateur extends Authenticatable
     protected $fillable = [
         'nom',
         'prenom',
+        'ville',
+        'date_naissance',
         'tel',
         'whatsapp',
         'mot_de_passe',
         'sexe',
         'role',
-        'est_tuteur',
     ];
 
     /**
@@ -51,8 +52,31 @@ class Utilisateur extends Authenticatable
     {
         return [
             'mot_de_passe' => 'hashed',
-            'est_tuteur' => 'boolean',
+            'date_naissance' => 'date',
         ];
+    }
+
+    /**
+     * Relations
+     */
+    public function enfants()
+    {
+        return $this->hasMany(Enfant::class, 'parent_id');
+    }
+
+    public function patient()
+    {
+        return $this->hasOne(Patient::class, 'utilisateur_id');
+    }
+
+    public function demandes()
+    {
+        return $this->hasMany(Demande::class, 'utilisateur_id');
+    }
+
+    public function connexion()
+    {
+        return $this->hasOne(Connexion::class, 'utilisateur_id');
     }
 
     /**

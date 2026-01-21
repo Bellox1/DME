@@ -11,13 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('rdvs', function (Blueprint $table) {
+        Schema::create('demandes', function (Blueprint $table) {
             $table->id();
-            $table->dateTime('dateH_rdv');
-            $table->enum('statut', ['programmé', 'annulé', 'passé'])->default('programmé');
-            $table->text('motif')->nullable();
-            $table->foreignId('patient_id')->constrained('patients')->onDelete('cascade');
-            $table->foreignId('medecin_id')->constrained('utilisateurs')->onDelete('cascade');
+            $table->foreignId('utilisateur_id')->constrained('utilisateurs')->onDelete('cascade');
+            $table->enum('type', ['rendez-vous', 'modification_profil', 'autre']);
+            $table->string('objet', 255);
+            $table->text('description');
+            $table->enum('statut', ['en_attente', 'approuvé', 'rejeté'])->default('en_attente');
             $table->timestamp('date_creation')->useCurrent();
             $table->timestamp('date_modification')->useCurrent()->useCurrentOnUpdate();
         });
@@ -28,6 +28,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('rdvs');
+        Schema::dropIfExists('demandes');
     }
 };
