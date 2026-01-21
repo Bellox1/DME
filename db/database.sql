@@ -40,16 +40,31 @@ CREATE TABLE role_permissions (
 -- ------------------------------
 CREATE TABLE utilisateurs (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    nom VARCHAR(50) NOT NULL,
-    prenom VARCHAR(50) NOT NULL,
-
+    date_naissance DATE NULL,
     tel VARCHAR(20) NOT NULL UNIQUE,       -- numéro de téléphone unique, identifiant
     whatsapp VARCHAR(20) UNIQUE NULL,      -- optionnel, peut être différent du tel    mot_de_passe VARCHAR(255) NOT NULL,
+    nom VARCHAR(50) NOT NULL,
+    prenom VARCHAR(50) NOT NULL,
+    ville VARCHAR(100) NULL,
     sexe ENUM('Homme','Femme') NOT NULL,
     role ENUM('admin', 'accueil', 'medecin', 'patient') NOT NULL,
-    est_tuteur BOOLEAN DEFAULT 0,
     date_creation TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     date_modification TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- ------------------------------
+-- Table des enfants (Identité des dépendants)
+-- ------------------------------
+CREATE TABLE enfants (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    parent_id INT NOT NULL,                -- L'utilisateur (parent) qui gère le dossier
+    nom VARCHAR(50) NOT NULL,
+    prenom VARCHAR(50) NOT NULL,
+    sexe ENUM('Homme','Femme') NOT NULL,
+    date_naissance DATE NULL,
+    date_creation TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    date_modification TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (parent_id) REFERENCES utilisateurs(id) ON DELETE CASCADE
 );
 
 -- ------------------------------
@@ -57,19 +72,16 @@ CREATE TABLE utilisateurs (
 -- ------------------------------
 CREATE TABLE patients (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    utilisateur_id INT NOT NULL,
-    nom VARCHAR(50) NOT NULL,
-    prenom VARCHAR(50) NOT NULL,
+    utilisateur_id INT NULL,               -- Lien si le patient est l'adulte lui-même
+    enfant_id INT NULL,                    -- Lien si le patient est un enfant
     taille DECIMAL(5,2) NULL,
     poids DECIMAL(5,2) NULL,
     adresse VARCHAR(255) NULL,
-    date_naissance DATE NULL,
     groupe_sanguin ENUM('A+','A-','B+','B-','AB+','AB-','O+','O-') NULL,
-    tuteur_id INT NULL,
     date_creation TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     date_modification TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (utilisateur_id) REFERENCES utilisateurs(id) ON DELETE CASCADE,
-    FOREIGN KEY (tuteur_id) REFERENCES utilisateurs(id) ON DELETE SET NULL
+    FOREIGN KEY (enfant_id) REFERENCES enfants(id) ON DELETE CASCADE
 );
 
 -- ------------------------------
@@ -88,6 +100,7 @@ CREATE TABLE consultations (
     traitement TEXT NULL,
     duree_traitement VARCHAR(50) NULL, -- ex: "5 jours"
     prix DECIMAL(10,2) NULL,
+    paye BOOLEAN DEFAULT 0,
     date_creation TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     date_modification TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE,
@@ -117,6 +130,7 @@ CREATE TABLE rdvs (
     id INT AUTO_INCREMENT PRIMARY KEY,
     dateH_rdv DATETIME NOT NULL,
     statut ENUM('programmé','annulé','passé') DEFAULT 'programmé',
+    motif TEXT NULL,
     patient_id INT NOT NULL,
     medecin_id INT NOT NULL,
     date_creation TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -137,6 +151,32 @@ CREATE TABLE tracabilites (
     champ VARCHAR(100) NULL,             -- quel champ modifié
     ancienne_valeur TEXT NULL,           -- valeur avant modification
     nouvelle_valeur TEXT NULL,           -- valeur après modification
+    date_creation TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    date_modification TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (utilisateur_id) REFERENCES utilisateurs(id) ON DELETE CASCADE
+);
+
+-- ------------------------------
+-- Table des connexions (Suivi première connexion)
+-- ------------------------------
+CREATE TABLE connexions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    utilisateur_id INT NOT NULL,
+    premiere_connexion BOOLEAN DEFAULT TRUE,
+    date_derniere_connexion TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (utilisateur_id) REFERENCES utilisateurs(id) ON DELETE CASCADE
+);
+
+-- ------------------------------
+-- Table générique des demandes (RDV, Profil, etc.)
+-- ------------------------------
+CREATE TABLE demandes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    utilisateur_id INT NOT NULL,
+    type ENUM('rendez-vous', 'modification_profil', 'autre') NOT NULL,
+    objet VARCHAR(255) NOT NULL,
+    description TEXT NOT NULL,
+    statut ENUM('en_attente', 'approuvé', 'rejeté') DEFAULT 'en_attente',
     date_creation TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     date_modification TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (utilisateur_id) REFERENCES utilisateurs(id) ON DELETE CASCADE
