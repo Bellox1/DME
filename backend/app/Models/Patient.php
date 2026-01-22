@@ -42,4 +42,19 @@ class Patient extends Model
 
     const CREATED_AT = 'date_creation';
     const UPDATED_AT = 'date_modification';
+
+
+   
+    public function getNomCompletAttribute()
+    {
+        if ($this->utilisateur_id) {
+            return $this->utilisateur->nom . ' ' . $this->utilisateur->prenom;
+        }
+
+        if ($this->enfant_id) {
+            return $this->enfant->nom . ' ' . $this->enfant->prenom;
+        }
+
+        return "Patient Inconnu";
+    }
 }

@@ -32,6 +32,7 @@ class Utilisateur extends Authenticatable
         'mot_de_passe',
         'sexe',
         'role',
+        'refresh_token', 
     ];
 
     /**
@@ -41,6 +42,7 @@ class Utilisateur extends Authenticatable
      */
     protected $hidden = [
         'mot_de_passe',
+        'refresh_token', 
     ];
 
     /**
