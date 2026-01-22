@@ -1,16 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import ReceptionLayout from '../../components/layouts/ReceptionLayout';
+import { patientService } from '../../services';
 
 const ListePatients = () => {
     const [search, setSearch] = useState('');
+    const [patients, setPatients] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-    const patients = [
-        { id: 'P-2026-001', name: 'Alice Patient', phone: '+229 60 70 80 90', lastVisit: '20/01/2026', type: 'Autonome', age: '32 ans' },
-        { id: 'P-2026-002', name: 'Léo Patient', phone: 'Tuteur: Alice P.', lastVisit: '15/01/2026', type: 'Dépendant', age: '8 ans' },
-        { id: 'P-2026-003', name: 'Jean Dupont', phone: '+229 97 00 00 00', lastVisit: '15/01/2026', type: 'Autonome', age: '45 ans' },
-        { id: 'P-2026-004', name: 'Maya Patient', phone: 'Tuteur: Alice P.', lastVisit: 'Hier', type: 'Dépendant', age: '4 ans' },
-    ];
+    useEffect(() => {
+        const fetchPatients = async () => {
+            try {
+                setLoading(true);
+                const data = await patientService.getAllPatients();
+                setPatients(data);
+            } catch (err) {
+                setError('Erreur lors du chargement des patients');
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchPatients();
+    }, []);
 
     return (
         <ReceptionLayout>
@@ -41,70 +55,88 @@ const ListePatients = () => {
                     </Link>
                 </div>
 
-                <div className="bg-white dark:bg-[#1c2229] border border-slate-200 dark:border-[#2d363f] rounded-[2rem] md:rounded-[2.5rem] overflow-hidden shadow-sm">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse min-w-[900px]">
-                            <thead>
-                                <tr className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
-                                    <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Patient / ID</th>
-                                    <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Type</th>
-                                    <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Contact / Tuteur</th>
-                                    <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Visite</th>
-                                    <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
-                                {patients.map((p, i) => (
-                                    <tr key={i} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors group">
-                                        <td className="px-8 py-6">
-                                            <div className="flex items-center gap-4">
-                                                <div className="size-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-black text-xs">
-                                                    {p.name.split(' ').map(n => n[0]).join('')}
-                                                </div>
-                                                <div className="flex flex-col leading-none">
-                                                    <span className="text-sm font-black text-titles dark:text-white uppercase tracking-tight mb-1">{p.name}</span>
-                                                    <span className="text-[10px] text-slate-400 font-bold tracking-widest">{p.id} • {p.age}</span>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-6">
-                                            <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${p.type === 'Autonome'
-                                                ? 'bg-green-50 text-green-600 border-green-100 dark:bg-green-500/10 dark:border-green-500/20'
-                                                : 'bg-indigo-50 text-indigo-600 border-indigo-100 dark:bg-indigo-500/10 dark:border-indigo-500/20'
-                                                }`}>
-                                                {p.type}
-                                            </span>
-                                        </td>
-                                        <td className="px-8 py-6">
-                                            <div className="flex flex-col leading-none gap-1">
-                                                <span className="text-xs font-bold text-slate-600 dark:text-slate-400 italic">{p.phone}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-6">
-                                            <div className="flex items-center gap-2">
-                                                <div className="size-1.5 rounded-full bg-primary animate-pulse"></div>
-                                                <span className="text-xs font-black text-titles dark:text-white uppercase tracking-tighter">{p.lastVisit}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-6 text-right">
-                                            <div className="flex justify-end gap-3 md:translate-x-4 md:opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all">
-                                                <button className="size-10 rounded-xl bg-white dark:bg-slate-800 text-slate-400 hover:text-primary hover:shadow-lg transition-all flex items-center justify-center border border-slate-100 dark:border-slate-700">
-                                                    <span className="material-symbols-outlined text-[20px]">folder_shared</span>
-                                                </button>
-                                                <button className="size-10 rounded-xl bg-white dark:bg-slate-800 text-slate-400 hover:text-primary hover:shadow-lg transition-all flex items-center justify-center border border-slate-100 dark:border-slate-700">
-                                                    <span className="material-symbols-outlined text-[20px]">edit_note</span>
-                                                </button>
-                                                <button className="size-10 rounded-xl bg-white dark:bg-slate-800 text-slate-400 hover:text-rose-500 hover:shadow-lg transition-all flex items-center justify-center border border-slate-100 dark:border-slate-700">
-                                                    <span className="material-symbols-outlined text-[20px]">delete_sweep</span>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                {loading && (
+                    <div className="flex justify-center items-center py-12">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                     </div>
-                </div>
+                )}
+
+                {error && (
+                    <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-2xl p-4 text-red-600 dark:text-red-400 text-sm font-medium">
+                        {error}
+                    </div>
+                )}
+
+                {!loading && !error && (
+                    <div className="bg-white dark:bg-[#1c2229] border border-slate-200 dark:border-[#2d363f] rounded-[2rem] md:rounded-[2.5rem] overflow-hidden shadow-sm">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse min-w-[900px]">
+                                <thead>
+                                    <tr className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
+                                        <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Patient / ID</th>
+                                        <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Type</th>
+                                        <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Contact / Tuteur</th>
+                                        <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Visite</th>
+                                        <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
+                                    {patients.map((patient) => (
+                                        <tr key={patient.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors group">
+                                            <td className="px-8 py-6">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="size-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-black text-xs">
+                                                        {patient.nom_complet ? patient.nom_complet.split(' ').map(n => n[0]).join('') : 'P'}
+                                                    </div>
+                                                    <div className="flex flex-col leading-none">
+                                                        <span className="text-sm font-black text-titles dark:text-white uppercase tracking-tight mb-1">{patient.nom_complet || 'Patient Inconnu'}</span>
+                                                        <span className="text-[10px] text-slate-400 font-bold tracking-widest">P-{patient.id}</span>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-8 py-6">
+                                                <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${patient.utilisateur_id 
+                                                    ? 'bg-green-50 text-green-600 border-green-100 dark:bg-green-500/10 dark:border-green-500/20'
+                                                    : 'bg-indigo-50 text-indigo-600 border-indigo-100 dark:bg-indigo-500/10 dark:border-indigo-500/20'
+                                                    }`}>
+                                                    {patient.utilisateur_id ? 'Autonome' : 'Dépendant'}
+                                                </span>
+                                            </td>
+                                            <td className="px-8 py-6">
+                                                <div className="flex flex-col leading-none gap-1">
+                                                    <span className="text-xs font-bold text-slate-600 dark:text-slate-400 italic">
+                                                        {patient.utilisateur?.tel || patient.enfant?.tuteur?.tel || 'N/A'}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="px-8 py-6">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="size-1.5 rounded-full bg-primary animate-pulse"></div>
+                                                    <span className="text-xs font-black text-titles dark:text-white uppercase tracking-tighter">
+                                                        {patient.date_modification ? new Date(patient.date_modification).toLocaleDateString('fr-FR') : 'Jamais'}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="px-8 py-6 text-right">
+                                                <div className="flex justify-end gap-3 md:translate-x-4 md:opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all">
+                                                    <button className="size-10 rounded-xl bg-white dark:bg-slate-800 text-slate-400 hover:text-primary hover:shadow-lg transition-all flex items-center justify-center border border-slate-100 dark:border-slate-700">
+                                                        <span className="material-symbols-outlined text-[20px]">folder_shared</span>
+                                                    </button>
+                                                    <button className="size-10 rounded-xl bg-white dark:bg-slate-800 text-slate-400 hover:text-primary hover:shadow-lg transition-all flex items-center justify-center border border-slate-100 dark:border-slate-700">
+                                                        <span className="material-symbols-outlined text-[20px]">edit_note</span>
+                                                    </button>
+                                                    <button className="size-10 rounded-xl bg-white dark:bg-slate-800 text-slate-400 hover:text-rose-500 hover:shadow-lg transition-all flex items-center justify-center border border-slate-100 dark:border-slate-700">
+                                                        <span className="material-symbols-outlined text-[20px]">delete_sweep</span>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
 
                 {/* Legend/Info Section */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
