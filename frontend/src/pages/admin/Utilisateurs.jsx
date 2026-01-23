@@ -13,6 +13,7 @@ const AdminUtilisateurs = () => {
             try {
                 setLoading(true);
                 const data = await utilisateurService.getAllUtilisateurs();
+                // Les données retournées sont des patients, on les traite comme des utilisateurs
                 setUsers(data);
             } catch (err) {
                 setError('Erreur lors du chargement des utilisateurs');
@@ -27,10 +28,10 @@ const AdminUtilisateurs = () => {
 
     const stats = [
         { label: 'Total utilisateurs', value: users.length.toString(), icon: 'group' },
-        { label: 'Administrateurs', value: users.filter(u => u.role === 'admin').length.toString(), icon: 'admin_panel_settings' },
-        { label: 'Médecins', value: users.filter(u => u.role === 'medecin').length.toString(), icon: 'stethoscope' },
-        { label: 'Personnel accueil', value: users.filter(u => u.role === 'accueil').length.toString(), icon: 'person_pin_circle' },
-        { label: 'Patients', value: users.filter(u => u.role === 'patient').length.toString(), icon: 'person' },
+        { label: 'Adultes', value: users.filter(u => u.type === 'Adulte').length.toString(), icon: 'person' },
+        { label: 'Enfants', value: users.filter(u => u.type === 'Enfant').length.toString(), icon: 'child_care' },
+        { label: 'Hommes', value: users.filter(u => u.sexe === 'M' || u.sexe === 'Homme').length.toString(), icon: 'man' },
+        { label: 'Femmes', value: users.filter(u => u.sexe === 'F' || u.sexe === 'Femme').length.toString(), icon: 'woman' },
     ];
 
     return (
@@ -77,16 +78,14 @@ const AdminUtilisateurs = () => {
                     </div>
                     <div className="flex flex-wrap gap-4 flex-1">
                         <select className="flex-1 min-w-[150px] h-11 px-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-medium text-titles dark:text-white focus:ring-2 focus:ring-primary/40">
-                            <option>Tous les rôles</option>
-                            <option>medecin</option>
-                            <option>accueil</option>
-                            <option>patient</option>
-                            <option>admin</option>
+                            <option>Tous les types</option>
+                            <option>Adulte</option>
+                            <option>Enfant</option>
                         </select>
                         <select className="flex-1 min-w-[150px] h-11 px-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-medium text-titles dark:text-white focus:ring-2 focus:ring-primary/40">
-                            <option>Tous les statuts</option>
-                            <option>Actif</option>
-                            <option>Inactif</option>
+                            <option>Tous les sexes</option>
+                            <option>M</option>
+                            <option>F</option>
                         </select>
                     </div>
                 </div>
@@ -112,28 +111,22 @@ const AdminUtilisateurs = () => {
                                     <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
                                         <th className="px-6 py-4 text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">ID</th>
                                         <th className="px-6 py-4 text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Nom</th>
-                                        <th className="px-6 py-4 text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Rôle</th>
-                                        <th className="px-6 py-4 text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Dernière activité</th>
-                                        <th className="px-6 py-4 text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Statut</th>
+                                        <th className="px-6 py-4 text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Type</th>
+                                        <th className="px-6 py-4 text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Sexe</th>
+                                        <th className="px-6 py-4 text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Téléphone</th>
                                         <th className="px-6 py-4 text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 text-right">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                                     {users.map((user) => (
                                         <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
-                                            <td className="px-6 py-4 text-sm font-bold text-titles dark:text-white">U-{user.id}</td>
+                                            <td className="px-6 py-4 text-sm font-bold text-titles dark:text-white">P-{user.id}</td>
                                             <td className="px-6 py-4 text-sm font-semibold text-titles dark:text-white">
                                                 {user.nom} {user.prenom}
                                             </td>
-                                            <td className="px-6 py-4 text-sm text-slate-500 dark:text-slate-400 capitalize">{user.role}</td>
-                                            <td className="px-6 py-4 text-sm text-slate-500 dark:text-slate-400">
-                                                {user.date_modification ? new Date(user.date_modification).toLocaleDateString('fr-FR') : 'Jamais'}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300">
-                                                    Actif
-                                                </span>
-                                            </td>
+                                            <td className="px-6 py-4 text-sm text-slate-500 dark:text-slate-400 capitalize">{user.type}</td>
+                                            <td className="px-6 py-4 text-sm text-slate-500 dark:text-slate-400">{user.sexe}</td>
+                                            <td className="px-6 py-4 text-sm text-slate-500 dark:text-slate-400">{user.tel}</td>
                                             <td className="px-6 py-4 text-right">
                                                 <div className="flex items-center justify-end gap-2">
                                                     <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors" title="Modifier">

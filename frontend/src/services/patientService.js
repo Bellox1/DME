@@ -23,68 +23,74 @@ class PatientService {
     }
   }
 
-  // Récupérer un patient par son ID
+  // Récupérer un patient par son ID (non disponible pour l'instant)
   async getPatientById(id) {
     try {
-      const response = await this.api.get(`/patients/${id}`);
-      return response.data;
+      // Cette route n'existe pas encore dans le backend
+      console.warn(`Route /patients/${id} non implémentée dans le backend`);
+      return null;
     } catch (error) {
       console.error(`Erreur lors de la récupération du patient ${id}:`, error);
       throw error;
     }
   }
 
-  // Créer un nouveau patient
-  async createPatient(patientData) {
+  // Créer un nouveau patient (non disponible pour l'instant)
+  async createPatient() {
     try {
-      const response = await this.api.post('/patients', patientData);
-      return response.data;
+      // Cette route n'existe pas encore dans le backend
+      console.warn('Route /patients POST non implémentée dans le backend');
+      throw new Error('Création de patient non disponible');
     } catch (error) {
       console.error('Erreur lors de la création du patient:', error);
       throw error;
     }
   }
 
-  // Mettre à jour un patient
-  async updatePatient(id, patientData) {
+  // Mettre à jour un patient (non disponible pour l'instant)
+  async updatePatient(id) {
     try {
-      const response = await this.api.put(`/patients/${id}`, patientData);
-      return response.data;
+      // Cette route n'existe pas encore dans le backend
+      console.warn(`Route /patients/${id} PUT non implémentée dans le backend`);
+      throw new Error('Mise à jour de patient non disponible');
     } catch (error) {
       console.error(`Erreur lors de la mise à jour du patient ${id}:`, error);
       throw error;
     }
   }
 
-  // Supprimer un patient
+  // Supprimer un patient (non disponible pour l'instant)
   async deletePatient(id) {
     try {
-      await this.api.delete(`/patients/${id}`);
-      return true;
+      // Cette route n'existe pas encore dans le backend
+      console.warn(`Route /patients/${id} DELETE non implémentée dans le backend`);
+      throw new Error('Suppression de patient non disponible');
     } catch (error) {
       console.error(`Erreur lors de la suppression du patient ${id}:`, error);
       throw error;
     }
   }
 
-  // Récupérer les consultations d'un patient
-  async getPatientConsultations(patientId) {
+  // Récupérer les consultations d'un patient (non disponible pour l'instant)
+  async getPatientConsultations(id) {
     try {
-      const response = await this.api.get(`/patients/${patientId}/consultations`);
-      return response.data;
+      // Cette route n'existe pas encore dans le backend
+      console.warn(`Route /patients/${id}/consultations non implémentée dans le backend`);
+      return [];
     } catch (error) {
-      console.error(`Erreur lors de la récupération des consultations du patient ${patientId}:`, error);
+      console.error(`Erreur lors de la récupération des consultations du patient ${id}:`, error);
       throw error;
     }
   }
 
-  // Récupérer les rendez-vous d'un patient
-  async getPatientRdvs(patientId) {
+  // Récupérer les RDV d'un patient (non disponible pour l'instant)
+  async getPatientRdvs(id) {
     try {
-      const response = await this.api.get(`/patients/${patientId}/rdvs`);
-      return response.data;
+      // Cette route n'existe pas encore dans le backend
+      console.warn(`Route /patients/${id}/rdvs non implémentée dans le backend`);
+      return [];
     } catch (error) {
-      console.error(`Erreur lors de la récupération des rendez-vous du patient ${patientId}:`, error);
+      console.error(`Erreur lors de la récupération des RDV du patient ${id}:`, error);
       throw error;
     }
   }

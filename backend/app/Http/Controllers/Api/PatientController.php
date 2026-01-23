@@ -12,11 +12,11 @@ class PatientController extends Controller
     {
         // Fetch specific columns to avoid N+1 issue or too much data?
         // Requirement: "List Global Patients : qui fusionne les informations d'identité"
-        
+
         $patients = Patient::with(['utilisateur', 'enfant'])->get()->map(function ($patient) {
             // Determine identity source
             $identity = $patient->utilisateur ?? $patient->enfant;
-            
+
             return [
                 'id' => $patient->id, // Patient ID (used for RDVs)
                 'nom' => $identity ? $identity->nom : 'Inconnu',

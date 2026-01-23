@@ -1,16 +1,121 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import ReceptionLayout from '../../components/layouts/ReceptionLayout';
+import { patientService, demandeRdvService } from '../../services';
 
 const GestionRDV = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [rdv, setRdv] = useState([]);
+    const [demandes, setDemandes] = useState([]);
+    const [patients, setPatients] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [formData, setFormData] = useState({
+        patient_id: '',
+        type: '',
+        motif: '',
+        date: '',
+        heure: ''
+    });
 
-    const rdv = [
-        { time: '08:30', patient: 'Alice Patient', doctor: 'Dr. Sarah Kone', status: 'Confirmé', color: 'bg-green-100 text-green-600' },
-        { time: '09:15', patient: 'Jean Dupont', doctor: 'Dr. Marc Dubois', status: 'En attente', color: 'bg-amber-100 text-amber-600' },
-        { time: '10:00', patient: 'Koffi Mensah', doctor: 'Dr. Sarah Kone', status: 'Annulé', color: 'bg-red-100 text-red-600' },
-        { time: '11:00', patient: 'Sika Yao', doctor: 'Dr. Marc Dubois', status: 'Arrivée', color: 'bg-primary/10 text-primary' },
-    ];
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+                const [patientsData, demandesData] = await Promise.all([
+                    patientService.getAllPatients(),
+                    demandeRdvService.getAllDemandes().catch(() => []) // Les demandes peuvent ne pas exister encore
+                ]);
+                setPatients(patientsData);
+                setDemandes(demandesData);
+                
+                // Combiner les RDV existants avec les demandes validées
+                const combinedRdv = [
+                    // RDV existants (à récupérer depuis une API RDV)
+                    // Pour l'instant, on utilise les demandes approuvées
+                    ...demandesData.filter(d => d.statut === 'approuve').map(demande => ({
+                        time: new Date(demande.date_demande).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+                        patient: getPatientName(demande.patient_id),
+                        doctor: 'À assigner',
+                        status: 'Confirmé',
+                        color: 'bg-green-100 text-green-600',
+                        id: demande.id
+                    }))
+                ];
+                setRdv(combinedRdv);
+            } catch (err) {
+                setError('Erreur lors du chargement des données');
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, []);
+
+    const getPatientName = (patientId) => {
+        const patient = patients.find(p => p.id === patientId);
+        return patient ? `${patient.nom} ${patient.prenom}` : `Patient #${patientId}`;
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            await demandeRdvService.createDemande({
+                patient_id: formData.patient_id,
+                type: formData.type || 'Consultation générale',
+                motif: formData.motif
+            });
+            
+            setIsModalOpen(false);
+            setFormData({ patient_id: '', type: '', motif: '', date: '', heure: '' });
+            
+            // Recharger les données
+            const demandesData = await demandeRdvService.getAllDemandes().catch(() => []);
+            setDemandes(demandesData);
+            
+        } catch (err) {
+            setError('Erreur lors de la création du rendez-vous');
+            console.error(err);
+        }
+    };
+
+    const handleValiderDemande = async (demandeId) => {
+        try {
+            await demandeRdvService.validerDemande(demandeId);
+            
+            // Recharger les données
+            const demandesData = await demandeRdvService.getAllDemandes().catch(() => []);
+            setDemandes(demandesData);
+            
+            const combinedRdv = [
+                ...demandesData.filter(d => d.statut === 'approuve').map(demande => ({
+                    time: new Date(demande.date_demande).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+                    patient: getPatientName(demande.patient_id),
+                    doctor: 'À assigner',
+                    status: 'Confirmé',
+                    color: 'bg-green-100 text-green-600',
+                    id: demande.id
+                }))
+            ];
+            setRdv(combinedRdv);
+            
+        } catch (err) {
+            setError('Erreur lors de la validation de la demande');
+            console.error(err);
+        }
+    };
+
+    if (loading) {
+        return (
+            <ReceptionLayout>
+                <div className="flex justify-center items-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+            </ReceptionLayout>
+        );
+    }
 
     return (
         <ReceptionLayout>
@@ -28,6 +133,12 @@ const GestionRDV = () => {
                     </button>
                 </div>
 
+                {error && (
+                    <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-2xl p-4 text-red-600 dark:text-red-400 text-sm font-medium">
+                        {error}
+                    </div>
+                )}
+
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
                     {/* Calendar / Day View */}
                     <div className="lg:col-span-8 bg-white dark:bg-[#1c2229] border border-slate-200 dark:border-[#2d363f] rounded-[2rem] md:rounded-[2.5rem] p-4 md:p-8 shadow-sm">
@@ -37,7 +148,9 @@ const GestionRDV = () => {
                                 <button className="size-9 md:size-10 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-400 hover:text-primary transition-all">
                                     <span className="material-symbols-outlined text-[18px] md:text-[20px]">chevron_left</span>
                                 </button>
-                                <span className="text-xs md:text-sm font-black text-titles dark:text-white px-3 md:px-4 whitespace-nowrap">Mercredi, 21 Janvier</span>
+                                <span className="text-xs md:text-sm font-black text-titles dark:text-white px-3 md:px-4 whitespace-nowrap">
+                                    {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                                </span>
                                 <button className="size-9 md:size-10 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-400 hover:text-primary transition-all">
                                     <span className="material-symbols-outlined text-[18px] md:text-[20px]">chevron_right</span>
                                 </button>
@@ -45,47 +158,59 @@ const GestionRDV = () => {
                         </div>
 
                         <div className="space-y-3 md:space-y-4">
-                            {rdv.map((item, i) => (
-                                <div key={i} className="flex items-center gap-3 md:gap-6 p-3 md:p-5 rounded-xl md:rounded-2xl border border-slate-50 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer group">
-                                    <div className="flex flex-col items-center justify-center min-w-[50px] md:min-w-[60px] border-r border-slate-100 dark:border-slate-800 pr-3 md:pr-6">
-                                        <span className="text-xs md:text-sm font-black text-titles dark:text-white">{item.time}</span>
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <h4 className="text-xs md:text-sm font-black text-titles dark:text-white uppercase tracking-tighter truncate">{item.patient}</h4>
-                                        <p className="text-[9px] md:text-[10px] font-bold text-slate-400 italic truncate">{item.doctor}</p>
-                                    </div>
-                                    <span className={`px-2 md:px-4 py-1 md:py-1.5 rounded-full text-[8px] md:text-[9px] font-black uppercase whitespace-nowrap ${item.color}`}>
-                                        {item.status}
-                                    </span>
-                                    <span className="material-symbols-outlined text-[20px] text-slate-300 group-hover:text-primary transition-colors hidden sm:block">more_vert</span>
+                            {rdv.length === 0 ? (
+                                <div className="text-center py-8">
+                                    <span className="material-symbols-outlined text-4xl text-slate-300 mb-4">calendar_today</span>
+                                    <p className="text-slate-500 dark:text-slate-400">Aucun rendez-vous aujourd'hui</p>
                                 </div>
-                            ))}
+                            ) : (
+                                rdv.map((item) => (
+                                    <div key={item.id} className="flex items-center gap-3 md:gap-6 p-3 md:p-5 rounded-xl md:rounded-2xl border border-slate-50 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer group">
+                                        <div className="flex flex-col items-center justify-center min-w-[50px] md:min-w-[60px] border-r border-slate-100 dark:border-slate-800 pr-3 md:pr-6">
+                                            <span className="text-xs md:text-sm font-black text-titles dark:text-white">{item.time}</span>
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <h4 className="text-xs md:text-sm font-black text-titles dark:text-white uppercase tracking-tighter truncate">{item.patient}</h4>
+                                            <p className="text-[9px] md:text-[10px] font-bold text-slate-400 italic truncate">{item.doctor}</p>
+                                        </div>
+                                        <span className={`px-2 md:px-4 py-1 md:py-1.5 rounded-full text-[8px] md:text-[9px] font-black uppercase whitespace-nowrap ${item.color}`}>
+                                            {item.status}
+                                        </span>
+                                        <span className="material-symbols-outlined text-[20px] text-slate-300 group-hover:text-primary transition-colors hidden sm:block">more_vert</span>
+                                    </div>
+                                ))
+                            )}
                         </div>
                     </div>
 
-                    {/* Doctors Availability Sidebar */}
+                    {/* Demandes en attente */}
                     <div className="lg:col-span-4 space-y-8">
                         <div className="bg-white dark:bg-[#1c2229] border border-slate-200 dark:border-[#2d363f] rounded-[2rem] p-8 shadow-sm">
-                            <h3 className="text-base font-black text-titles dark:text-white mb-6 uppercase tracking-widest leading-none">Disponibilité Médecins</h3>
-                            <div className="space-y-6">
-                                {[
-                                    { name: 'Dr. Sarah Kone', specialty: 'Cardiologue', status: 'En consultation', color: 'bg-amber-500' },
-                                    { name: 'Dr. Marc Dubois', specialty: 'Généraliste', status: 'Libre', color: 'bg-green-500' },
-                                    { name: 'Dr. Amine Tazi', specialty: 'Pédiatre', status: 'Absent', color: 'bg-slate-300' },
-                                ].map((doc, i) => (
-                                    <div key={i} className="flex items-center gap-4">
-                                        <div className="relative">
-                                            <div className="size-11 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-primary font-black text-xs">
-                                                {doc.name.split(' ')[1].charAt(0)}
+                            <h3 className="text-base font-black text-titles dark:text-white mb-6 uppercase tracking-widest leading-none">Demandes en attente</h3>
+                            <div className="space-y-4">
+                                {demandes.filter(d => d.statut === 'en_attente').length === 0 ? (
+                                    <p className="text-slate-500 dark:text-slate-400 text-sm">Aucune demande en attente</p>
+                                ) : (
+                                    demandes.filter(d => d.statut === 'en_attente').map((demande) => (
+                                        <div key={demande.id} className="p-4 border border-slate-100 dark:border-slate-800 rounded-xl">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <h4 className="text-sm font-black text-titles dark:text-white">
+                                                    {getPatientName(demande.patient_id)}
+                                                </h4>
+                                                <span className="px-2 py-1 rounded-full text-[8px] font-black uppercase bg-yellow-100 text-yellow-800">
+                                                    En attente
+                                                </span>
                                             </div>
-                                            <div className={`absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2 border-white dark:border-[#1c2229] ${doc.color}`}></div>
+                                            <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">{demande.type}</p>
+                                            <button
+                                                onClick={() => handleValiderDemande(demande.id)}
+                                                className="w-full h-8 bg-green-500 text-white rounded-lg text-xs font-black uppercase hover:bg-green-600 transition-all"
+                                            >
+                                                Valider
+                                            </button>
                                         </div>
-                                        <div className="flex flex-col">
-                                            <span className="text-[13px] font-black text-titles dark:text-white leading-none mb-1">{doc.name}</span>
-                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{doc.specialty}</span>
-                                        </div>
-                                    </div>
-                                ))}
+                                    ))
+                                )}
                             </div>
                         </div>
                     </div>
@@ -112,41 +237,51 @@ const GestionRDV = () => {
                             </button>
                         </div>
 
-                        <div className="p-10 space-y-8">
+                        <form onSubmit={handleSubmit} className="p-10 space-y-8">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-1">Sélectionner Patient</label>
-                                    <div className="relative">
-                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-400 text-[20px]">person_search</span>
-                                        <input type="text" placeholder="Nom ou ID Patient" className="w-full h-14 bg-slate-50 dark:bg-slate-900/50 border-2 border-transparent focus:border-primary/20 rounded-2xl pl-12 pr-5 text-sm font-bold text-titles dark:text-white transition-all outline-none" />
-                                    </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-1">Médecin / Spécialité</label>
-                                    <select className="w-full h-14 bg-slate-50 dark:bg-slate-900/50 border-2 border-transparent focus:border-primary/20 rounded-2xl px-5 text-sm font-bold text-titles dark:text-white transition-all outline-none appearance-none cursor-pointer">
-                                        <option>Dr. Sarah Kone (Cardiologue)</option>
-                                        <option>Dr. Marc Dubois (Généraliste)</option>
-                                        <option>Dr. Amine Tazi (Pédiatre)</option>
+                                    <select
+                                        value={formData.patient_id}
+                                        onChange={(e) => setFormData({...formData, patient_id: e.target.value})}
+                                        className="w-full h-14 bg-slate-50 dark:bg-slate-900/50 border-2 border-transparent focus:border-primary/20 rounded-2xl px-5 text-sm font-bold text-titles dark:text-white transition-all outline-none appearance-none cursor-pointer"
+                                        required
+                                    >
+                                        <option value="">Choisir un patient</option>
+                                        {patients.map(patient => (
+                                            <option key={patient.id} value={patient.id}>
+                                                {patient.nom} {patient.prenom}
+                                            </option>
+                                        ))}
                                     </select>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-1">Date</label>
-                                    <input type="date" className="w-full h-14 bg-slate-50 dark:bg-slate-900/50 border-2 border-transparent focus:border-primary/20 rounded-2xl px-5 text-sm font-bold text-titles dark:text-white transition-all outline-none" />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-1">Heure</label>
-                                    <input type="time" className="w-full h-14 bg-slate-50 dark:bg-slate-900/50 border-2 border-transparent focus:border-primary/20 rounded-2xl px-5 text-sm font-bold text-titles dark:text-white transition-all outline-none" />
+                                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-1">Type de consultation</label>
+                                    <input
+                                        type="text"
+                                        value={formData.type}
+                                        onChange={(e) => setFormData({...formData, type: e.target.value})}
+                                        placeholder="Ex: Consultation générale"
+                                        className="w-full h-14 bg-slate-50 dark:bg-slate-900/50 border-2 border-transparent focus:border-primary/20 rounded-2xl px-5 text-sm font-bold text-titles dark:text-white transition-all outline-none"
+                                        required
+                                    />
                                 </div>
                             </div>
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-1">Motif de consultation (Optionnel)</label>
-                                <textarea rows="3" placeholder="Description brève..." className="w-full bg-slate-50 dark:bg-slate-900/50 border-2 border-transparent focus:border-primary/20 rounded-2xl p-5 text-sm font-bold text-titles dark:text-white transition-all outline-none resize-none"></textarea>
+                                <textarea
+                                    value={formData.motif}
+                                    onChange={(e) => setFormData({...formData, motif: e.target.value})}
+                                    rows="3"
+                                    placeholder="Description brève..."
+                                    className="w-full bg-slate-50 dark:bg-slate-900/50 border-2 border-transparent focus:border-primary/20 rounded-2xl p-5 text-sm font-bold text-titles dark:text-white transition-all outline-none resize-none"
+                                />
                             </div>
 
-                            <button onClick={() => setIsModalOpen(false)} className="w-full h-14 bg-primary text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all mt-4">
-                                Confirmer le Rendez-vous
+                            <button type="submit" className="w-full h-14 bg-primary text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all mt-4">
+                                Créer la demande
                             </button>
-                        </div>
+                        </form>
                     </div>
                 </div>
             )}
