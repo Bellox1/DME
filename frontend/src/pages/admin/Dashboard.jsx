@@ -7,10 +7,11 @@ const AdminDashboard = () => {
     const [showFirstLoginModal, setShowFirstLoginModal] = useState(false);
 
     useEffect(() => {
-        const isFirstLogin = localStorage.getItem('user-first-login') !== 'false';
-        if (isFirstLogin) {
-            setShowFirstLoginModal(true);
-        }
+        // Temporairement désactivé
+        // const isFirstLogin = localStorage.getItem('user-first-login') !== 'false';
+        // if (isFirstLogin) {
+        //     setShowFirstLoginModal(true);
+        // }
     }, []);
 
     const handleFirstLoginComplete = () => {

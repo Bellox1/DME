@@ -12,7 +12,7 @@ class RdvController extends Controller
     {
         $request->validate([
             'patient_id' => 'required|exists:patients,id',
-            'medecin_id' => 'required|exists:utilisateurs,id', // Ensure role is medecin?
+            'medecin_id' => 'required|exists:utilisateurs,id',
             'dateH_rdv' => 'required|date',
             'motif' => 'nullable|string',
             'statut' => 'in:programmé,annulé,passé'

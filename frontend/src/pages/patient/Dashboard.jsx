@@ -8,12 +8,13 @@ const PatientDashboard = () => {
 
     // Check if this is the first login
     useEffect(() => {
+        // Temporairement désactivé
         // TODO: Replace with actual API check
         // For testing: always show the modal (remove this line in production)
-        const isFirstLogin = localStorage.getItem('user-first-login') !== 'false';
-        if (isFirstLogin) {
-            setShowFirstLoginModal(true);
-        }
+        // const isFirstLogin = localStorage.getItem('user-first-login') !== 'false';
+        // if (isFirstLogin) {
+        //     setShowFirstLoginModal(true);
+        // }
     }, []);
 
     const handleFirstLoginComplete = () => {
