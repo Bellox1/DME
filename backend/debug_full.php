@@ -59,8 +59,12 @@ try {
     $rdv->save();
 
     echo "RDV Status updated to: " . $rdv->statut . "\n";
+    echo "Medecin Created At: " . $medecin->date_creation . "\n";
+    echo "Patient Created At: " . $patient->date_creation . "\n";
+    echo "Consultation Created At: " . $consultation->date_creation . "\n";
+    
     if ($rdv->statut === 'passé') {
-        echo "5. SUCCESS! Flux validé avec statuts existants.\n";
+        echo "5. SUCCESS! Flux validé avec statuts et DATES.\n";
     } else {
         echo "ERROR: Statut incorrect.\n";
     }
