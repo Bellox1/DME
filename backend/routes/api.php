@@ -5,7 +5,7 @@ Route::patch('/demande-rdv/{id}/valider', [App\Http\Controllers\DemandeRdvContro
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Api\EnfantController;
 use App\Http\Controllers\Api\RdvController;
 use App\Http\Controllers\Api\PatientController;
