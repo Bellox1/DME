@@ -1,4 +1,7 @@
+
 <?php
+// Validation Accueil
+Route::patch('/demande-rdv/{id}/valider', [App\Http\Controllers\DemandeRdvController::class, 'valider']);
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -17,8 +20,9 @@ Route::post('/register', [AuthController::class, 'register']);
 // Enfants
 Route::post('/enfants', [EnfantController::class, 'store']);
 
-// RDVs (Direct Creation)
-Route::post('/rdvs', [RdvController::class, 'store']); // Maybe protect with middleware later
+
+// Demandes de RDV
+Route::post('/demande-rdv', [App\Http\Controllers\DemandeRdvController::class, 'store']);
 
 // Patients List
 Route::get('/patients', [PatientController::class, 'index']);
