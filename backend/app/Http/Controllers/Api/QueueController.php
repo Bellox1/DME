@@ -14,20 +14,19 @@ class QueueController extends Controller
      */
     public function index(Request $request)
     {
-        // Récupérer les RDVs du jour
-        // On peut filtrer par medecin si l'utilisateur connecté est un médecin
-        // On exclut les RDVs annulés ? Ou on les garde pour historique ?
-        // Pour la file d'attente "active", on veut ceux qui ne sont pas encore passés ou qui sont arrivés.
+        // Déterminer la date de filtrage
+        $date = $request->query('date') ? Carbon::parse($request->query('date')) : Carbon::today();
         
         $query = Rdv::with(['patient', 'medecin'])
-            ->whereDate('dateH_rdv', Carbon::today())
+            ->whereDate('dateH_rdv', $date)
             ->orderBy('dateH_rdv', 'asc');
 
         if ($request->has('statut')) {
             $query->where('statut', $request->statut);
         } else {
-            // Par défaut, on ne montre pas les annulés ?
-             $query->where('statut', '!=', 'annulé');
+            // Par défaut, on filtre toujours par statut (on évite de tout mélanger)
+            // L'accueil veut surtout voir les programmés pour aujourd'hui
+             $query->whereIn('statut', ['programmé', 'passé']);
         }
 
         $rdvs = $query->get();
