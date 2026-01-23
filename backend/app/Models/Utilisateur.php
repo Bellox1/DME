@@ -14,7 +14,7 @@ class Utilisateur extends Authenticatable
     use HasApiTokens, Notifiable, HasFactory;
 
     protected $table = 'utilisateurs';
-    public $timestamps = false; // Based on migration having manual timestamps columns or useCurrent? Migration has timestamps() equivalent.
+    public $timestamps = true; // Enabled to manage date_creation and date_modification
     // Migration: $table->timestamp('date_creation')->useCurrent();
     // Laravel expects created_at/updated_at by default. If columns are custom, we need to specify.
     // Migration: date_creation, date_modification.
