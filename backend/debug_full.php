@@ -63,10 +63,19 @@ try {
     echo "Patient Created At: " . $patient->date_creation . "\n";
     echo "Consultation Created At: " . $consultation->date_creation . "\n";
     
-    if ($rdv->statut === 'passé') {
-        echo "5. SUCCESS! Flux validé avec statuts et DATES.\n";
+    echo "6. Testing Queue Filter by Date...\n";
+    $testDate = now()->addDay()->format('Y-m-d');
+    
+    // Simuler l'appel API interne
+    $rdvsOnDate = Rdv::whereDate('dateH_rdv', $testDate)->get();
+    $found = $rdvsOnDate->contains('id', $rdv->id);
+    
+    echo "Found " . $rdvsOnDate->count() . " RDVs on date $testDate. Created RDV (ID: {$rdv->id}) present: " . ($found ? 'YES' : 'NO') . "\n";
+
+    if ($rdv->statut === 'passé' && $found) {
+        echo "7. SUCCESS! Flux et Filtre de date validés.\n";
     } else {
-        echo "ERROR: Statut incorrect.\n";
+        echo "ERROR: Validation échouée.\n";
     }
 
 } catch (\Exception $e) {
