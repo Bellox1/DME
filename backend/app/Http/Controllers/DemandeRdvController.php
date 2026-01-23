@@ -11,7 +11,7 @@ class DemandeRdvController extends Controller
      */
     public function index()
     {
-        //
+        return response()->json(\App\Models\DemandeRdv::orderBy('created_at', 'desc')->get());
     }
 
     /**
@@ -30,7 +30,7 @@ class DemandeRdvController extends Controller
         $demande->type = $validated['type'];
         $demande->motif = $request->motif;
         $demande->statut = 'en_attente';
-        $demande->date_demande = now();
+        $demande->date_demande = $request->date_demande ?? now();
         $demande->save();
 
         return response()->json(['message' => 'Demande créée', 'demande' => $demande], 201);

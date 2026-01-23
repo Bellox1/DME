@@ -22,6 +22,7 @@ Route::post('/enfants', [EnfantController::class, 'store']);
 
 
 // Demandes de RDV
+Route::get('/demande-rdv', [App\Http\Controllers\DemandeRdvController::class, 'index']);
 Route::post('/demande-rdv', [App\Http\Controllers\DemandeRdvController::class, 'store']);
 
 // Patients List

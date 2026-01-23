@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             EnfantSeeder::class,
             PatientSeeder::class,
             RdvSeeder::class,
+            DemandeRdvSeeder::class,
         ]);
     }
 }
