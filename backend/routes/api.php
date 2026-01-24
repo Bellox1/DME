@@ -1,5 +1,9 @@
-
 <?php
+use App\Http\Controllers\Api\ConsultationController;
+// Paiement Consultation
+Route::patch('/consultations/{id}/paiement', [ConsultationController::class, 'updatePaiement']);
+// Stats Journalières Caisse
+Route::get('/stats/paiements/jour', [ConsultationController::class, 'statsJournalieres']);
 // Validation Accueil
 Route::patch('/demande-rdv/{id}/valider', [App\Http\Controllers\DemandeRdvController::class, 'valider']);
 
