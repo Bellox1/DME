@@ -30,7 +30,6 @@ class UtilisateurFactory extends Factory
             'mot_de_passe' => static::$password ??= Hash::make('password'),
             'sexe' => fake()->randomElement(['Homme', 'Femme']),
             'role' => fake()->randomElement(['admin', 'accueil', 'medecin', 'patient']),
-            'est_tuteur' => fake()->boolean(20),
         ];
     }
 }
