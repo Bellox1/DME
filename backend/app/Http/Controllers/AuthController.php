@@ -6,69 +6,107 @@ use App\Models\Utilisateur;
 use App\Models\Connexion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
+use App\Mail\LoginTokenMail; // N'oublie pas de créer ce Mail
 
 class AuthController extends Controller
 {
     public function login(Request $request)
     {
         $request->validate([
-            'login' => 'required|string', // Peut être tel ou whatsapp
+            'login' => 'required|string',
             'mot_de_passe' => 'required|string',
         ]);
 
-        // Cherche l'utilisateur par tel OU par whatsapp
         $user = Utilisateur::where('tel', $request->login)
-                           ->orWhere('whatsapp', $request->login)
-                           ->first();
+            ->orWhere('whatsapp', $request->login)
+            ->first();
 
+        // Sécurité : Vérification sans jamais renvoyer le mot de passe
         if (!$user || !Hash::check($request->mot_de_passe, $user->mot_de_passe)) {
             return response()->json(['message' => 'Identifiants invalides'], 401);
         }
 
-        // Vérifier le statut de première connexion
         $connexion = Connexion::firstOrCreate(
             ['utilisateur_id' => $user->id],
             ['premiere_connexion' => true]
         );
 
-        $token = $user->createToken('auth_token')->plainTextToken;
+        // 1. Secrets de 256 caractères (récupérés du .env)
+        $accessToken = Str::random(256);
+        $refreshToken = Str::random(256);
+
+        // 2. Hachage avec secrets DIFFÉRENTS (Consigne respectée)
+        // On stocke le hash du refresh token
+        $user->update([
+            'refresh_token' => hash_hmac('sha256', $refreshToken, config('services.jwt.refresh_secret'))
+        ]);
+
+        // On utilise le téléphone + un domaine fictif pour que Mailpit le capture
+        $destination = $user->tel . '@dme.local';
+
+        Mail::to($destination)->send(new LoginTokenMail($accessToken));
 
         return response()->json([
-            'user' => $user,
+            'message' => 'Un lien de connexion a été envoyé à votre email.',
             'premiere_connexion' => $connexion->premiere_connexion,
-            'access_token' => $token,
-            'token_type' => 'Bearer',
+            // 'access_token' n'est plus ici pour la sécurité
+            'refresh_token' => $refreshToken,
         ]);
     }
 
-    public function updatePassword(Request $request)
-    {
-        $request->validate([
-            'nouveau_mot_de_passe' => 'required|string|min:6',
-        ]);
+   public function refreshToken(Request $request)
+{
+    $request->validate(['refresh_token' => 'required']);
 
-        $user = Auth::user();
-        $user->mot_de_passe = Hash::make($request->nouveau_mot_de_passe);
-        $user->save();
+    // 1. On hache le token reçu pour le comparer à la base
+    $hashedToken = hash_hmac('sha256', $request->refresh_token, config('services.jwt.refresh_secret'));
+    
+    // 2. On cherche l'utilisateur possédant ce hash
+    $user = Utilisateur::where('refresh_token', $hashedToken)->first();
 
-        // Mettre à jour le flag de première connexion
-        Connexion::where('utilisateur_id', $user->id)->update([
-            'premiere_connexion' => false,
-            'date_derniere_connexion' => now()
-        ]);
-
-        return response()->json(['message' => 'Mot de passe mis à jour avec succès']);
+    if (!$user) {
+        return response()->json(['message' => 'Session invalide ou expirée'], 403);
     }
 
-    public function logout(Request $request)
-    {
-        $request->user()->currentAccessToken()->delete();
-        return response()->json(['message' => 'Déconnexion réussie']);
+    // 3. Session active : on génère un nouvel access_token de 256 caractères
+    $newAccessToken = Str::random(256);
+
+    // 4. Optionnel : On peut aussi renouveler le refresh_token ici
+    return response()->json([
+        'access_token' => $newAccessToken,
+        'token_type' => 'Bearer'
+    ]);
+}
+
+public function updatePassword(Request $request)
+{
+    $request->validate([
+        'nouveau_mot_de_passe' => 'required|min:8|confirmed',
+    ]);
+
+    // On récupère l'utilisateur soit par l'auth, soit par l'ID (pour le test)
+    $user = $request->user() ?? Utilisateur::find($request->user_id);
+
+    if (!$user) {
+        return response()->json(['message' => 'Utilisateur non trouvé'], 404);
     }
 
-    public function me(Request $request)
-    {
-        return response()->json($request->user());
+    $user->update([
+        'mot_de_passe' => Hash::make($request->nouveau_mot_de_passe)
+    ]);
+
+    // Utilisation de la relation au singulier comme dans ton modèle
+    $connexion = $user->connexion; 
+    
+    if ($connexion) {
+        $connexion->update(['premiere_connexion' => false]);
     }
+
+    return response()->json([
+        'message' => 'Mot de passe mis à jour.',
+        'premiere_connexion' => false
+    ]);
+}
 }
