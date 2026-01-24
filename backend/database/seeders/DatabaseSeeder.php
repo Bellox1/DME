@@ -128,8 +128,11 @@ class DatabaseSeeder extends Seeder
         // --- Données de test (Utilisateurs & Activité) ---
 
         // Utilisateurs de base
-        Utilisateur::create(['nom' => 'Admin', 'prenom' => 'System', 'tel' => '00000001', 'mot_de_passe' => Hash::make('password'), 'sexe' => 'Homme', 'role' => 'admin']);
-        Utilisateur::create(['nom' => 'Accueil', 'prenom' => 'Service', 'tel' => '00000002', 'mot_de_passe' => Hash::make('password'), 'sexe' => 'Femme', 'role' => 'accueil']);
+        $admin = Utilisateur::create(['nom' => 'Admin', 'prenom' => 'System', 'tel' => '00000001', 'mot_de_passe' => Hash::make('password'), 'sexe' => 'Homme', 'role' => 'admin']);
+        Connexion::create(['utilisateur_id' => $admin->id, 'premiere_connexion' => false]);
+
+        $accueil = Utilisateur::create(['nom' => 'Accueil', 'prenom' => 'Service', 'tel' => '00000002', 'mot_de_passe' => Hash::make('password'), 'sexe' => 'Femme', 'role' => 'accueil']);
+        Connexion::create(['utilisateur_id' => $accueil->id, 'premiere_connexion' => false]);
         
         // Utilisateur spécifique NON Connecté pour Test Premier Login
         $testUser = Utilisateur::create([
@@ -145,7 +148,9 @@ class DatabaseSeeder extends Seeder
         
         $medecins = [];
         for ($i = 1; $i <= 5; $i++) {
-            $medecins[] = Utilisateur::create(['nom' => 'Medecin' . $i, 'prenom' => 'Doc', 'tel' => '1000000' . $i, 'mot_de_passe' => Hash::make('password'), 'sexe' => $i % 2 == 0 ? 'Femme' : 'Homme', 'role' => 'medecin', 'ville' => 'Cotonou']);
+            $med = Utilisateur::create(['nom' => 'Medecin' . $i, 'prenom' => 'Doc', 'tel' => '1000000' . $i, 'mot_de_passe' => Hash::make('password'), 'sexe' => $i % 2 == 0 ? 'Femme' : 'Homme', 'role' => 'medecin', 'ville' => 'Cotonou']);
+            Connexion::create(['utilisateur_id' => $med->id, 'premiere_connexion' => false]);
+            $medecins[] = $med;
         }
 
         // Patients
@@ -160,6 +165,7 @@ class DatabaseSeeder extends Seeder
                 'mot_de_passe' => Hash::make('password'), 'sexe' => $i % 2 == 0 ? 'Femme' : 'Homme', 
                 'role' => 'patient', 'date_naissance' => Carbon::now()->subYears(rand(20, 60)), 'ville' => 'Cotonou'
             ]);
+            Connexion::create(['utilisateur_id' => $user->id, 'premiere_connexion' => false]);
             $patients[] = Patient::create(['utilisateur_id' => $user->id, 'taille' => rand(150, 190), 'poids' => rand(50, 100), 'adresse' => rand(1, 100) . ' Rue de la Santé', 'groupe_sanguin' => ['A+', 'B+', 'O+', 'AB+'][rand(0, 3)]]);
         }
 
