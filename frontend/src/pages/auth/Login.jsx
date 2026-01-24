@@ -2,15 +2,33 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import ThemeToggle from '../../components/ThemeToggle';
 import Logo from '../../components/common/Logo';
-import { utilisateurService } from '../../services';
+import authService from '../../services/auth/authService';
 
 const Login = () => {
+    const navigate = useNavigate();
     const [showPassword, setShowPassword] = useState(false);
     const [phone, setPhone] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const navigate = useNavigate();
+
+    // Check if already logged in and redirect to appropriate dashboard
+    React.useEffect(() => {
+        const token = localStorage.getItem('token');
+        const userString = localStorage.getItem('user');
+
+        if (token && userString) {
+            try {
+                const user = JSON.parse(userString);
+                if (user.role === 'admin') navigate('/admin');
+                else if (user.role === 'accueil') navigate('/accueil');
+                else if (user.role === 'medecin') navigate('/medecin');
+                else if (user.role === 'patient') navigate('/patient');
+            } catch (e) {
+                localStorage.clear();
+            }
+        }
+    }, [navigate]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -23,7 +41,7 @@ const Login = () => {
 
             // In a real app, we'd send the full international format or whatever the backend expects
             // Here we send what's in the input after +229
-            const response = await utilisateurService.loginByPhone(cleanPhone, password);
+            const response = await authService.loginByPhone(cleanPhone, password);
 
             // Store user info
             localStorage.setItem('user', JSON.stringify(response.user));
@@ -41,7 +59,7 @@ const Login = () => {
 
         } catch (err) {
             console.error('Login error:', err);
-            setError(err.response?.data?.message || 'Identifiants incorrects ou problème serveur.');
+            setError(err.response?.data?.message || 'Identifiants ou mot de passe invalides.');
         } finally {
             setLoading(false);
         }

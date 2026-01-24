@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import ReceptionLayout from '../../components/layouts/ReceptionLayout';
-import { patientService } from '../../services';
+import accueilService from '../../services/accueil/accueilService';
 
 const ListePatients = () => {
     const [search, setSearch] = useState('');
@@ -16,8 +16,9 @@ const ListePatients = () => {
         const fetchPatients = async () => {
             try {
                 setLoading(true);
-                const data = await patientService.getAllPatients();
-                setPatients(data);
+                const data = await accueilService.getPatients();
+                // Data might be paginated { data: [...] } or array [...]
+                setPatients(data.data || data);
             } catch (err) {
                 setError('Erreur lors du chargement des patients');
                 console.error(err);
@@ -66,7 +67,7 @@ const ListePatients = () => {
 
     return (
         <ReceptionLayout>
-            <div className="p-4 md:p-8 max-w-7xl mx-auto w-full flex flex-col gap-6 md:gap-8 transition-all duration-[800ms]">
+            <div className="p-4 md:p-8 max-w-[1600px] mx-auto w-full flex flex-col gap-6 md:gap-8 transition-all duration-[800ms]">
                 <div className="mb-2 md:mb-4 text-titles dark:text-white">
                     <h1 className="text-2xl md:text-3xl font-black text-titles dark:text-white tracking-tight leading-none italic uppercase">
                         Gestion des Dossiers Patients

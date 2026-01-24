@@ -4,7 +4,7 @@ import DoctorLayout from '../../components/layouts/DoctorLayout';
 const ResultatsMedecin = () => {
     return (
         <DoctorLayout>
-            <div className="p-4 md:p-8 max-w-7xl mx-auto w-full flex flex-col gap-6 md:gap-8 transition-all duration-[800ms]">
+            <div className="p-4 md:p-8 max-w-[1600px] mx-auto w-full flex flex-col gap-6 md:gap-8 transition-all duration-[800ms]">
                 <div className="flex flex-col gap-1">
                     <h1 className="text-2xl md:text-3xl font-black text-titles dark:text-white tracking-tight leading-none italic uppercase transition-all">Analyses & Résultats</h1>
                     <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 font-medium italic">Consultez les bilans biologiques et examens d'imagerie.</p>

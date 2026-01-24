@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import Logo from './common/Logo';
+import authService from '../services/auth/authService';
 
 const FirstLoginModal = ({ userPhone, onComplete }) => {
+    console.log('FirstLoginModal rendering with phone:', userPhone);
     const [formData, setFormData] = useState({
         phone: userPhone || '',
         newPassword: '',
@@ -9,27 +11,57 @@ const FirstLoginModal = ({ userPhone, onComplete }) => {
     });
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [success, setSuccess] = useState(false);
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+        setLoading(true);
 
         // Validation
         if (formData.newPassword.length < 8) {
             setError('Le mot de passe doit contenir au moins 8 caractères');
+            setLoading(false);
             return;
         }
 
         if (formData.newPassword !== formData.confirmPassword) {
             setError('Les mots de passe ne correspondent pas');
+            setLoading(false);
             return;
         }
 
-        // TODO: Appel API pour mettre à jour le mot de passe
-        // Pour l'instant, on simule le succès
-        onComplete();
+        try {
+            await authService.updatePassword({
+                nouveau_mot_de_passe: formData.newPassword,
+                nouveau_mot_de_passe_confirmation: formData.confirmPassword
+            });
+
+            setSuccess(true);
+            setTimeout(() => {
+                onComplete();
+            }, 2000);
+        } catch (err) {
+            setError(err.response?.data?.message || 'Erreur lors de la mise à jour.');
+        } finally {
+            setLoading(false);
+        }
     };
+
+    if (success) {
+        return (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+                <div className="bg-white dark:bg-slate-900 rounded-[2rem] p-12 max-w-sm w-full text-center space-y-4">
+                    <div className="size-16 bg-green-100 rounded-full flex items-center justify-center mx-auto text-green-600">
+                        <span className="material-symbols-outlined text-3xl">check_circle</span>
+                    </div>
+                    <h2 className="text-xl font-black text-titles dark:text-white uppercase italic">Activé !</h2>
+                    <p className="text-sm text-slate-500 italic">Votre mot de passe a été mis à jour.</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import AdminLayout from '../../components/layouts/AdminLayout';
-import { utilisateurService } from '../../services';
+import accueilService from '../../services/accueil/accueilService';
 
 const AdminUtilisateurs = () => {
     const [users, setUsers] = useState([]);

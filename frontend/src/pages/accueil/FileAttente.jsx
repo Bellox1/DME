@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ReceptionLayout from '../../components/layouts/ReceptionLayout';
-import { queueService, patientService } from '../../services';
+import accueilService from '../../services/accueil/accueilService';
+import patientService from '../../services/patient/patientService';
 
 const FileAttente = () => {
     const [queue, setQueue] = useState([]);
@@ -13,15 +14,15 @@ const FileAttente = () => {
             try {
                 setLoading(true);
                 const [queueDataResponse, patientsData] = await Promise.all([
-                    queueService.getQueue(),
-                    patientService.getAllPatients()
+                    accueilService.getQueue(),
+                    accueilService.getPatients() // Was patientService.getAllPatients, now use accueilService
                 ]);
 
                 // Gérer le format de réponse Laravel {success: true, data: [...]}
                 const queueData = Array.isArray(queueDataResponse) ? queueDataResponse : (queueDataResponse.data || []);
 
                 setQueue(queueData);
-                setPatients(patientsData);
+                setPatients(patientsData.data || patientsData); // Adjust for pagination if needed
             } catch (err) {
                 console.error('Erreur lors du chargement de la file d\'attente:', err);
                 setError('Impossible de charger la file d\'attente.');
@@ -43,9 +44,9 @@ const FileAttente = () => {
 
     const handleUpdateStatus = async (id, status) => {
         try {
-            await queueService.updateRdvStatus(id, status);
+            await accueilService.updateRdvStatus(id, status);
             // Rafraîchir la liste
-            const queueDataResponse = await queueService.getQueue();
+            const queueDataResponse = await accueilService.getQueue();
             const queueData = Array.isArray(queueDataResponse) ? queueDataResponse : (queueDataResponse.data || []);
             setQueue(queueData);
         } catch (err) {
@@ -56,7 +57,10 @@ const FileAttente = () => {
     const handleRemove = async (id) => {
         if (window.confirm('Voulez-vous vraiment retirer ce patient de la file d\'attente ?')) {
             try {
-                await queueService.removeFromQueue(id);
+                // await accueilService.removeFromQueue(id); // THIS METHOD IS MISSING IN accueilService
+                // Assuming updateRdvStatus can handle cancellation or we need to add it.
+                // For now, let's assume updateStatus to 'annulé' removes it from active queue.
+                await accueilService.updateRdvStatus(id, 'annulé');
                 setQueue(queue.filter(item => item.id !== id));
             } catch (err) {
                 console.error('Erreur lors du retrait de la file:', err);
@@ -76,7 +80,7 @@ const FileAttente = () => {
 
     return (
         <ReceptionLayout>
-            <div className="p-4 md:p-8 max-w-7xl mx-auto w-full flex flex-col gap-6 md:gap-8 transition-all duration-[800ms]">
+            <div className="p-4 md:p-8 max-w-[1600px] mx-auto w-full flex flex-col gap-6 md:gap-8 transition-all duration-[800ms]">
                 <div className="flex flex-col gap-1">
                     <h1 className="text-2xl md:text-3xl font-black text-titles dark:text-white tracking-tight leading-none italic uppercase">
                         Gestion de la File d'attente

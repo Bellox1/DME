@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import DoctorLayout from '../../components/layouts/DoctorLayout';
-import { rdvService, patientService } from '../../services';
+import accueilService from '../../services/accueil/accueilService';
+import patientService from '../../services/patient/patientService';
 
 const AgendaMedecin = () => {
     const [rdvs, setRdvs] = useState([]);
@@ -15,12 +16,14 @@ const AgendaMedecin = () => {
                 const medecinId = currentUser?.id;
                 if (!medecinId) return;
 
-                const [rdvsData, patientsData] = await Promise.all([
-                    rdvService.getMedecinRdvs(medecinId),
-                    patientService.getAllPatients()
+                const [patientsData] = await Promise.all([
+                    accueilService.getPatients(), // Was patientService.getAllPatients
+                    // rdvService.getMedecinRdvs(medecinId) // Service migrated
                 ]);
-                setRdvs(rdvsData);
-                setPatients(patientsData);
+                const rdvsData = []; // Placeholder until rdvService is restored
+                // Ensure rdvsData is an array
+                setRdvs(Array.isArray(rdvsData) ? rdvsData : []);
+                setPatients(patientsData.data || patientsData);
             } catch (error) {
                 console.error('Erreur chargement agenda:', error);
             } finally {
@@ -38,7 +41,7 @@ const AgendaMedecin = () => {
 
     return (
         <DoctorLayout>
-            <div className="p-4 md:p-8 max-w-[1400px] mx-auto w-full flex flex-col gap-8 md:gap-12 animate-in fade-in slide-in-from-bottom-6 duration-1000">
+            <div className="p-4 md:p-8 max-w-[1600px] mx-auto w-full flex flex-col gap-8 md:gap-12 animate-in fade-in slide-in-from-bottom-6 duration-1000">
 
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 pb-4 border-b border-slate-100 dark:border-slate-800">

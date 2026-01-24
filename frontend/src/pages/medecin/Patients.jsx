@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import DoctorLayout from '../../components/layouts/DoctorLayout';
-import { patientService } from '../../services';
+import medecinService from '../../services/medecin/medecinService';
 
 const ListePatientsMedecin = () => {
     const [search, setSearch] = useState('');
@@ -13,8 +13,9 @@ const ListePatientsMedecin = () => {
         const fetchPatients = async () => {
             try {
                 setLoading(true);
-                const data = await patientService.getAllPatients();
-                setPatients(data);
+                const data = await medecinService.searchPatients('');
+                // Data might be paginated { data: [...] } or array [...]
+                setPatients(data.data || data);
             } catch (err) {
                 setError('Erreur lors du chargement des patients');
                 console.error(err);
@@ -28,7 +29,7 @@ const ListePatientsMedecin = () => {
 
     return (
         <DoctorLayout>
-            <div className="p-4 md:p-8 max-w-[1500px] mx-auto w-full flex flex-col gap-8 md:gap-12 animate-in fade-in slide-in-from-bottom-8 duration-1000">
+            <div className="p-4 md:p-8 max-w-[1600px] mx-auto w-full flex flex-col gap-8 md:gap-12 animate-in fade-in slide-in-from-bottom-8 duration-1000">
 
                 {/* Header Section */}
                 <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-8 pb-6 border-b border-slate-100 dark:border-slate-800">

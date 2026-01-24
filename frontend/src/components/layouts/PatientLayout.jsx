@@ -15,9 +15,15 @@ const PatientLayout = ({ children }) => {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isSwitchOpen, setIsSwitchOpen] = useState(false);
 
-    // Mock data for profiles
+    // Informations de l'utilisateur connecté
+    const [user] = useState(() => {
+        const saved = localStorage.getItem('user');
+        return saved ? JSON.parse(saved) : { nom: 'Utilisateur', prenom: '', role: 'patient' };
+    });
+
+    // Mock data for profiles (pourrait être dynamisé plus tard via une API)
     const [profiles] = useState([
-        { id: 1, name: 'Alice Patient', role: 'Titulaire', initial: 'AP', color: 'bg-primary' },
+        { id: 1, name: `${user.prenom} ${user.nom}`, role: 'Titulaire', initial: `${user.prenom?.[0] || ''}${user.nom?.[0] || ''}`, color: 'bg-primary' },
         { id: 2, name: 'Léo Patient', role: 'Enfant', initial: 'LP', color: 'bg-blue-500' },
         { id: 3, name: 'Maya Patient', role: 'Enfant', initial: 'MP', color: 'bg-pink-500' },
     ]);
@@ -47,6 +53,11 @@ const PatientLayout = ({ children }) => {
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    const handleLogout = () => {
+        localStorage.clear();
+        window.location.href = '/login';
+    };
 
     // Menu structure for Patients
     const menuSections = [
@@ -136,15 +147,15 @@ const PatientLayout = ({ children }) => {
                             </div>
                         )}
 
-                        <Link
-                            to="/login"
+                        <button
+                            onClick={handleLogout}
                             className={`flex items-center rounded-xl h-11 bg-slate-50 dark:bg-slate-800 text-titles dark:text-white text-[13px] font-bold transition-all duration-200 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 ${isSidebarOpen ? 'px-4 gap-2 w-full' : 'justify-center w-full'
                                 }`}
                             title={!isSidebarOpen ? 'Déconnexion' : ''}
                         >
                             <span className="material-symbols-outlined text-[20px]">logout</span>
                             {isSidebarOpen && <span className="whitespace-nowrap">Déconnexion</span>}
-                        </Link>
+                        </button>
                     </div>
                 </div>
             </aside>
@@ -207,7 +218,7 @@ const PatientLayout = ({ children }) => {
                                         }`}
                                 >
                                     <div className="bg-primary size-9 rounded-full flex items-center justify-center overflow-hidden shadow-sm shadow-primary/20 text-white text-xs font-black">
-                                        AP
+                                        {(user.prenom?.[0] || '')}{(user.nom?.[0] || '')}
                                     </div>
                                     <span className="material-symbols-outlined text-[18px] text-slate-400 transition-transform duration-300" style={{ transform: isProfileOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
                                         expand_more
@@ -220,11 +231,11 @@ const PatientLayout = ({ children }) => {
                                         <div className="p-5 border-b border-slate-100 dark:border-[#2d363f] bg-slate-50/50 dark:bg-[#252c35]/50">
                                             <div className="flex items-center gap-3">
                                                 <div className="size-12 rounded-full bg-primary flex items-center justify-center text-white text-xl font-black">
-                                                    AP
+                                                    {(user.prenom?.[0] || '')}{(user.nom?.[0] || '')}
                                                 </div>
                                                 <div className="flex flex-col">
-                                                    <p className="text-sm font-bold text-titles dark:text-white">Alice Patient</p>
-                                                    <p className="text-[11px] text-[#6c757f] font-medium">Responsable Compte</p>
+                                                    <p className="text-sm font-bold text-titles dark:text-white">{user.prenom} {user.nom}</p>
+                                                    <p className="text-[11px] text-[#6c757f] font-medium">Patient</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -249,10 +260,13 @@ const PatientLayout = ({ children }) => {
                                             </Link>
                                         </div>
                                         <div className="p-2 border-t border-slate-100 dark:border-[#2d363f] bg-slate-50/30 dark:bg-slate-900/30">
-                                            <Link to="/login" className="flex items-center gap-3 p-3 rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-all font-bold text-sm">
+                                            <button
+                                                onClick={handleLogout}
+                                                className="w-full flex items-center gap-3 p-3 rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-all font-bold text-sm text-left"
+                                            >
                                                 <span className="material-symbols-outlined text-[20px]">logout</span>
                                                 <span>Se déconnecter</span>
-                                            </Link>
+                                            </button>
                                         </div>
                                     </div>
                                 )}

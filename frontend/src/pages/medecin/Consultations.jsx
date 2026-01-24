@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import DoctorLayout from '../../components/layouts/DoctorLayout';
-import { consultationService, patientService } from '../../services';
+import medecinService from '../../services/medecin/medecinService';
+import patientService from '../../services/patient/patientService';
 
 const ConsultationsMedecin = () => {
     const [consultations, setConsultations] = useState([]);

@@ -1,10 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import ReceptionLayout from '../../components/layouts/ReceptionLayout';
-import { utilisateurService, patientService } from '../../services';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+import api from '../../services/api';
 
 const EnregistrementPatient = () => {
     const navigate = useNavigate();
@@ -31,6 +28,7 @@ const EnregistrementPatient = () => {
         adresse: '',
         date_naissance: '',
         groupe_sanguin: '',
+        ville: '', // Added ville
 
         // Tuteur link (if dependant)
         tuteur_tel_recherche: '',
@@ -52,25 +50,30 @@ const EnregistrementPatient = () => {
             setError(null);
 
             if (patientType === 'autonome') {
-                // Créer l'utilisateur via la route register (ou utilisateurService)
-                const utilisateurData = {
+                // Use the new /patients endpoint which handles User + Patient creation and notifications
+                const payload = {
                     nom: formData.nom,
                     prenom: formData.prenom,
                     tel: formData.tel,
                     whatsapp: formData.whatsapp,
-                    mot_de_passe: formData.mot_de_passe || 'password123',
                     sexe: formData.sexe,
                     date_naissance: formData.date_naissance || null,
-                    ville: formData.adresse || ''
+                    ville: formData.adresse, // Mapping adresse to ville if needed, or separate
+                    adresse: formData.adresse,
+                    groupe_sanguin: formData.groupe_sanguin,
+                    taille: formData.taille,
+                    poids: formData.poids
                 };
 
-                await utilisateurService.createUtilisateur(utilisateurData);
+                await api.post('/patients', payload);
+
             } else {
-                // Inscription enfant via /api/enfants
+                // Inscription enfant (Legacy or provided by distinct controller)
                 if (!formData.tuteur_id) {
                     throw new Error('Veuillez sélectionner un tuteur au préalable.');
                 }
-                await axios.post(`${API_BASE_URL}/enfants`, {
+                // Assuming /api/enfants exists and works as before, just switching to api instance
+                await api.post(`/enfants`, {
                     parent_id: formData.tuteur_id,
                     nom: formData.nom,
                     prenom: formData.prenom,
@@ -85,7 +88,7 @@ const EnregistrementPatient = () => {
             }, 2000);
 
         } catch (err) {
-            setError(err.response?.data?.error || err.response?.data?.message || 'Erreur lors de l\'enregistrement. Veuillez réessayer.');
+            setError(err.response?.data?.message || err.response?.data?.error || 'Erreur lors de l\'enregistrement. Veuillez réessayer.');
             console.error(err);
         } finally {
             setLoading(false);
@@ -122,7 +125,7 @@ const EnregistrementPatient = () => {
 
     return (
         <ReceptionLayout>
-            <div className="p-4 md:p-8 max-w-5xl mx-auto w-full flex flex-col gap-6 md:gap-10 transition-all duration-[800ms]">
+            <div className="p-4 md:p-8 max-w-[1600px] mx-auto w-full flex flex-col gap-6 md:gap-10 transition-all duration-[800ms]">
                 <div className="flex flex-col gap-2">
                     <h1 className="text-2xl md:text-3xl font-black text-titles dark:text-white tracking-tight leading-none uppercase italic">
                         Enregistrement Patient

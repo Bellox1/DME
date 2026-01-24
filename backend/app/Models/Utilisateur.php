@@ -52,4 +52,36 @@ class Utilisateur extends Authenticatable
     {
         return $this->hasOne(Patient::class, 'utilisateur_id');
     }
+
+    public function connexion(): HasOne
+    {
+        return $this->hasOne(Connexion::class, 'utilisateur_id');
+    }
+
+    /**
+     * Check if the user has a specific permission based on their role.
+     */
+    public function hasPermission(string $permissionName): bool
+    {
+        // Admin has all permissions usually, but let's stick to DB logic
+        // 1. Get Role ID from the name stored in 'role' column
+        $roleId = \Illuminate\Support\Facades\DB::table('roles')
+            ->where('nom', $this->role)
+            ->value('id');
+
+        if (!$roleId) return false;
+
+        // 2. Get Permission ID
+        $permId = \Illuminate\Support\Facades\DB::table('permissions')
+            ->where('nom', $permissionName)
+            ->value('id');
+
+        if (!$permId) return false;
+
+        // 3. Check existance in role_permissions
+        return \Illuminate\Support\Facades\DB::table('role_permissions')
+            ->where('role_id', $roleId)
+            ->where('permission_id', $permId)
+            ->exists();
+    }
 }

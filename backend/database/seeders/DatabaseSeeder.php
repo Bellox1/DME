@@ -131,6 +131,18 @@ class DatabaseSeeder extends Seeder
         Utilisateur::create(['nom' => 'Admin', 'prenom' => 'System', 'tel' => '00000001', 'mot_de_passe' => Hash::make('password'), 'sexe' => 'Homme', 'role' => 'admin']);
         Utilisateur::create(['nom' => 'Accueil', 'prenom' => 'Service', 'tel' => '00000002', 'mot_de_passe' => Hash::make('password'), 'sexe' => 'Femme', 'role' => 'accueil']);
         
+        // Utilisateur spécifique NON Connecté pour Test Premier Login
+        $testUser = Utilisateur::create([
+            'nom' => 'Test', 
+            'prenom' => 'Login', 
+            'tel' => '0146862536', 
+            'mot_de_passe' => Hash::make('password'), 
+            'sexe' => 'Homme', 
+            'role' => 'patient'
+        ]);
+        Patient::create(['utilisateur_id' => $testUser->id]);
+        Connexion::create(['utilisateur_id' => $testUser->id, 'premiere_connexion' => true]);
+        
         $medecins = [];
         for ($i = 1; $i <= 5; $i++) {
             $medecins[] = Utilisateur::create(['nom' => 'Medecin' . $i, 'prenom' => 'Doc', 'tel' => '1000000' . $i, 'mot_de_passe' => Hash::make('password'), 'sexe' => $i % 2 == 0 ? 'Femme' : 'Homme', 'role' => 'medecin', 'ville' => 'Cotonou']);

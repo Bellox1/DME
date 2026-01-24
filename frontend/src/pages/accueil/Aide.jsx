@@ -21,7 +21,7 @@ const AideReception = () => {
 
     return (
         <ReceptionLayout>
-            <div className="p-8 max-w-5xl mx-auto w-full flex flex-col gap-12 transition-all duration-[800ms]">
+            <div className="p-8 max-w-[1600px] mx-auto w-full flex flex-col gap-12 transition-all duration-[800ms]">
                 <div className="text-center space-y-4">
                     <h1 className="text-4xl font-black text-titles dark:text-white tracking-tight">Guide d'Utilisation Accueil</h1>
                     <p className="text-slate-500 dark:text-slate-400 font-medium">Maîtrisez les outils de réception et de gestion des flux.</p>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ReceptionLayout from '../../components/layouts/ReceptionLayout';
-import { demandeRdvService, patientService } from '../../services';
+import accueilService from '../../services/accueil/accueilService';
+import patientService from '../../services/patient/patientService';
 
 const DemandesRdv = () => {
     const [demandes, setDemandes] = useState([]);
@@ -92,7 +93,7 @@ const DemandesRdv = () => {
 
     return (
         <ReceptionLayout>
-            <div className="p-4 md:p-8 max-w-7xl mx-auto w-full flex flex-col gap-6 md:gap-8 transition-all duration-[800ms]">
+            <div className="p-4 md:p-8 max-w-[1600px] mx-auto w-full flex flex-col gap-6 md:gap-8 transition-all duration-[800ms]">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div className="flex flex-col gap-1">

@@ -4,7 +4,7 @@ import PatientLayout from '../../components/layouts/PatientLayout';
 const Dossier = () => {
     return (
         <PatientLayout>
-            <div className="p-8 max-w-7xl mx-auto w-full flex flex-col gap-8 transition-all duration-[800ms]">
+            <div className="p-8 max-w-[1600px] mx-auto w-full flex flex-col gap-8 transition-all duration-[800ms]">
                 <div className="flex flex-col gap-1">
                     <h1 className="text-3xl font-black text-titles dark:text-white tracking-tight">Mon Dossier Médical</h1>
                     <p className="text-slate-500 dark:text-slate-400 font-medium">L'ensemble de vos données de santé centralisées.</p>

@@ -4,9 +4,14 @@ import DoctorLayout from '../../components/layouts/DoctorLayout';
 const DoctorProfil = () => {
     const [activeTab, setActiveTab] = useState('general');
 
+    const [user] = useState(() => {
+        const saved = localStorage.getItem('user');
+        return saved ? JSON.parse(saved) : { nom: '', prenom: '', role: 'medecin', tel: '', whatsapp: '', sexe: 'F' };
+    });
+
     return (
         <DoctorLayout>
-            <div className="p-4 md:p-8 max-w-6xl mx-auto w-full flex flex-col gap-8 md:gap-12 transition-all duration-[800ms]">
+            <div className="p-4 md:p-8 max-w-[1600px] mx-auto w-full flex flex-col gap-8 md:gap-12 transition-all duration-[800ms]">
                 {/* Header avec Bannière Premium */}
                 <div className="relative">
                     {/* Bannière */}
@@ -15,11 +20,11 @@ const DoctorProfil = () => {
 
                         {/* Nom et Rôle SUR l'arrière-plan */}
                         <div className="absolute bottom-6 md:bottom-10 left-36 md:left-48 right-6 flex flex-col gap-1 md:ml-4 animate-in fade-in slide-in-from-left-4 duration-700">
-                            <h1 className="text-xl sm:text-2xl md:text-4xl font-black text-white drop-shadow-lg tracking-tight uppercase italic transition-all leading-tight">Dr. Sarah Kone</h1>
+                            <h1 className="text-xl sm:text-2xl md:text-4xl font-black text-white drop-shadow-lg tracking-tight uppercase italic transition-all leading-tight">Dr. {user.prenom} {user.nom}</h1>
                             <div className="flex items-center gap-2">
-                                <span className="px-2 py-0.5 bg-white/20 backdrop-blur-md rounded-md text-[9px] md:text-[10px] font-bold text-white uppercase tracking-widest border border-white/30">MÉDECIN CARDIOLOGUE</span>
+                                <span className="px-2 py-0.5 bg-white/20 backdrop-blur-md rounded-md text-[9px] md:text-[10px] font-bold text-white uppercase tracking-widest border border-white/30">MÉDECIN</span>
                                 <span className="size-1.5 rounded-full bg-green-400 shadow-sm animate-pulse"></span>
-                                <span className="text-[10px] md:text-xs text-white/90 font-bold uppercase tracking-wide italic">Médecin</span>
+                                <span className="text-[10px] md:text-xs text-white/90 font-bold uppercase tracking-wide italic">Session Professionnelle</span>
                             </div>
                         </div>
                     </div>
@@ -76,18 +81,18 @@ const DoctorProfil = () => {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                         <div className="space-y-2.5">
                                             <label className="text-[11px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-[0.15em] pl-1">Nom</label>
-                                            <input type="text" defaultValue="KONE" className="w-full h-14 bg-slate-50 dark:bg-slate-800/50 border-2 border-transparent focus:border-primary/20 rounded-2xl px-5 text-sm font-bold text-titles dark:text-white transition-all outline-none" />
+                                            <input type="text" defaultValue={user.nom} className="w-full h-14 bg-slate-50 dark:bg-slate-800/50 border-2 border-transparent focus:border-primary/20 rounded-2xl px-5 text-sm font-bold text-titles dark:text-white transition-all outline-none" />
                                         </div>
                                         <div className="space-y-2.5">
                                             <label className="text-[11px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-[0.15em] pl-1">Prénom</label>
-                                            <input type="text" defaultValue="Sarah" className="w-full h-14 bg-slate-50 dark:bg-slate-800/50 border-2 border-transparent focus:border-primary/20 rounded-2xl px-5 text-sm font-bold text-titles dark:text-white transition-all outline-none" />
+                                            <input type="text" defaultValue={user.prenom} className="w-full h-14 bg-slate-50 dark:bg-slate-800/50 border-2 border-transparent focus:border-primary/20 rounded-2xl px-5 text-sm font-bold text-titles dark:text-white transition-all outline-none" />
                                         </div>
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                         <div className="space-y-2.5">
                                             <label className="text-[11px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-[0.15em] pl-1">Sexe</label>
-                                            <select className="w-full h-14 bg-slate-50 dark:bg-slate-800/50 border-2 border-transparent focus:border-primary/20 rounded-2xl px-5 text-sm font-bold text-titles dark:text-white transition-all outline-none appearance-none cursor-pointer">
+                                            <select defaultValue={user.sexe === 'Homme' ? 'M' : 'F'} className="w-full h-14 bg-slate-50 dark:bg-slate-800/50 border-2 border-transparent focus:border-primary/20 rounded-2xl px-5 text-sm font-bold text-titles dark:text-white transition-all outline-none appearance-none cursor-pointer">
                                                 <option value="F">Féminin</option>
                                                 <option value="M">Masculin</option>
                                             </select>
@@ -96,7 +101,7 @@ const DoctorProfil = () => {
                                             <label className="text-[11px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-[0.15em] pl-1">Numéro de Téléphone</label>
                                             <div className="relative">
                                                 <span className="absolute left-5 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-400 text-[20px]">call</span>
-                                                <input type="tel" defaultValue="+229 60 70 80 90" className="w-full h-14 bg-slate-50 dark:bg-slate-800/50 border-2 border-transparent focus:border-primary/20 rounded-2xl pl-12 pr-5 text-sm font-bold text-titles dark:text-white transition-all outline-none" />
+                                                <input type="tel" defaultValue={user.tel} className="w-full h-14 bg-slate-50 dark:bg-slate-800/50 border-2 border-transparent focus:border-primary/20 rounded-2xl pl-12 pr-5 text-sm font-bold text-titles dark:text-white transition-all outline-none" />
                                             </div>
                                         </div>
                                     </div>
@@ -106,22 +111,7 @@ const DoctorProfil = () => {
                                             <label className="text-[11px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-[0.15em] pl-1">WhatsApp</label>
                                             <div className="relative">
                                                 <span className="absolute left-5 top-1/2 -translate-y-1/2 material-symbols-outlined text-green-500 text-[20px]">chat</span>
-                                                <input type="tel" defaultValue="+229 60 70 80 90" className="w-full h-14 bg-slate-50 dark:bg-slate-800/50 border-2 border-transparent focus:border-primary/20 rounded-2xl pl-12 pr-5 text-sm font-bold text-titles dark:text-white transition-all outline-none" />
-                                            </div>
-                                        </div>
-                                        <div className="space-y-2.5">
-                                            <label className="text-[11px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-[0.15em] pl-1">Spécialité</label>
-                                            <div className="h-14 bg-slate-50/50 dark:bg-slate-800/30 rounded-2xl px-5 flex items-center text-sm font-bold text-titles dark:text-white border border-transparent italic">
-                                                Cardiologie & Urgences
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                        <div className="space-y-2.5 md:col-span-2">
-                                            <label className="text-[11px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-[0.15em] pl-1">Numéro d'Ordre</label>
-                                            <div className="h-14 bg-slate-50/50 dark:bg-slate-800/30 rounded-2xl px-5 flex items-center text-sm font-bold text-titles dark:text-white border border-transparent italic">
-                                                BEN-MED-4589
+                                                <input type="tel" defaultValue={user.whatsapp} className="w-full h-14 bg-slate-50 dark:bg-slate-800/50 border-2 border-transparent focus:border-primary/20 rounded-2xl pl-12 pr-5 text-sm font-bold text-titles dark:text-white transition-all outline-none" />
                                             </div>
                                         </div>
                                     </div>
@@ -148,16 +138,16 @@ const DoctorProfil = () => {
                                 <form className="space-y-8" onSubmit={e => e.preventDefault()}>
                                     <div className="space-y-2.5">
                                         <label className="text-[11px] font-black uppercase text-slate-400 tracking-wider pl-1">Mot de passe actuel</label>
-                                        <input type="password" placeholder="••••••••••••" className="w-full h-14 bg-slate-50 dark:bg-slate-800/50 border-none rounded-2xl px-5 text-sm font-bold text-titles dark:text-white focus:ring-2 focus:ring-orange-500/20 transition-all outline-none" />
+                                        <input type="password" placeholder="Saisir votre mot de passe actuel" autoComplete="new-password" className="w-full h-14 bg-slate-50 dark:bg-slate-800/50 border-none rounded-2xl px-5 text-sm font-bold text-titles dark:text-white focus:ring-2 focus:ring-orange-500/20 transition-all outline-none" />
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                         <div className="space-y-2.5">
                                             <label className="text-[11px] font-black uppercase text-slate-400 tracking-wider pl-1">Nouveau mot de passe</label>
-                                            <input type="password" placeholder="••••••••••••" className="w-full h-14 bg-slate-50 dark:bg-slate-800/50 border-none rounded-2xl px-5 text-sm font-bold text-titles dark:text-white focus:ring-2 focus:ring-primary/20 transition-all outline-none" />
+                                            <input type="password" placeholder="Nouveau mot de passe" autoComplete="new-password" className="w-full h-14 bg-slate-50 dark:bg-slate-800/50 border-none rounded-2xl px-5 text-sm font-bold text-titles dark:text-white focus:ring-2 focus:ring-primary/20 transition-all outline-none" />
                                         </div>
                                         <div className="space-y-2.5">
                                             <label className="text-[11px] font-black uppercase text-slate-400 tracking-wider pl-1">Confirmer le nouveau</label>
-                                            <input type="password" placeholder="••••••••••••" className="w-full h-14 bg-slate-50 dark:bg-slate-800/50 border-none rounded-2xl px-5 text-sm font-bold text-titles dark:text-white focus:ring-2 focus:ring-primary/20 transition-all outline-none" />
+                                            <input type="password" placeholder="Confirmer le nouveau mot de passe" autoComplete="new-password" className="w-full h-14 bg-slate-50 dark:bg-slate-800/50 border-none rounded-2xl px-5 text-sm font-bold text-titles dark:text-white focus:ring-2 focus:ring-primary/20 transition-all outline-none" />
                                         </div>
                                     </div>
                                     <div className="pt-6">
