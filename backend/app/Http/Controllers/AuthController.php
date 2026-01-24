@@ -32,7 +32,7 @@ class AuthController extends Controller
         }
 
         try {
-            DB::beginTransaction();
+            DB::beginTransaction( );
 
             $tel = $request->tel;
             $whatsapp = $request->whatsapp;
