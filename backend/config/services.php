@@ -35,4 +35,12 @@ return [
         ],
     ],
 
+
+    'jwt' => [
+        'access_secret' => env('JWT_ACCESS_SECRET'),
+        'refresh_secret' => env('JWT_REFRESH_SECRET'),
+        'access_ttl' => 15, // Durée de vie de l'access token en minutes
+    ],
+
+
 ];
