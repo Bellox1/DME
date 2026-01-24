@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
 import ReceptionLayout from '../../components/layouts/ReceptionLayout';
+import { utilisateurService } from '../../services';
 
 const EnregistrementPatient = () => {
     const [step, setStep] = useState(1);
     const [patientType, setPatientType] = useState('autonome'); // 'autonome' or 'dependant'
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const [success, setSuccess] = useState(false);
 
     // Form state
     const [formData, setFormData] = useState({
@@ -35,6 +39,49 @@ const EnregistrementPatient = () => {
             ...prev,
             [name]: type === 'checkbox' ? checked : value
         }));
+    };
+
+    const handleSubmit = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+
+            // Créer l'utilisateur via la route register
+            const utilisateurData = {
+                nom: formData.nom,
+                prenom: formData.prenom,
+                tel: formData.tel,
+                whatsapp: formData.whatsapp,
+                mot_de_passe: formData.mot_de_passe || 'password123',
+                sexe: formData.sexe,
+                date_naissance: formData.date_naissance || null,
+                ville: '' // Optionnel
+            };
+
+            const response = await utilisateurService.createUtilisateur(utilisateurData);
+            
+            // Le patient est créé automatiquement par la route register
+            // Pas besoin d'appeler createPatient séparément
+            console.log('Utilisateur et patient créés:', response);
+
+            setSuccess(true);
+            // Réinitialiser le formulaire après 3 secondes
+            setTimeout(() => {
+                setSuccess(false);
+                setStep(1);
+                setFormData({
+                    nom: '', prenom: '', tel: '', whatsapp: '', mot_de_passe: '', sexe: 'Homme', est_tuteur: false,
+                    taille: '', poids: '', adresse: '', date_naissance: '', groupe_sanguin: '',
+                    tuteur_tel_recherche: '', tuteur_id: null, tuteur_nom_complet: ''
+                });
+            }, 3000);
+
+        } catch (err) {
+            setError('Erreur lors de l\'enregistrement. Veuillez réessayer.');
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const nextStep = () => setStep(s => Math.min(4, s + 1));
@@ -263,9 +310,22 @@ const EnregistrementPatient = () => {
                         </button>
 
                         {step === 4 ? (
-                            <button className="h-14 px-12 bg-primary text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 w-full sm:w-auto">
-                                <span className="material-symbols-outlined text-[20px]">how_to_reg</span>
-                                Finaliser l'inscription
+                            <button 
+                                onClick={handleSubmit}
+                                disabled={loading}
+                                className="h-14 px-12 bg-primary text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {loading ? (
+                                    <>
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                        Enregistrement en cours...
+                                    </>
+                                ) : (
+                                    <>
+                                        <span className="material-symbols-outlined text-[20px]">how_to_reg</span>
+                                        Finaliser l'inscription
+                                    </>
+                                )}
                             </button>
                         ) : (
                             <button
@@ -278,6 +338,19 @@ const EnregistrementPatient = () => {
                         )}
                     </div>
                 </div>
+
+                {/* Messages d'erreur et de succès */}
+                {error && (
+                    <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-2xl p-4 text-red-600 dark:text-red-400 text-sm font-medium">
+                        {error}
+                    </div>
+                )}
+
+                {success && (
+                    <div className="bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 rounded-2xl p-4 text-green-600 dark:text-green-400 text-sm font-medium">
+                        ✅ Patient enregistré avec succès ! Redirection...
+                    </div>
+                )}
 
                 {/* Status Indicator */}
                 <div className="p-6 rounded-[2rem] bg-indigo-50/50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-900/20 flex gap-5 items-center animate-pulse">
