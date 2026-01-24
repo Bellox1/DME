@@ -1,4 +1,3 @@
-
 <?php
 // Validation Accueil
 Route::patch('/demande-rdv/{id}/valider', [App\Http\Controllers\DemandeRdvController::class, 'valider']);
@@ -13,8 +12,9 @@ use App\Http\Controllers\Api\QueueController;
 use App\Http\Controllers\Api\ConsultationController;
 use App\Http\Controllers\Api\PrescriptionController;
 use App\Http\Controllers\Api\MedicalHistoryController;
-use App\Http\Controllers\Api\OrdonnanceController;
-
+use App\Http\Controllers\Api\OrdonnanceControluse Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AuthController; 
+use App\Http\Controllers\PatientController;
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
@@ -53,3 +53,18 @@ Route::get('/patients', [PatientController::class, 'index']);
     // PDF
     Route::get('/consultations/{id}/pdf', [OrdonnanceController::class, 'generate']);
 // });
+                            // --- Routes Publiques ---
+Route::post('/login', [AuthController::class, 'login']);
+Route::post('/update-password', [AuthController::class, 'updatePassword']);
+
+// --- Routes Sécurisées (Nécessitent un Token) ---
+Route::middleware('auth:sanctum')->group(function () {
+    
+    // Enregistrement d'un nouveau patient (Adulte ou Enfant)
+    Route::post('/patients/enregistrer', [PatientController::class, 'enregistrer']);
+    
+    // Le HUB : Récupérer mon dossier et ceux de mes enfants
+    Route::get('/mes-dossiers', [PatientController::class, 'getMesDossiers']);
+    
+});
+
