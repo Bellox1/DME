@@ -12,10 +12,14 @@ const FileAttente = () => {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                const [queueData, patientsData] = await Promise.all([
+                const [queueDataResponse, patientsData] = await Promise.all([
                     queueService.getQueue(),
                     patientService.getAllPatients()
                 ]);
+
+                // Gérer le format de réponse Laravel {success: true, data: [...]}
+                const queueData = Array.isArray(queueDataResponse) ? queueDataResponse : (queueDataResponse.data || []);
+
                 setQueue(queueData);
                 setPatients(patientsData);
             } catch (err) {
@@ -41,7 +45,8 @@ const FileAttente = () => {
         try {
             await queueService.updateRdvStatus(id, status);
             // Rafraîchir la liste
-            const queueData = await queueService.getQueue();
+            const queueDataResponse = await queueService.getQueue();
+            const queueData = Array.isArray(queueDataResponse) ? queueDataResponse : (queueDataResponse.data || []);
             setQueue(queueData);
         } catch (err) {
             console.error('Erreur lors de la mise à jour du statut:', err);
@@ -129,8 +134,8 @@ const FileAttente = () => {
                                                 </td>
                                                 <td className="px-6 py-6">
                                                     <span className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase ${row.statut === 'urgent' ? 'bg-red-100 text-red-600' :
-                                                            row.statut === 'en_cours' ? 'bg-primary/10 text-primary' :
-                                                                'bg-blue-100 text-blue-600'
+                                                        row.statut === 'en_cours' ? 'bg-primary/10 text-primary' :
+                                                            'bg-blue-100 text-blue-600'
                                                         }`}>
                                                         {row.statut || 'En attente'}
                                                     </span>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import DoctorLayout from '../../components/layouts/DoctorLayout';
 import { patientService } from '../../services';
 
@@ -142,12 +143,27 @@ const ListePatientsMedecin = () => {
                                             </td>
                                             <td className="px-8 py-7 text-right">
                                                 <div className="flex justify-end gap-3 translate-x-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-500">
-                                                    <button className="size-12 rounded-2xl bg-primary text-white flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-xl shadow-primary/20">
-                                                        <span className="material-symbols-outlined text-[24px]">folder_shared</span>
-                                                    </button>
-                                                    <button className="size-12 rounded-2xl bg-white dark:bg-slate-800 text-slate-400 border border-slate-100 dark:border-slate-700 flex items-center justify-center hover:text-primary transition-all">
-                                                        <span className="material-symbols-outlined text-[24px]">edit_note</span>
-                                                    </button>
+                                                    <Link
+                                                        to={`/medecin/consultations?patient=${patient.id}`}
+                                                        className="size-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center hover:bg-primary hover:text-white transition-all shadow-sm border border-primary/20"
+                                                        title="Historique des consultations"
+                                                    >
+                                                        <span className="material-symbols-outlined text-[24px]">history</span>
+                                                    </Link>
+                                                    <Link
+                                                        to={`/medecin/consultations?new=true&patient=${patient.id}`}
+                                                        className="size-12 rounded-2xl bg-primary text-white flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-xl shadow-primary/20"
+                                                        title="Nouvelle Consultation"
+                                                    >
+                                                        <span className="material-symbols-outlined text-[24px]">stethoscope</span>
+                                                    </Link>
+                                                    <Link
+                                                        to={`/medecin/ordonnances?new=true&patient=${patient.id}`}
+                                                        className="size-12 rounded-2xl bg-white dark:bg-slate-800 text-slate-400 border border-slate-100 dark:border-slate-700 flex items-center justify-center hover:text-primary transition-all"
+                                                        title="Nouvelle Ordonnance"
+                                                    >
+                                                        <span className="material-symbols-outlined text-[24px]">prescriptions</span>
+                                                    </Link>
                                                 </div>
                                             </td>
                                         </tr>

@@ -14,10 +14,13 @@ const ReceptionDashboard = () => {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                const [patientsData, queueData] = await Promise.all([
+                const [patientsData, queueDataResponse] = await Promise.all([
                     patientService.getAllPatients(),
                     queueService.getQueue().catch(() => [])
                 ]);
+
+                const queueData = Array.isArray(queueDataResponse) ? queueDataResponse : (queueDataResponse.data || []);
+
                 setPatients(patientsData);
                 setQueue(queueData);
             } catch (err) {

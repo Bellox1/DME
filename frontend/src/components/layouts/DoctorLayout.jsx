@@ -12,6 +12,10 @@ const DoctorLayout = ({ children }) => {
         return saved === null ? true : saved === 'true';
     });
     const [isProfileOpen, setIsProfileOpen] = useState(false);
+    const [user, setUser] = useState(() => {
+        const saved = localStorage.getItem('user');
+        return saved ? JSON.parse(saved) : { nom: '', prenom: '', role: 'medecin' };
+    });
 
     useEffect(() => {
         localStorage.setItem('sidebar-expanded-doctor', isSidebarOpen);
@@ -208,11 +212,11 @@ const DoctorLayout = ({ children }) => {
                                         <div className="p-5 border-b border-slate-100 dark:border-[#2d363f] bg-slate-50/50 dark:bg-[#252c35]/50">
                                             <div className="flex items-center gap-3">
                                                 <div className="size-12 rounded-full bg-primary flex items-center justify-center text-white text-xl font-black">
-                                                    DR
+                                                    {(user.prenom?.[0] || 'D')}{(user.nom?.[0] || 'R')}
                                                 </div>
                                                 <div className="flex flex-col">
-                                                    <p className="text-sm font-bold text-titles dark:text-white">Dr. Sarah Kone</p>
-                                                    <p className="text-[11px] text-[#6c757f] font-medium uppercase tracking-widest">Cardiologue</p>
+                                                    <p className="text-sm font-bold text-titles dark:text-white">Dr. {user.prenom} {user.nom}</p>
+                                                    <p className="text-[11px] text-[#6c757f] font-medium uppercase tracking-widest">{user.specialite || 'Médecin'}</p>
                                                 </div>
                                             </div>
                                         </div>

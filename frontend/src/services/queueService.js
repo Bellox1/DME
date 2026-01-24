@@ -16,7 +16,8 @@ class QueueService {
   async getQueue() {
     try {
       const response = await this.api.get('/queue');
-      return response.data;
+      // Gérer le format de réponse Laravel {success: true, data: [...]}
+      return Array.isArray(response.data) ? response.data : (response.data.data || []);
     } catch (error) {
       console.error('Erreur lors de la récupération de la file d\'attente:', error);
       throw error;

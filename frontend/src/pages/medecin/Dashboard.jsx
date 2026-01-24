@@ -20,21 +20,38 @@ const DoctorDashboard = () => {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                // Dans un cas réel, on filtrerait par l'ID du médecin connecté
-                const [queueData, patientsData] = await Promise.all([
+                const currentUser = JSON.parse(localStorage.getItem('user'));
+                const medecinId = currentUser?.id;
+
+                if (!medecinId) return;
+
+                // On filtre les données pour ce médecin spécifique
+                const [queueDataResponse, patientsData, rdvsData] = await Promise.all([
                     queueService.getQueue(),
-                    patientService.getAllPatients()
+                    patientService.getAllPatients(),
+                    rdvService.getMedecinRdvs(medecinId)
                 ]);
 
-                setQueue(queueData.slice(0, 5)); // Top 5
+                // On filtre la file d'attente pour ce médecin
+                const rawQueue = Array.isArray(queueDataResponse) ? queueDataResponse : (queueDataResponse.data || []);
+                const queueData = rawQueue.filter(q => q.medecin_id === medecinId);
+
+                setQueue(queueData.slice(0, 5));
                 setPatients(patientsData);
 
-                // Calculer quelques stats basiques
+                // Calculer les stats de demain
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+                const tomorrowRdvs = rdvsData.filter(r => r.dateH_rdv?.startsWith(tomorrowStr));
+
+                // Calculer quelques stats basiques selon les status du backend: 'programmé', 'passé', 'annulé'
                 setStats({
-                    consultations: queueData.filter(q => q.statut === 'termine').length,
-                    waiting: queueData.filter(q => q.statut !== 'termine').length,
-                    urgent: queueData.filter(q => q.statut === 'urgent').length,
-                    tomorrow: 0 // Nécessiterait un appel à rdvService.getMedecinRdvs pour demain
+                    consultations: queueData.filter(q => q.statut === 'passé').length,
+                    waiting: queueData.filter(q => q.statut === 'programmé').length,
+                    urgent: queueData.filter(q => q.type === 'Urgent').length, // Exemple de type
+                    tomorrow: tomorrowRdvs.length
                 });
 
             } catch (err) {
