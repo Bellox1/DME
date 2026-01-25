@@ -15,7 +15,7 @@ class Patient extends Model
     protected $appends = ['nom_complet'];
 
     protected $fillable = [
-        'numero_patient', 
+
         'utilisateur_id',
         'enfant_id',
         'taille',
@@ -33,25 +33,7 @@ class Patient extends Model
     const CREATED_AT = 'date_creation';
     const UPDATED_AT = 'date_modification';
 
-    protected static function booted()
-    {
-        static::creating(function ($patient) {
-            $annee = date('Y');
-            
-            $dernier = self::where('numero_patient', 'LIKE', "P-$annee-%")
-                ->orderBy('id', 'desc')
-                ->first();
 
-            if ($dernier) {
-                $sequence = (int) substr($dernier->numero_patient, -3);
-                $nouvelleSequence = $sequence + 1;
-            } else {
-                $nouvelleSequence = 1;
-            }
-
-            $patient->numero_patient = sprintf('P-%s-%03d', $annee, $nouvelleSequence);
-        });
-    }
 
     public function utilisateur()
     {
