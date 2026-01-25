@@ -17,15 +17,21 @@
     <div class="header">
         <h1>Ordonnance Médicale</h1>
         <div class="medecin-info">
-            Dr. {{ $consultation->medecin->nom }} {{ $consultation->medecin->prenom }}<br>
+            Dr. {{ $medecin->nom }} {{ $medecin->prenom }}<br>
             Médecine Générale
         </div>
-        <div>Date: {{ \Carbon\Carbon::parse($consultation->dateH_visite)->format('d/m/Y') }}</div>
+        <div>Numéro: {{ $prescription->numero_ordonnance }}</div>
+        <div>Date: {{ \Carbon\Carbon::parse($prescription->date_creation)->format('d/m/Y') }}</div>
     </div>
 
     <div class="patient-info">
-        <strong>Patient:</strong> {{ $consultation->patient->user->nom ?? '' }} {{ $consultation->patient->user->prenom ?? '' }} (ou Enfant)<br>
-        <!-- Gérer le nom du patient correctement selon la relation -->
+        <strong>Patient:</strong>
+        @if(isset($patient) && $patient)
+            {{ $patient->user->nom ?? '' }} {{ $patient->user->prenom ?? '' }}
+        @else
+            Patient non spécifié
+        @endif
+        <br>
     </div>
 
     <h3>Prescriptions</h3>
@@ -38,13 +44,11 @@
             </tr>
         </thead>
         <tbody>
-            @foreach($consultation->prescriptions as $p)
             <tr>
-                <td>{{ $p->nom_medicament }}</td>
-                <td>{{ $p->dosage }}</td>
-                <td>{{ $p->instructions }}</td>
+                <td>{{ $prescription->nom_medicament }}</td>
+                <td>{{ $prescription->dosage }}</td>
+                <td>{{ $prescription->instructions }}</td>
             </tr>
-            @endforeach
         </tbody>
     </table>
 
