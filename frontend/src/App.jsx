@@ -15,7 +15,7 @@ import PatientProfil from './pages/patient/Profil';
 import PatientConsultations from './pages/patient/Consultations';
 import PatientOrdonnances from './pages/patient/Ordonnances';
 import PatientDossier from './pages/patient/Dossier';
-import PatientResultats from './pages/patient/Resultats';
+import PatientActivites from './pages/patient/Activites';
 import PatientNotifications from './pages/patient/Notifications';
 import PatientAide from './pages/patient/Aide';
 
@@ -71,7 +71,7 @@ function App() {
           <Route path="/patient/consultations" element={<ProtectedRoute allowedRoles={['patient']}><PatientConsultations /></ProtectedRoute>} />
           <Route path="/patient/ordonnances" element={<ProtectedRoute allowedRoles={['patient']}><PatientOrdonnances /></ProtectedRoute>} />
           <Route path="/patient/dossier" element={<ProtectedRoute allowedRoles={['patient']}><PatientDossier /></ProtectedRoute>} />
-          <Route path="/patient/resultats" element={<ProtectedRoute allowedRoles={['patient']}><PatientResultats /></ProtectedRoute>} />
+          <Route path="/patient/activites" element={<ProtectedRoute allowedRoles={['patient']}><PatientActivites /></ProtectedRoute>} />
           <Route path="/patient/notifications" element={<ProtectedRoute allowedRoles={['patient']}><PatientNotifications /></ProtectedRoute>} />
           <Route path="/patient/aide-patient" element={<ProtectedRoute allowedRoles={['patient']}><PatientAide /></ProtectedRoute>} />
           <Route path="/patient/securite" element={<ProtectedRoute allowedRoles={['patient']}><PatientProfil /></ProtectedRoute>} />

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import ThemeToggle from '../ThemeToggle';
 import Logo from '../common/Logo';
+import patientService from '../../services/patient/patientService';
 
 const PatientLayout = ({ children }) => {
     const location = useLocation();
@@ -33,6 +34,8 @@ const PatientLayout = ({ children }) => {
         return saved ? JSON.parse(saved) : profiles[0];
     });
 
+    const [notifications, setNotifications] = useState([]);
+
     useEffect(() => {
         localStorage.setItem('sidebar-expanded-patient', isSidebarOpen);
     }, [isSidebarOpen]);
@@ -40,6 +43,18 @@ const PatientLayout = ({ children }) => {
     useEffect(() => {
         localStorage.setItem('active-patient-profile', JSON.stringify(activeProfile));
     }, [activeProfile]);
+
+    useEffect(() => {
+        const fetchNotifications = async () => {
+            try {
+                const data = await patientService.getNotifications();
+                setNotifications(data);
+            } catch (error) {
+                console.error("Erreur chargement notifications sidebar", error);
+            }
+        };
+        fetchNotifications();
+    }, []);
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -65,6 +80,7 @@ const PatientLayout = ({ children }) => {
             title: 'Menu',
             items: [
                 { path: '/patient', icon: 'dashboard', label: 'Tableau de bord' },
+                { path: '/patient/activites', icon: 'history', label: 'Activités' },
                 { path: '/patient/consultations', icon: 'calendar_month', label: 'Consultations' },
                 { path: '/patient/ordonnances', icon: 'prescriptions', label: 'Ordonnances' },
             ]
@@ -73,7 +89,6 @@ const PatientLayout = ({ children }) => {
             title: 'Espace Santé',
             items: [
                 { path: '/patient/dossier', icon: 'folder_shared', label: 'Dossier Médical' },
-                { path: '/patient/resultats', icon: 'lab_research', label: 'Analyses & Examens' },
             ]
         },
         {
@@ -206,9 +221,11 @@ const PatientLayout = ({ children }) => {
                                     className="relative p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 text-titles dark:text-white hover:bg-slate-100 dark:hover:bg-slate-700 transition-all duration-200 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0"
                                 >
                                     <span className="material-symbols-outlined text-[22px]">notifications</span>
-                                    <span className="absolute -top-1 -right-1 size-5 bg-primary text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white dark:border-slate-900 shadow-sm">
-                                        3
-                                    </span>
+                                    {notifications.filter(n => n.isUnread).length > 0 && (
+                                        <span className="absolute -top-1 -right-1 size-5 bg-primary text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white dark:border-slate-900 shadow-sm">
+                                            {notifications.filter(n => n.isUnread).length}
+                                        </span>
+                                    )}
                                 </Link>
                                 <div className="h-8 w-px bg-slate-200 dark:bg-slate-700"></div>
 

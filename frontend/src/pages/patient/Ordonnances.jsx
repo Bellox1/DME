@@ -3,8 +3,8 @@ import PatientLayout from '../../components/layouts/PatientLayout';
 
 const Ordonnances = () => {
     const ordonnances = [
-        { id: 'ORD-2026-001', doctor: 'Dr. Sarah Kone', date: '15 Jan 2026', medicines: 3, status: 'Active' },
-        { id: 'ORD-2026-002', doctor: 'Dr. Marc Dubois', date: '02 Jan 2026', medicines: 2, status: 'Expirée' },
+        { id: 'ORD-2026-001', doctor: 'Dr. Sarah Kone', date: '15 janv. 2026', medicines: 3, status: 'Active' },
+        { id: 'ORD-2026-002', doctor: 'Dr. Marc Dubois', date: '02 janv. 2026', medicines: 2, status: 'Expirée' },
         { id: 'ORD-2025-098', doctor: 'Dr. Sarah Kone', date: '15 Déc 2025', medicines: 5, status: 'Expirée' },
     ];
 

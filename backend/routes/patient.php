@@ -6,17 +6,31 @@ use App\Http\Controllers\Api\Patient\DemandeRdvController;
 use App\Http\Controllers\Api\Accueil\PatientController;
 
 // Routes Enfants
-Route::post('/enfants', [EnfantController::class, 'store']); // Create child
+use App\Http\Controllers\Api\Patient\DashboardController;
+use App\Http\Controllers\Api\Patient\DossierMedicalController;
+use App\Http\Controllers\Api\Patient\CompteController;
+use App\Http\Controllers\Api\Patient\NotificationController;
 
-// Demandes de RDV (Patient Actions)
-Route::get('/demande-rdv', [DemandeRdvController::class, 'index']); // List own demands
-Route::post('/demande-rdv', [DemandeRdvController::class, 'store']); // Create demand
+Route::middleware(['auth:sanctum', 'role:patient'])->prefix('patient')->group(function () {
+    
+    // Dashboard
+    Route::get('/dashboard', [DashboardController::class, 'index']);
+    Route::get('/activites', [DashboardController::class, 'toutesActivites']);
 
-// Patient Self Actions (Authenticated)
-Route::middleware('auth:sanctum')->group(function () {
-    // The HUB : My folders
-    Route::get('/mes-dossiers', [PatientController::class, 'getMesDossiers']);
+    // Dossier Médical & Profils
+    Route::get('/profils', [DossierMedicalController::class, 'listerProfils']); // Sélecteur de dossier
+    Route::get('/dossier/{id}', [DossierMedicalController::class, 'show']);      // Détail d'un dossier
+    Route::get('/examens', [DossierMedicalController::class, 'getExamens']);
 
-    // Enregistrement patient (Self or via Auth?) - keeping as per API
-    Route::post('/patients/enregistrer', [PatientController::class, 'enregistrer']);
+    // Compte (Paramètres Utilisateur)
+    Route::get('/compte', [CompteController::class, 'show']);
+    Route::put('/compte', [CompteController::class, 'update']);
+    Route::post('/compte/password', [CompteController::class, 'updatePassword']);
+
+    // Notifications
+    Route::get('/notifications', [NotificationController::class, 'index']);
+
+    // Demandes
+    Route::post('/demandes', [\App\Http\Controllers\Api\Patient\DemandeController::class, 'store']);
+
 });

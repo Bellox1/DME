@@ -1,18 +1,94 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PatientLayout from '../../components/layouts/PatientLayout';
+import patientService from '../../services/patient/patientService';
 
 const PatientProfil = () => {
     const [activeTab, setActiveTab] = useState('general');
-
-    const [user] = useState(() => {
-        const saved = localStorage.getItem('user');
-        return saved ? JSON.parse(saved) : { nom: '', prenom: '', role: 'patient', tel: '', whatsapp: '', sexe: 'F' };
+    const [loading, setLoading] = useState(true);
+    const [userData, setUserData] = useState({
+        nom: '', prenom: '', role: 'patient', tel: '', whatsapp: '', sexe: 'F', ville: ''
+    });
+    const [passwordData, setPasswordData] = useState({
+        current_password: '', new_password: '', new_password_confirmation: ''
+    });
+    const [message, setMessage] = useState({ type: '', text: '' });
+    const [submitting, setSubmitting] = useState(false);
+    const [showPasswords, setShowPasswords] = useState({
+        current: false,
+        new: false,
+        confirm: false
     });
 
-    const [subAccounts] = useState([
-        { id: 2, name: 'Léo Patient', role: 'Enfant', age: '8 ans', initial: 'LP', color: 'bg-blue-500' },
-        { id: 3, name: 'Maya Patient', role: 'Enfant', age: '4 ans', initial: 'MP', color: 'bg-pink-500' },
-    ]);
+    useEffect(() => {
+        fetchUserData();
+    }, []);
+
+    const fetchUserData = async () => {
+        try {
+            setLoading(true);
+            const data = await patientService.getCompte();
+            setUserData(data);
+        } catch (error) {
+            console.error("Erreur chargement profil", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setUserData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handlePasswordChange = (e) => {
+        const { name, value } = e.target;
+        setPasswordData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleUpdateProfile = async (e) => {
+        e.preventDefault();
+        setMessage({ type: '', text: '' });
+        setSubmitting(true);
+        try {
+            await patientService.updateCompte({
+                tel: userData.tel,
+                whatsapp: userData.whatsapp,
+                ville: userData.ville
+            });
+            setMessage({ type: 'success', text: 'Profil mis à jour avec succès !' });
+        } catch (error) {
+            const errorMsg = error.response?.data?.message || 'Erreur lors de la mise à jour.';
+            setMessage({ type: 'error', text: errorMsg });
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleUpdatePassword = async (e) => {
+        e.preventDefault();
+        setMessage({ type: '', text: '' });
+        setSubmitting(true);
+
+        if (passwordData.new_password !== passwordData.new_password_confirmation) {
+            setMessage({ type: 'error', text: 'Les nouveaux mots de passe ne correspondent pas.' });
+            setSubmitting(false);
+            return;
+        }
+
+        try {
+            await patientService.updatePassword({
+                current_password: passwordData.current_password,
+                password: passwordData.new_password,
+                password_confirmation: passwordData.new_password_confirmation
+            });
+            setMessage({ type: 'success', text: 'Mot de passe modifié avec succès !' });
+            setPasswordData({ current_password: '', new_password: '', new_password_confirmation: '' });
+        } catch (error) {
+            setMessage({ type: 'error', text: error.response?.data?.message || 'Erreur lors du changement de mot de passe.' });
+        } finally {
+            setSubmitting(false);
+        }
+    };
 
     return (
         <PatientLayout>
@@ -25,10 +101,9 @@ const PatientProfil = () => {
 
                         {/* Nom et Rôle SUR l'arrière-plan */}
                         <div className="absolute bottom-6 md:bottom-10 left-36 md:left-48 right-6 flex flex-col gap-1 md:ml-4 animate-in fade-in slide-in-from-left-4 duration-700">
-                            <h1 className="text-xl sm:text-2xl md:text-4xl font-black text-white drop-shadow-lg tracking-tight uppercase italic transition-all leading-tight">{user.prenom} {user.nom}</h1>
+                            <h1 className="text-xl sm:text-2xl md:text-4xl font-black text-white drop-shadow-lg tracking-tight uppercase italic transition-all leading-tight">{userData.prenom} {userData.nom}</h1>
                             <div className="flex items-center gap-2">
                                 <span className="px-2 py-0.5 bg-white/20 backdrop-blur-md rounded-md text-[9px] md:text-[10px] font-bold text-white uppercase tracking-widest border border-white/30">PATIENT</span>
-                                <span className="size-1.5 rounded-full bg-green-400 shadow-sm animate-pulse"></span>
                                 <span className="text-[10px] md:text-xs text-white/90 font-bold uppercase tracking-wide italic">Compte Titulaire</span>
                             </div>
                         </div>
@@ -82,31 +157,40 @@ const PatientProfil = () => {
                                     Informations Personnelles
                                 </h3>
 
-                                <form className="space-y-8" onSubmit={e => e.preventDefault()}>
+                                {message.text && activeTab === 'general' && (
+                                    <div className={`p-4 mb-6 rounded-2xl text-sm font-bold ${message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                        {message.text}
+                                    </div>
+                                )}
+
+                                <form className="space-y-8" onSubmit={handleUpdateProfile}>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                         <div className="space-y-2.5">
                                             <label className="text-[11px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-[0.15em] pl-1">Nom de famille</label>
-                                            <input type="text" defaultValue={user.nom} readOnly className="w-full h-14 bg-slate-100 dark:bg-slate-800/80 border-2 border-transparent rounded-2xl px-5 text-sm font-bold text-slate-500 cursor-not-allowed outline-none" />
+                                            <input type="text" value={userData.nom || ''} readOnly className="w-full h-14 bg-slate-100 dark:bg-slate-800/80 border-2 border-transparent rounded-2xl px-5 text-sm font-bold text-slate-500 cursor-not-allowed outline-none" />
                                         </div>
                                         <div className="space-y-2.5">
                                             <label className="text-[11px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-[0.15em] pl-1">Prénom</label>
-                                            <input type="text" defaultValue={user.prenom} readOnly className="w-full h-14 bg-slate-100 dark:bg-slate-800/80 border-2 border-transparent rounded-2xl px-5 text-sm font-bold text-slate-500 cursor-not-allowed outline-none" />
+                                            <input type="text" value={userData.prenom || ''} readOnly className="w-full h-14 bg-slate-100 dark:bg-slate-800/80 border-2 border-transparent rounded-2xl px-5 text-sm font-bold text-slate-500 cursor-not-allowed outline-none" />
                                         </div>
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                         <div className="space-y-2.5">
                                             <label className="text-[11px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-[0.15em] pl-1">Sexe</label>
-                                            <select defaultValue={user.sexe === 'Homme' ? 'M' : 'F'} disabled className="w-full h-14 bg-slate-100 dark:bg-slate-800/80 border-2 border-transparent rounded-2xl px-5 text-sm font-bold text-slate-500 cursor-not-allowed outline-none appearance-none">
-                                                <option value="F">Féminin</option>
-                                                <option value="M">Masculin</option>
-                                            </select>
+                                            <input type="text" value={userData.sexe === 'M' ? 'Masculin' : 'Féminin'} readOnly className="w-full h-14 bg-slate-100 dark:bg-slate-800/80 border-2 border-transparent rounded-2xl px-5 text-sm font-bold text-slate-500 cursor-not-allowed outline-none" />
                                         </div>
                                         <div className="space-y-2.5">
                                             <label className="text-[11px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-[0.15em] pl-1">Numéro de Téléphone</label>
                                             <div className="relative">
                                                 <span className="absolute left-5 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-400 text-[20px]">call</span>
-                                                <input type="tel" defaultValue={user.tel} className="w-full h-14 bg-slate-50 dark:bg-slate-800/50 border-2 border-transparent focus:border-primary/20 rounded-2xl pl-12 pr-5 text-sm font-bold text-titles dark:text-white transition-all outline-none" />
+                                                <input
+                                                    type="tel"
+                                                    name="tel"
+                                                    value={userData.tel || ''}
+                                                    onChange={handleInputChange}
+                                                    className="w-full h-14 bg-slate-50 dark:bg-slate-800/50 border-2 border-transparent focus:border-primary/20 rounded-2xl pl-12 pr-5 text-sm font-bold text-titles dark:text-white transition-all outline-none"
+                                                />
                                             </div>
                                         </div>
                                     </div>
@@ -116,15 +200,34 @@ const PatientProfil = () => {
                                             <label className="text-[11px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-[0.15em] pl-1">WhatsApp</label>
                                             <div className="relative">
                                                 <span className="absolute left-5 top-1/2 -translate-y-1/2 material-symbols-outlined text-green-500 text-[20px]">chat</span>
-                                                <input type="tel" defaultValue={user.whatsapp} className="w-full h-14 bg-slate-50 dark:bg-slate-800/50 border-2 border-transparent focus:border-primary/20 rounded-2xl pl-12 pr-5 text-sm font-bold text-titles dark:text-white transition-all outline-none" />
+                                                <input
+                                                    type="tel"
+                                                    name="whatsapp"
+                                                    value={userData.whatsapp || ''}
+                                                    onChange={handleInputChange}
+                                                    className="w-full h-14 bg-slate-50 dark:bg-slate-800/50 border-2 border-transparent focus:border-primary/20 rounded-2xl pl-12 pr-5 text-sm font-bold text-titles dark:text-white transition-all outline-none"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2.5">
+                                            <label className="text-[11px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-[0.15em] pl-1">Ville</label>
+                                            <div className="relative">
+                                                <span className="absolute left-5 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-400 text-[20px]">location_on</span>
+                                                <input
+                                                    type="text"
+                                                    name="ville"
+                                                    value={userData.ville || ''}
+                                                    onChange={handleInputChange}
+                                                    className="w-full h-14 bg-slate-50 dark:bg-slate-800/50 border-2 border-transparent focus:border-primary/20 rounded-2xl pl-12 pr-5 text-sm font-bold text-titles dark:text-white transition-all outline-none"
+                                                />
                                             </div>
                                         </div>
                                     </div>
 
                                     <div className="pt-6">
-                                        <button type="submit" className="w-full md:w-auto px-12 h-14 bg-primary text-white rounded-2xl font-black text-sm shadow-xl shadow-primary/25 hover:bg-primary/90 hover:-translate-y-0.5 transition-all active:scale-95 flex items-center justify-center gap-2">
-                                            <span>Mettre à jour mon profil</span>
-                                            <span className="material-symbols-outlined text-[20px]">check_circle</span>
+                                        <button type="submit" disabled={submitting || loading} className="w-full md:w-auto px-12 h-14 bg-primary text-white rounded-2xl font-black text-sm shadow-xl shadow-primary/25 hover:bg-primary/90 hover:-translate-y-0.5 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed">
+                                            {submitting ? <span className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></span> : <span>Mettre à jour mon profil</span>}
+                                            {!submitting && <span className="material-symbols-outlined text-[20px]">check_circle</span>}
                                         </button>
                                     </div>
                                 </form>
@@ -140,24 +243,87 @@ const PatientProfil = () => {
                                     Modification du mot de passe
                                 </h3>
 
-                                <form className="space-y-8" onSubmit={e => e.preventDefault()}>
+                                {message.text && activeTab === 'security' && (
+                                    <div className={`p-4 mb-6 rounded-2xl text-sm font-bold ${message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                        {message.text}
+                                    </div>
+                                )}
+
+                                <form className="space-y-8" onSubmit={handleUpdatePassword}>
                                     <div className="space-y-2.5">
                                         <label className="text-[11px] font-black uppercase text-slate-400 tracking-wider pl-1">Mot de passe actuel</label>
-                                        <input type="password" placeholder="Saisir le mot de passe actuel" autoComplete="new-password" className="w-full h-14 bg-slate-50 dark:bg-slate-800/50 border-none rounded-2xl px-5 text-sm font-bold text-titles dark:text-white focus:ring-2 focus:ring-orange-500/20 transition-all outline-none" />
+                                        <div className="relative">
+                                            <input
+                                                type={showPasswords.current ? "text" : "password"}
+                                                name="current_password"
+                                                value={passwordData.current_password}
+                                                onChange={handlePasswordChange}
+                                                placeholder="Saisir le mot de passe actuel"
+                                                autoComplete="current-password"
+                                                className="w-full h-14 bg-slate-50 dark:bg-slate-800/50 border-none rounded-2xl pl-5 pr-12 text-sm font-bold text-titles dark:text-white focus:ring-2 focus:ring-orange-500/20 transition-all outline-none"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowPasswords({ ...showPasswords, current: !showPasswords.current })}
+                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors"
+                                            >
+                                                <span className="material-symbols-outlined text-[20px]">
+                                                    {showPasswords.current ? 'visibility_off' : 'visibility'}
+                                                </span>
+                                            </button>
+                                        </div>
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                         <div className="space-y-2.5">
                                             <label className="text-[11px] font-black uppercase text-slate-400 tracking-wider pl-1">Nouveau mot de passe</label>
-                                            <input type="password" placeholder="Nouveau mot de passe" autoComplete="new-password" className="w-full h-14 bg-slate-50 dark:bg-slate-800/50 border-none rounded-2xl px-5 text-sm font-bold text-titles dark:text-white focus:ring-2 focus:ring-primary/20 transition-all outline-none" />
+                                            <div className="relative">
+                                                <input
+                                                    type={showPasswords.new ? "text" : "password"}
+                                                    name="new_password"
+                                                    value={passwordData.new_password}
+                                                    onChange={handlePasswordChange}
+                                                    placeholder="Nouveau mot de passe"
+                                                    autoComplete="new-password"
+                                                    className="w-full h-14 bg-slate-50 dark:bg-slate-800/50 border-none rounded-2xl pl-5 pr-12 text-sm font-bold text-titles dark:text-white focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowPasswords({ ...showPasswords, new: !showPasswords.new })}
+                                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors"
+                                                >
+                                                    <span className="material-symbols-outlined text-[20px]">
+                                                        {showPasswords.new ? 'visibility_off' : 'visibility'}
+                                                    </span>
+                                                </button>
+                                            </div>
                                         </div>
                                         <div className="space-y-2.5">
                                             <label className="text-[11px] font-black uppercase text-slate-400 tracking-wider pl-1">Confirmer le nouveau</label>
-                                            <input type="password" placeholder="Confirmer le nouveau mot de passe" autoComplete="new-password" className="w-full h-14 bg-slate-50 dark:bg-slate-800/50 border-none rounded-2xl px-5 text-sm font-bold text-titles dark:text-white focus:ring-2 focus:ring-primary/20 transition-all outline-none" />
+                                            <div className="relative">
+                                                <input
+                                                    type={showPasswords.confirm ? "text" : "password"}
+                                                    name="new_password_confirmation"
+                                                    value={passwordData.new_password_confirmation}
+                                                    onChange={handlePasswordChange}
+                                                    placeholder="Confirmer le nouveau mot de passe"
+                                                    autoComplete="new-password"
+                                                    className="w-full h-14 bg-slate-50 dark:bg-slate-800/50 border-none rounded-2xl pl-5 pr-12 text-sm font-bold text-titles dark:text-white focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowPasswords({ ...showPasswords, confirm: !showPasswords.confirm })}
+                                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors"
+                                                >
+                                                    <span className="material-symbols-outlined text-[20px]">
+                                                        {showPasswords.confirm ? 'visibility_off' : 'visibility'}
+                                                    </span>
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                     <div className="pt-6">
-                                        <button type="submit" className="w-full md:w-auto px-12 h-14 bg-orange-600 text-white rounded-2xl font-black text-sm shadow-xl shadow-orange-600/20 hover:bg-orange-700 transition-all active:scale-95">
-                                            Changer mon mot de passe
+                                        <button type="submit" disabled={submitting} className="w-full md:w-auto px-12 h-14 bg-orange-600 text-white rounded-2xl font-black text-sm shadow-xl shadow-orange-600/20 hover:bg-orange-700 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70">
+                                            {submitting ? <span className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></span> : <span>Changer mon mot de passe</span>}
                                         </button>
                                     </div>
                                 </form>

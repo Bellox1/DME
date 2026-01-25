@@ -1,26 +1,26 @@
 <?php
 
-require __DIR__.'/vendor/autoload.php';
-
-$app = require_once __DIR__.'/bootstrap/app.php';
-$kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
-$kernel->bootstrap();
-
 use App\Models\Utilisateur;
-use Illuminate\Support\Facades\Hash; // Add Import
+use App\Models\Patient;
 
-try {
-    echo "Creating Medecin...\n";
-    $medecin = Utilisateur::create([
-        'nom' => 'Docteur',
-        'prenom' => 'House',
-        'role' => 'medecin',
-        'mot_de_passe' => Hash::make('password'),
-        'tel' => '06' . rand(10000000, 99999999), // Unique phone
-        'sexe' => 'Homme'
-    ]);
-    echo "Medecin created: " . $medecin->id . "\n";
-} catch (\Exception $e) {
-    echo "Error: " . $e->getMessage() . "\n";
-    echo $e->getTraceAsString();
+// Récupérer l'utilisateur AUTONOME
+$user = Utilisateur::where('tel', '+22997000001')->first();
+
+if (!$user) {
+    echo "Utilisateur NON TROUVÉ.\n";
+    exit;
+}
+
+echo "Utilisateur trouvé : {$user->prenom} {$user->nom} (ID: {$user->id})\n";
+
+// Chercher son dossier patient
+$patient = Patient::where('utilisateur_id', $user->id)->first();
+
+if ($patient) {
+    echo "Dossier Patient TROUVÉ (ID: {$patient->id})\n";
+    echo "Taille: {$patient->taille}, Poids: {$patient->poids}\n";
+} else {
+    echo "Dossier Patient NON TROUVÉ pour cet utilisateur.\n";
+    // Listons tous les patients pour voir
+    echo "Total patients en base: " . Patient::count() . "\n";
 }

@@ -13,6 +13,10 @@ class EnfantController extends Controller
 {
     public function store(Request $request)
     {
+        if (!$request->user()->hasPermission('creer_enfants')) {
+            return response()->json(['message' => 'Accès non autorisé.'], 403);
+        }
+
         $request->validate([
             'parent_id' => 'required|exists:utilisateurs,id',
             'nom' => 'required|string|max:50',

@@ -10,8 +10,8 @@ const Consultations = () => {
     });
 
     const consultations = [
-        { id: 1, doctor: 'Dr. Sarah Kone', specialty: 'Cardiologue', date: '25 Jan 2026', time: '10:00', type: 'Présentiel', status: 'À venir', price: '15 000 FCFA' },
-        { id: 2, doctor: 'Dr. Marc Dubois', specialty: 'Généraliste', date: '15 Jan 2026', time: '14:30', type: 'Vidéo', status: 'Terminé', price: '10 000 FCFA' },
+        { id: 1, doctor: 'Dr. Sarah Kone', specialty: 'Cardiologue', date: '25 janv. 2026', time: '10:00', type: 'Présentiel', status: 'À venir', price: '15 000 FCFA' },
+        { id: 2, doctor: 'Dr. Marc Dubois', specialty: 'Généraliste', date: '15 janv. 2026', time: '14:30', type: 'Vidéo', status: 'Terminé', price: '10 000 FCFA' },
         { id: 3, doctor: 'Dr. Jean-Luc Meoni', specialty: 'Dermatologue', date: '20 Déc 2025', time: '11:15', type: 'Présentiel', status: 'Terminé', price: '20 000 FCFA' },
     ];
 

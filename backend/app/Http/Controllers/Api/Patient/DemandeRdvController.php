@@ -10,8 +10,11 @@ class DemandeRdvController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
+        if (!$request->user()->hasPermission('voir_demandes')) {
+            return response()->json(['message' => 'Accès non autorisé.'], 403);
+        }
         return response()->json(\App\Models\DemandeRdv::orderBy('created_at', 'desc')->get());
     }
 
@@ -20,6 +23,9 @@ class DemandeRdvController extends Controller
      */
     public function store(Request $request)
     {
+        if (!$request->user()->hasPermission('creer_demandes')) {
+            return response()->json(['message' => 'Accès non autorisé.'], 403);
+        }
         $validated = $request->validate([
             'patient_id' => 'required|exists:patients,id',
             'type' => 'required|string',
@@ -40,8 +46,11 @@ class DemandeRdvController extends Controller
     /**
      * Valider une demande de rendez-vous (Accueil)
      */
-    public function valider($id)
+    public function valider(Request $request, $id)
     {
+        if (!$request->user()->hasPermission('modifier_demandes')) {
+            return response()->json(['message' => 'Accès non autorisé.'], 403);
+        }
         $demande = \App\Models\DemandeRdv::findOrFail($id);
         if ($demande->statut !== 'en_attente') {
             return response()->json(['error' => 'Demande déjà traitée'], 400);

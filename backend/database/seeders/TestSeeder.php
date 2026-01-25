@@ -103,8 +103,7 @@ class TestSeeder extends Seeder
             'voir_patients', 'voir_enfants', 'voir_utilisateurs',
             'voir_rdvs', 'creer_rdvs', 'modifier_rdvs',
             'voir_consultations', 'creer_consultations', 'modifier_consultations',
-            'voir_prescriptions', 'creer_prescriptions', 'modifier_prescriptions',
-            'voir_demande_rdvs', 'modifier_demande_rdvs'
+            'voir_prescriptions', 'creer_prescriptions', 'modifier_prescriptions'
         ]);
         
         // ACCUEIL : Patients, RDV, Flux administratif
@@ -112,15 +111,14 @@ class TestSeeder extends Seeder
             'voir_patients', 'creer_patients', 'modifier_patients',
             'voir_enfants', 'creer_enfants', 'modifier_enfants',
             'voir_rdvs', 'creer_rdvs', 'modifier_rdvs',
-            'voir_demande_rdvs', 'creer_demande_rdvs', 'modifier_demande_rdvs',
             'voir_utilisateurs', 'voir_demandes', 'creer_demandes', 'modifier_demandes'
         ]);
         
         // PATIENT : Consultation propre (filtré par code), Demandes
         $mapPermissions('patient', [
             'voir_rdvs', 'voir_consultations', 'voir_prescriptions',
-            'creer_demande_rdvs', 'voir_demande_rdvs',
-            'creer_demandes', 'voir_demandes'
+            'creer_demandes', 'voir_demandes',
+            'voir_utilisateurs', 'modifier_utilisateurs', 'creer_enfants'
         ]);
 
 
