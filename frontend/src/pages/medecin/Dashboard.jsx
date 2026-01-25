@@ -180,7 +180,7 @@ const DoctorDashboard = () => {
                                                     </span>
                                                 </div>
                                                 <Link
-                                                    to={`/medecin/consultations?rdv_id=${row.id}&patient_id=${row.patient_id}`}
+                                                    to={`/medecin/nouvelle-consultation?rdv_id=${row.id}&patient_id=${row.patient_id}`}
                                                     className="flex-1 sm:flex-none h-14 px-10 bg-primary text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3"
                                                 >
                                                     Consulter

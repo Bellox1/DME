@@ -46,6 +46,7 @@ import DoctorDashboard from './pages/medecin/Dashboard';
 import DoctorAgenda from './pages/medecin/Agenda';
 import DoctorPatients from './pages/medecin/Patients';
 import DoctorConsultations from './pages/medecin/Consultations';
+import DoctorConsultationForm from './pages/medecin/ConsultationForm';
 import DoctorOrdonnances from './pages/medecin/Ordonnances';
 import DoctorResultats from './pages/medecin/Resultats';
 import DoctorStats from './pages/medecin/Stats';
