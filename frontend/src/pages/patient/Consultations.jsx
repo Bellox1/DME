@@ -1,26 +1,59 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PatientLayout from '../../components/layouts/PatientLayout';
+import patientService from '../../services/patient/patientService';
 
 const Consultations = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [message, setMessage] = useState('');
+    const [messageType, setMessageType] = useState('');
+    const [consultations, setConsultations] = useState([]);
+    const [demandes, setDemandes] = useState([]);
+    const [activeTab, setActiveTab] = useState('rendez-vous');
+    
     const [formData, setFormData] = useState({
-        date: '',
-        time: '',
-        reason: ''
+        objet: '',
+        description: '',
+        date_souhaitee: '',
+        time: ''
     });
 
-    const consultations = [
-        { id: 1, doctor: 'Dr. Sarah Kone', specialty: 'Cardiologue', date: '25 Jan 2026', time: '10:00', type: 'Présentiel', status: 'À venir', price: '15 000 FCFA' },
-        { id: 2, doctor: 'Dr. Marc Dubois', specialty: 'Généraliste', date: '15 Jan 2026', time: '14:30', type: 'Vidéo', status: 'Terminé', price: '10 000 FCFA' },
-        { id: 3, doctor: 'Dr. Jean-Luc Meoni', specialty: 'Dermatologue', date: '20 Déc 2025', time: '11:15', type: 'Présentiel', status: 'Terminé', price: '20 000 FCFA' },
-    ];
+    const loadData = async () => {
+        try {
+            const rdvData = await patientService.getMesRdv();
+            setConsultations(rdvData || []);
+            
+            const demandesData = await patientService.getMesDemandes();
+            setDemandes(demandesData || []);
+        } catch (error) {
+            console.error('Erreur de chargement:', error);
+        }
+    };
 
-    const handleSubmit = (e) => {
+    useEffect(() => {
+        loadData();
+    }, []);
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        console.log('Demande de rendez-vous:', formData);
-        // TODO: Envoyer la demande au backend
-        setIsModalOpen(false);
-        setFormData({ date: '', time: '', reason: '' });
+        setLoading(true);
+        setMessage('');
+
+        try {
+            await patientService.createDemandeRdv(formData);
+            setMessage('Demande de rendez-vous envoyée avec succès !');
+            setMessageType('success');
+            setFormData({ objet: '', description: '', date_souhaitee: '', time: '' });
+            setIsModalOpen(false);
+            
+            const demandesData = await patientService.getMesDemandes();
+            setDemandes(demandesData || []);
+        } catch (error) {
+            setMessage(error.response?.data?.message || 'Erreur lors de l\'envoi de la demande');
+            setMessageType('error');
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleChange = (e) => {
@@ -28,6 +61,22 @@ const Consultations = () => {
             ...formData,
             [e.target.name]: e.target.value
         });
+    };
+
+    const handleAnnulerRdv = async (rdvId) => {
+        if (!window.confirm('Êtes-vous sûr de vouloir annuler ce rendez-vous ?')) {
+            return;
+        }
+
+        try {
+            await patientService.annulerRdv(rdvId);
+            setMessage('Rendez-vous annulé avec succès');
+            setMessageType('success');
+            await loadData();
+        } catch (error) {
+            setMessage(error.response?.data?.message || 'Erreur lors de l\'annulation');
+            setMessageType('error');
+        }
     };
 
     return (
@@ -47,74 +96,174 @@ const Consultations = () => {
                     </button>
                 </div>
 
-                <div className="bg-white dark:bg-[#1c2229] border border-slate-200 dark:border-[#2d363f] rounded-[2rem] md:rounded-[2.5rem] overflow-hidden shadow-sm">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left min-w-[900px]">
-                            <thead>
-                                <tr className="border-b border-slate-100 dark:border-[#2d363f] bg-slate-50/50 dark:bg-slate-900/30">
-                                    <th className="px-4 md:px-8 py-4 md:py-5 text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Médecin</th>
-                                    <th className="px-4 md:px-8 py-4 md:py-5 text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Date & Heure</th>
-                                    <th className="px-4 md:px-8 py-4 md:py-5 text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Honoraires</th>
-                                    <th className="px-4 md:px-8 py-4 md:py-5 text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Type</th>
-                                    <th className="px-4 md:px-8 py-4 md:py-5 text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Statut</th>
-                                    <th className="px-4 md:px-8 py-4 md:py-5 text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-50 dark:divide-[#2d363f]">
-                                {consultations.map((c) => (
-                                    <tr key={c.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
-                                        <td className="px-4 md:px-8 py-4 md:py-5">
-                                            <div className="flex items-center gap-3">
-                                                <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
-                                                    <span className="material-symbols-outlined text-[20px]">person</span>
-                                                </div>
-                                                <div className="flex flex-col min-w-0">
-                                                    <span className="text-xs md:text-[13px] font-bold text-titles dark:text-white truncate">{c.doctor}</span>
-                                                    <span className="text-[9px] md:text-[10px] text-slate-500 font-bold uppercase tracking-wider">{c.specialty}</span>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-4 md:px-8 py-4 md:py-5">
-                                            <div className="flex flex-col">
-                                                <span className="text-xs md:text-[13px] font-bold text-titles dark:text-white">{c.date}</span>
-                                                <span className="text-[9px] md:text-[10px] text-slate-500 font-bold">{c.time}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-4 md:px-8 py-4 md:py-5">
-                                            <span className="text-xs md:text-[13px] font-black text-titles dark:text-white italic">{c.price}</span>
-                                        </td>
-                                        <td className="px-4 md:px-8 py-4 md:py-5">
-                                            <div className="flex items-center gap-2">
-                                                <span className={`material-symbols-outlined text-[16px] md:text-[18px] ${c.type === 'Vidéo' ? 'text-blue-500' : 'text-orange-500'}`}>
-                                                    {c.type === 'Vidéo' ? 'videocam' : 'location_on'}
-                                                </span>
-                                                <span className="text-xs md:text-[13px] font-semibold text-slate-600 dark:text-slate-300">{c.type}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-4 md:px-8 py-4 md:py-5">
-                                            <span className={`px-2 md:px-3 py-1 rounded-full text-[9px] md:text-[10px] font-black uppercase inline-flex whitespace-nowrap ${c.status === 'À venir'
-                                                ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/20'
-                                                : 'bg-green-100 text-green-600 dark:bg-green-900/20'
-                                                }`}>
-                                                {c.status}
-                                            </span>
-                                        </td>
-                                        <td className="px-4 md:px-8 py-4 md:py-5">
-                                            <div className="flex items-center gap-2">
-                                                <button className="size-8 md:size-9 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-primary transition-all flex items-center justify-center">
-                                                    <span className="material-symbols-outlined text-[16px] md:text-[18px]">visibility</span>
-                                                </button>
-                                                <button className="size-8 md:size-9 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-red-500 transition-all flex items-center justify-center">
-                                                    <span className="material-symbols-outlined text-[16px] md:text-[18px]">delete</span>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                {/* Onglets */}
+                <div className="bg-white dark:bg-[#1c2229] border border-slate-200 dark:border-[#2d363f] rounded-[2rem] p-2 flex gap-2">
+                    <button
+                        onClick={() => setActiveTab('rendez-vous')}
+                        className={`flex-1 py-3 px-6 rounded-xl font-black text-sm uppercase tracking-wider transition-all ${
+                            activeTab === 'rendez-vous'
+                                ? 'bg-primary text-white shadow-lg shadow-primary/30'
+                                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                        }`}
+                    >
+                        Mes Rendez-vous ({consultations.length})
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('demandes')}
+                        className={`flex-1 py-3 px-6 rounded-xl font-black text-sm uppercase tracking-wider transition-all ${
+                            activeTab === 'demandes'
+                                ? 'bg-primary text-white shadow-lg shadow-primary/30'
+                                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                        }`}
+                    >
+                        Mes Demandes ({demandes.filter(d => d.statut === 'en_attente').length})
+                    </button>
                 </div>
+
+                {/* Message de feedback */}
+                {message && (
+                    <div className={`p-4 rounded-xl flex items-center gap-3 ${
+                        messageType === 'success'
+                            ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800'
+                            : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800'
+                    }`}>
+                        <span className="material-symbols-outlined text-[20px]">
+                            {messageType === 'success' ? 'check_circle' : 'error'}
+                        </span>
+                        <span className="font-medium">{message}</span>
+                    </div>
+                )}
+
+                {/* Contenu selon l'onglet actif */}
+                {activeTab === 'rendez-vous' ? (
+                    <div className="bg-white dark:bg-[#1c2229] border border-slate-200 dark:border-[#2d363f] rounded-[2rem] md:rounded-[2.5rem] overflow-hidden shadow-sm">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left min-w-[900px]">
+                                <thead>
+                                    <tr className="border-b border-slate-100 dark:border-[#2d363f] bg-slate-50/50 dark:bg-slate-900/30">
+                                        <th className="px-4 md:px-8 py-4 md:py-5 text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Objet</th>
+                                        <th className="px-4 md:px-8 py-4 md:py-5 text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Description</th>
+                                        <th className="px-4 md:px-8 py-4 md:py-5 text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Date demande</th>
+                                        <th className="px-4 md:px-8 py-4 md:py-5 text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Statut</th>
+                                        <th className="px-4 md:px-8 py-4 md:py-5 text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-50 dark:divide-[#2d363f]">
+                                    {consultations.length > 0 ? (
+                                        consultations.map((c) => (
+                                            <tr key={c.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
+                                                <td className="px-4 md:px-8 py-4 md:py-5">
+                                                    <span className="text-xs md:text-[13px] font-bold text-titles dark:text-white">{c.objet}</span>
+                                                </td>
+                                                <td className="px-4 md:px-8 py-4 md:py-5">
+                                                    <span className="text-xs md:text-[13px] text-slate-600 dark:text-slate-300 line-clamp-2">{c.description}</span>
+                                                </td>
+                                                <td className="px-4 md:px-8 py-4 md:py-5">
+                                                    <span className="text-xs md:text-[13px] font-bold text-titles dark:text-white">
+                                                        {new Date(c.date_creation).toLocaleDateString('fr-FR')}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 md:px-8 py-4 md:py-5">
+                                                    <span className="px-2 md:px-3 py-1 rounded-full text-[9px] md:text-[10px] font-black uppercase inline-flex whitespace-nowrap bg-green-100 text-green-600 dark:bg-green-900/20">
+                                                        Confirmé
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 md:px-8 py-4 md:py-5">
+                                                    <div className="flex items-center gap-2">
+                                                        <button className="size-8 md:size-9 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-primary transition-all flex items-center justify-center">
+                                                            <span className="material-symbols-outlined text-[16px] md:text-[18px]">visibility</span>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan="5" className="px-4 md:px-8 py-8 text-center text-slate-500">
+                                                <div className="flex flex-col items-center gap-3">
+                                                    <span className="material-symbols-outlined text-[48px] text-slate-300">calendar_today</span>
+                                                    <span className="font-medium">Aucun rendez-vous confirmé</span>
+                                                    <span className="text-sm">Vos rendez-vous apparaîtront ici une fois validés</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="bg-white dark:bg-[#1c2229] border border-slate-200 dark:border-[#2d363f] rounded-[2rem] md:rounded-[2.5rem] overflow-hidden shadow-sm">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left min-w-[900px]">
+                                <thead>
+                                    <tr className="border-b border-slate-100 dark:border-[#2d363f] bg-slate-50/50 dark:bg-slate-900/30">
+                                        <th className="px-4 md:px-8 py-4 md:py-5 text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Objet</th>
+                                        <th className="px-4 md:px-8 py-4 md:py-5 text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Description</th>
+                                        <th className="px-4 md:px-8 py-4 md:py-5 text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Date demande</th>
+                                        <th className="px-4 md:px-8 py-4 md:py-5 text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Statut</th>
+                                        <th className="px-4 md:px-8 py-4 md:py-5 text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-50 dark:divide-[#2d363f]">
+                                    {demandes.length > 0 ? (
+                                        demandes.map((d) => (
+                                            <tr key={d.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
+                                                <td className="px-4 md:px-8 py-4 md:py-5">
+                                                    <span className="text-xs md:text-[13px] font-bold text-titles dark:text-white">{d.objet}</span>
+                                                </td>
+                                                <td className="px-4 md:px-8 py-4 md:py-5">
+                                                    <span className="text-xs md:text-[13px] text-slate-600 dark:text-slate-300 line-clamp-2">{d.description}</span>
+                                                </td>
+                                                <td className="px-4 md:px-8 py-4 md:py-5">
+                                                    <span className="text-xs md:text-[13px] font-bold text-titles dark:text-white">
+                                                        {new Date(d.date_creation).toLocaleDateString('fr-FR')}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 md:px-8 py-4 md:py-5">
+                                                    <span className={`px-2 md:px-3 py-1 rounded-full text-[9px] md:text-[10px] font-black uppercase inline-flex whitespace-nowrap ${
+                                                        d.statut === 'en_attente'
+                                                            ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/20'
+                                                            : d.statut === 'approuvé'
+                                                            ? 'bg-green-100 text-green-600 dark:bg-green-900/20'
+                                                            : 'bg-red-100 text-red-600 dark:bg-red-900/20'
+                                                    }`}>
+                                                        {d.statut === 'en_attente' ? 'En attente' : d.statut === 'approuvé' ? 'Approuvée' : 'Rejetée'}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 md:px-8 py-4 md:py-5">
+                                                    <div className="flex items-center gap-2">
+                                                        <button className="size-8 md:size-9 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-primary transition-all flex items-center justify-center">
+                                                            <span className="material-symbols-outlined text-[16px] md:text-[18px]">visibility</span>
+                                                        </button>
+                                                        {d.statut === 'en_attente' && (
+                                                            <button 
+                                                                onClick={() => handleAnnulerRdv(d.id)}
+                                                                className="size-8 md:size-9 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-red-500 transition-all flex items-center justify-center"
+                                                            >
+                                                                <span className="material-symbols-outlined text-[16px] md:text-[18px]">cancel</span>
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan="5" className="px-4 md:px-8 py-8 text-center text-slate-500">
+                                                <div className="flex flex-col items-center gap-3">
+                                                    <span className="material-symbols-outlined text-[48px] text-slate-300">pending</span>
+                                                    <span className="font-medium">Aucune demande en cours</span>
+                                                    <span className="text-sm">Cliquez sur "Prendre rendez-vous" pour soumettre une demande</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Modal de demande de rendez-vous */}
@@ -152,8 +301,8 @@ const Consultations = () => {
                                 </label>
                                 <input
                                     type="date"
-                                    name="date"
-                                    value={formData.date}
+                                    name="date_souhaitee"
+                                    value={formData.date_souhaitee}
                                     onChange={handleChange}
                                     required
                                     min={new Date().toISOString().split('T')[0]}
@@ -177,15 +326,32 @@ const Consultations = () => {
                                 />
                             </div>
 
-                            {/* Raison */}
+                            {/* Objet */}
+                            <div className="space-y-2">
+                                <label className="flex items-center gap-2 text-sm font-black text-titles dark:text-white uppercase tracking-wider">
+                                    <span className="material-symbols-outlined text-primary text-[20px]">title</span>
+                                    Objet de la demande
+                                </label>
+                                <input
+                                    type="text"
+                                    name="objet"
+                                    value={formData.objet}
+                                    onChange={handleChange}
+                                    required
+                                    placeholder="Ex: Consultation générale"
+                                    className="w-full h-12 px-4 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all text-titles dark:text-white font-semibold"
+                                />
+                            </div>
+
+                            {/* Description */}
                             <div className="space-y-2">
                                 <label className="flex items-center gap-2 text-sm font-black text-titles dark:text-white uppercase tracking-wider">
                                     <span className="material-symbols-outlined text-primary text-[20px]">description</span>
-                                    Raison de la consultation
+                                    Description
                                 </label>
                                 <textarea
-                                    name="reason"
-                                    value={formData.reason}
+                                    name="description"
+                                    value={formData.description}
                                     onChange={handleChange}
                                     required
                                     rows="4"
