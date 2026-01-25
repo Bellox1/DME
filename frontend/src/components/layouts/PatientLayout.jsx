@@ -22,39 +22,57 @@ const PatientLayout = ({ children }) => {
         return saved ? JSON.parse(saved) : { nom: 'Utilisateur', prenom: '', role: 'patient' };
     });
 
-    // Mock data for profiles (pourrait être dynamisé plus tard via une API)
-    const [profiles] = useState([
-        { id: 1, name: `${user.prenom} ${user.nom}`, role: 'Titulaire', initial: `${user.prenom?.[0] || ''}${user.nom?.[0] || ''}`, color: 'bg-primary' },
-        { id: 2, name: 'Léo Patient', role: 'Enfant', initial: 'LP', color: 'bg-blue-500' },
-        { id: 3, name: 'Maya Patient', role: 'Enfant', initial: 'MP', color: 'bg-pink-500' },
-    ]);
-
+    const [profiles, setProfiles] = useState([]);
     const [activeProfile, setActiveProfile] = useState(() => {
         const saved = localStorage.getItem('active-patient-profile');
-        return saved ? JSON.parse(saved) : profiles[0];
+        return saved ? JSON.parse(saved) : { id: null, nom_affichage: 'Vue d\'ensemble', type: 'Global' };
     });
 
     const [notifications, setNotifications] = useState([]);
+
+    useEffect(() => {
+        const loadInitialData = async () => {
+            try {
+                // Charger les notifications
+                const notifs = await patientService.getNotifications();
+                setNotifications(notifs);
+
+                // Charger les profils réels
+                const fetchedProfils = await patientService.getProfils();
+                const profilList = fetchedProfils.map(p => ({
+                    ...p,
+                    initial: p.nom_affichage.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase(),
+                    color: p.type === 'Titulaire' ? 'bg-primary' : (p.type === 'Enfant' ? 'bg-blue-500' : 'bg-slate-400')
+                }));
+                setProfiles(profilList);
+
+                // Si aucun profil actif n'est en mémoire, on met le Titulaire (le premier)
+                if (!localStorage.getItem('active-patient-profile')) {
+                    if (profilList.length > 0) setActiveProfile(profilList[0]);
+                } else {
+                    // Vérifier que le profil en mémoire existe toujours dans la liste
+                    const saved = JSON.parse(localStorage.getItem('active-patient-profile'));
+                    const exists = profilList.find(p => p.id === saved.id);
+                    if (!exists && profilList.length > 0) setActiveProfile(profilList[0]);
+                }
+            } catch (error) {
+                console.error("Erreur chargement données initiales sidebar", error);
+            }
+        };
+        loadInitialData();
+    }, []);
 
     useEffect(() => {
         localStorage.setItem('sidebar-expanded-patient', isSidebarOpen);
     }, [isSidebarOpen]);
 
     useEffect(() => {
-        localStorage.setItem('active-patient-profile', JSON.stringify(activeProfile));
+        if (activeProfile) {
+            localStorage.setItem('active-patient-profile', JSON.stringify(activeProfile));
+            // Déclencher un événement personnalisé pour notifier les pages (le Dashboard) du changement
+            window.dispatchEvent(new CustomEvent('patientProfileChanged', { detail: activeProfile }));
+        }
     }, [activeProfile]);
-
-    useEffect(() => {
-        const fetchNotifications = async () => {
-            try {
-                const data = await patientService.getNotifications();
-                setNotifications(data);
-            } catch (error) {
-                console.error("Erreur chargement notifications sidebar", error);
-            }
-        };
-        fetchNotifications();
-    }, []);
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -88,7 +106,7 @@ const PatientLayout = ({ children }) => {
         {
             title: 'Espace Santé',
             items: [
-                { path: '/patient/dossier', icon: 'folder_shared', label: 'Dossier Médical' },
+                { path: `/patient/dossier${activeProfile?.id ? `/${activeProfile.id}` : ''}`, icon: 'folder_shared', label: 'Dossier Médical' },
             ]
         },
         {
@@ -215,6 +233,53 @@ const PatientLayout = ({ children }) => {
                                 </div>
                             )}
 
+                            <div className="flex items-center gap-4 relative" ref={switchRef}>
+                                <button
+                                    onClick={() => setIsSwitchOpen(!isSwitchOpen)}
+                                    className={`hidden md:flex items-center gap-3 px-4 py-2 rounded-xl border transition-all duration-200 ${isSwitchOpen ? 'bg-primary/10 border-primary/30 text-primary' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-primary/30'}`}
+                                >
+                                    <div className={`size-7 rounded-lg ${activeProfile?.color || 'bg-slate-400'} flex items-center justify-center text-[10px] font-black text-white`}>
+                                        {activeProfile?.initial}
+                                    </div>
+                                    <div className="flex flex-col items-start leading-tight">
+                                        <span className="text-[10px] font-black uppercase tracking-tighter text-slate-400">Dossier Actif</span>
+                                        <span className="text-[12px] font-bold whitespace-nowrap">{activeProfile?.nom_affichage}</span>
+                                    </div>
+                                    <span className="material-symbols-outlined text-[18px] text-slate-400">swap_vert</span>
+                                </button>
+
+                                {isSwitchOpen && (
+                                    <div className="absolute top-[calc(100%+12px)] left-0 w-64 bg-white dark:bg-[#1c2229] border border-slate-200 dark:border-[#2d363f] rounded-2xl shadow-2xl z-[60] py-2 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                                        <div className="px-4 py-2 mb-1 border-b border-slate-100 dark:border-slate-800">
+                                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Changer de dossier</p>
+                                        </div>
+                                        {profiles.map(p => (
+                                            <button
+                                                key={p.id === null ? 'global' : p.id}
+                                                onClick={() => {
+                                                    setActiveProfile(p);
+                                                    setIsSwitchOpen(false);
+                                                }}
+                                                className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all text-left ${activeProfile?.id === p.id ? 'bg-primary/5 text-primary' : 'text-titles dark:text-white'}`}
+                                            >
+                                                <div className={`size-8 rounded-lg ${p.color} flex items-center justify-center text-[10px] font-black text-white shrink-0`}>
+                                                    {p.initial}
+                                                </div>
+                                                <div className="flex flex-col items-start leading-tight">
+                                                    <span className="text-xs font-bold">{p.nom_affichage}</span>
+                                                    <span className="text-[9px] font-medium uppercase tracking-widest text-slate-400">{p.type}</span>
+                                                </div>
+                                                {activeProfile?.id === p.id && (
+                                                    <span className="material-symbols-outlined text-[18px] ml-auto">check_circle</span>
+                                                )}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="h-8 w-px bg-slate-200 dark:bg-slate-700 hidden md:block"></div>
+
                             <div className="flex items-center gap-4 relative" ref={dropdownRef}>
                                 <Link
                                     to="/patient/notifications"
@@ -251,7 +316,7 @@ const PatientLayout = ({ children }) => {
                                                     {(user.prenom?.[0] || '')}{(user.nom?.[0] || '')}
                                                 </div>
                                                 <div className="flex flex-col">
-                                                    <p className="text-sm font-bold text-titles dark:text-white">{user.prenom} {user.nom}</p>
+                                                    <p className="text-sm font-bold text-titles dark:text-white"><span className="text-secondary">{user.prenom}</span> {user.nom}</p>
                                                     <p className="text-[11px] text-[#6c757f] font-medium">Patient</p>
                                                 </div>
                                             </div>

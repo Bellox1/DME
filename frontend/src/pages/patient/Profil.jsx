@@ -37,6 +37,14 @@ const PatientProfil = () => {
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
+
+        // Restriction pour tel et whatsapp : Uniquement '+' au début et chiffres
+        if (name === 'tel' || name === 'whatsapp') {
+            const cleanValue = value.replace(/(?!^\+)[^\d]/g, ''); // Garde '+' seulement au début, et les chiffres
+            setUserData(prev => ({ ...prev, [name]: cleanValue }));
+            return;
+        }
+
         setUserData(prev => ({ ...prev, [name]: value }));
     };
 
@@ -101,7 +109,9 @@ const PatientProfil = () => {
 
                         {/* Nom et Rôle SUR l'arrière-plan */}
                         <div className="absolute bottom-6 md:bottom-10 left-36 md:left-48 right-6 flex flex-col gap-1 md:ml-4 animate-in fade-in slide-in-from-left-4 duration-700">
-                            <h1 className="text-xl sm:text-2xl md:text-4xl font-black text-white drop-shadow-lg tracking-tight uppercase italic transition-all leading-tight">{userData.prenom} {userData.nom}</h1>
+                            <h1 className="text-xl sm:text-2xl md:text-4xl font-black text-white drop-shadow-lg tracking-tight uppercase italic transition-all leading-tight">
+                                Mon <span className="text-secondary">Profil</span> : {userData.prenom} {userData.nom}
+                            </h1>
                             <div className="flex items-center gap-2">
                                 <span className="px-2 py-0.5 bg-white/20 backdrop-blur-md rounded-md text-[9px] md:text-[10px] font-bold text-white uppercase tracking-widest border border-white/30">PATIENT</span>
                                 <span className="text-[10px] md:text-xs text-white/90 font-bold uppercase tracking-wide italic">Compte Titulaire</span>

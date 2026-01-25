@@ -71,6 +71,7 @@ function App() {
           <Route path="/patient/consultations" element={<ProtectedRoute allowedRoles={['patient']}><PatientConsultations /></ProtectedRoute>} />
           <Route path="/patient/ordonnances" element={<ProtectedRoute allowedRoles={['patient']}><PatientOrdonnances /></ProtectedRoute>} />
           <Route path="/patient/dossier" element={<ProtectedRoute allowedRoles={['patient']}><PatientDossier /></ProtectedRoute>} />
+          <Route path="/patient/dossier/:patientId" element={<ProtectedRoute allowedRoles={['patient']}><PatientDossier /></ProtectedRoute>} />
           <Route path="/patient/activites" element={<ProtectedRoute allowedRoles={['patient']}><PatientActivites /></ProtectedRoute>} />
           <Route path="/patient/notifications" element={<ProtectedRoute allowedRoles={['patient']}><PatientNotifications /></ProtectedRoute>} />
           <Route path="/patient/aide-patient" element={<ProtectedRoute allowedRoles={['patient']}><PatientAide /></ProtectedRoute>} />

@@ -9,6 +9,7 @@ const Notifications = () => {
     useEffect(() => {
         const fetchNotifications = async () => {
             try {
+                setLoading(true);
                 const data = await patientService.getNotifications();
                 setNotifications(data);
             } catch (error) {
@@ -17,6 +18,7 @@ const Notifications = () => {
                 setLoading(false);
             }
         };
+
         fetchNotifications();
     }, []);
 
@@ -25,7 +27,9 @@ const Notifications = () => {
             <div className="p-8 max-w-[1600px] mx-auto w-full flex flex-col gap-8 transition-all duration-[800ms]">
                 <div className="flex justify-between items-center">
                     <div className="flex flex-col gap-1">
-                        <h1 className="text-3xl font-black text-titles dark:text-white tracking-tight">Notifications</h1>
+                        <h1 className="text-3xl font-black text-titles dark:text-white tracking-tight">
+                            Mes <span className="text-secondary">Notifications</span>
+                        </h1>
                         <p className="text-slate-500 dark:text-slate-400 font-medium">Restez informé de votre suivi médical.</p>
                     </div>
                 </div>
@@ -48,14 +52,18 @@ const Notifications = () => {
                                     </div>
                                     <div className="flex-1 flex flex-col gap-1">
                                         <div className="flex justify-between items-start">
-                                            <h3 className={`text-base font-black ${n.isUnread ? 'text-titles dark:text-white' : 'text-slate-500'}`}>
-                                                {n.title}
-                                            </h3>
+                                            <div className="flex flex-col gap-1">
+                                                <div className="flex items-center gap-2">
+                                                    <h3 className={`text-base font-black ${n.isUnread ? 'text-titles dark:text-white' : 'text-slate-500'}`}>
+                                                        {n.title}
+                                                    </h3>
+                                                </div>
+                                                <p className={`text-sm ${n.isUnread ? 'text-slate-600 dark:text-slate-400 font-medium' : 'text-slate-400 font-medium'}`}>
+                                                    {n.desc}
+                                                </p>
+                                            </div>
                                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{n.time}</span>
                                         </div>
-                                        <p className={`text-sm ${n.isUnread ? 'text-slate-600 dark:text-slate-400 font-medium' : 'text-slate-400 font-medium'}`}>
-                                            {n.desc}
-                                        </p>
                                     </div>
                                     {n.isUnread && <div className="size-2.5 rounded-full bg-primary mt-2"></div>}
                                 </div>

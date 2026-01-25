@@ -25,20 +25,37 @@ class DashboardController extends Controller
 
         $user = $request->user();
         
-        // Identifier le profil actif (Soit l'utilisateur lui-même, soit un enfant qu'il gère)
-        // Par défaut, on charge tout pour l'utilisateur principal, mais l'interface pourra filtrer
-        
-        // 1. Récupérer l'ID du dossier patient principal (si existe)
+        // --- Récupération des dossiers accessibles ---
         $dossierPrincipal = Patient::where('utilisateur_id', $user->id)->first();
-        
-        // 2. Récupérer les IDs des dossiers enfants
         $enfantsIds = Enfant::where('parent_id', $user->id)->pluck('id');
         $dossiersEnfants = Patient::whereIn('enfant_id', $enfantsIds)->get();
 
-        // On fusionne tous les IDs de patients gérés par cet utilisateur pour des stats globales
+        $allPatientsIds = collect([]);
+        if ($dossierPrincipal) $allPatientsIds->push($dossierPrincipal->id);
+        foreach ($dossiersEnfants as $d) $allPatientsIds->push($d->id);
+
+        // --- Filtrage par Patient Spécifique (Optionnel) ---
+        $requestedPatientId = $request->query('patient_id');
         $patientsIds = collect([]);
-        if ($dossierPrincipal) $patientsIds->push($dossierPrincipal->id);
-        foreach ($dossiersEnfants as $d) $patientsIds->push($d->id);
+
+        if ($requestedPatientId && $requestedPatientId !== 'all') {
+            // Sécurité : Vérifier que l'utilisateur a le droit d'accéder à ce patient précis
+            if ($allPatientsIds->contains($requestedPatientId)) {
+                $patientsIds->push($requestedPatientId);
+            } else {
+                return response()->json(['message' => 'Accès non autorisé à ce profil.'], 403);
+            }
+        } elseif ($requestedPatientId === 'all') {
+            // Vue Globale (Optionnelle)
+            $patientsIds = $allPatientsIds;
+        } else {
+            // Vue Par Défaut : Titulaire uniquement
+            if ($dossierPrincipal) {
+                $patientsIds->push($dossierPrincipal->id);
+            } else if ($allPatientsIds->isNotEmpty()) {
+                $patientsIds->push($allPatientsIds->first());
+            }
+        }
 
         if ($patientsIds->isEmpty()) {
             return response()->json(['message' => 'Aucun dossier patient associé.'], 200);
@@ -46,13 +63,16 @@ class DashboardController extends Controller
 
         // --- STATISTIQUES ---
         
-        // Prochain RDV
         $prochainRdv = Rdv::whereIn('patient_id', $patientsIds)
             ->where('dateH_rdv', '>=', Carbon::now())
             ->where('statut', 'programmé')
             ->orderBy('dateH_rdv', 'asc')
-            ->with(['medecin:id,nom,prenom,role', 'patient.enfant', 'patient.utilisateur']) // Pour savoir pour qui c'est
+            ->with(['medecin:id,nom,prenom,role', 'patient.enfant', 'patient.utilisateur'])
             ->first();
+
+        if ($prochainRdv) {
+            $prochainRdv->patient_nom = $prochainRdv->patient->nom_complet;
+        }
 
         // Ordonnances Actives (Estimé par date < 1 mois pour l'instant)
         // Idéalement, on vérifierait la durée du traitement
@@ -64,9 +84,9 @@ class DashboardController extends Controller
 
         // Dernières Activités (Fusion RDVs passés, Consultations et Demandes)
         
-        // 1. Les RDVs passés
         $rdvsPasses = Rdv::whereIn('patient_id', $patientsIds)
             ->where('dateH_rdv', '<', Carbon::now())
+            ->with(['medecin:id,nom', 'patient.enfant', 'patient.utilisateur'])
             ->orderBy('dateH_rdv', 'desc')
             ->take(5)
             ->get()
@@ -76,12 +96,13 @@ class DashboardController extends Controller
                     'date' => $item->dateH_rdv,
                     'medecin' => $item->medecin ? "Dr. " . $item->medecin->nom : 'Inconnu',
                     'motif' => $item->motif,
-                    'statut' => $item->statut
+                    'statut' => $item->statut,
+                    'patient_nom' => $item->patient->nom_complet
                 ];
             });
 
-        // 2. Les Consultations passées
         $consultationsPassees = Consultation::whereIn('patient_id', $patientsIds)
+            ->with(['medecin:id,nom', 'patient.enfant', 'patient.utilisateur'])
             ->orderBy('dateH_visite', 'desc')
             ->take(5)
             ->get()
@@ -90,25 +111,32 @@ class DashboardController extends Controller
                     'type' => 'consultation',
                     'date' => $item->dateH_visite,
                     'medecin' => $item->medecin ? "Dr. " . $item->medecin->nom : 'Inconnu',
-                    'motif' => $item->motif, // "Consultation (Motif)"
-                    'statut' => 'Terminé'
+                    'motif' => $item->motif,
+                    'statut' => 'Terminé',
+                    'patient_nom' => $item->patient->nom_complet
                 ];
             });
 
-        // 3. Les Demandes (Requêtes administratives)
-        $demandesPassees = Demande::where('utilisateur_id', $user->id)
-            ->orderBy('date_creation', 'desc')
-            ->take(5)
-            ->get()
-            ->map(function($item) {
-                return [
-                    'type' => 'demande',
-                    'date' => $item->date_creation,
-                    'medecin' => 'Service Client',
-                    'motif' => ucfirst($item->type) . ' : ' . $item->objet,
-                    'statut' => $item->statut
-                ];
-            });
+        // 3. Les Demandes (Uniquement si on regarde le dossier du titulaire ou la vue globale)
+        $isTitulaire = $dossierPrincipal && $patientsIds->contains($dossierPrincipal->id);
+        $demandesPassees = collect([]);
+
+        if ($requestedPatientId === 'all' || $isTitulaire) {
+            $demandesPassees = Demande::where('utilisateur_id', $user->id)
+                ->orderBy('date_creation', 'desc')
+                ->take(5)
+                ->get()
+                ->map(function($item) use ($user) {
+                    return [
+                        'type' => 'demande',
+                        'date' => $item->date_creation,
+                        'medecin' => 'Service Client',
+                        'motif' => ucfirst($item->type) . ' : ' . $item->objet,
+                        'statut' => $item->statut,
+                        'patient_nom' => $user->prenom
+                    ];
+                });
+        }
 
         // 4. Fusion et Tri
         $activites = $rdvsPasses->merge($consultationsPassees)
@@ -117,13 +145,41 @@ class DashboardController extends Controller
             ->take(7) // On prend un peu plus pour avoir de la variété
             ->values();
 
+        // 5. Données pour le Graphique (6 derniers mois)
+        $chartData = [];
+        $originalLocale = Carbon::getLocale();
+        Carbon::setLocale('fr');
+        
+        for ($i = 5; $i >= 0; $i--) {
+            $month = Carbon::now()->subMonths($i);
+            $start = $month->copy()->startOfMonth();
+            $end = $month->copy()->endOfMonth();
+
+            $count = Rdv::whereIn('patient_id', $patientsIds)
+                ->whereBetween('dateH_rdv', [$start, $end])
+                ->count();
+            
+            $count += Consultation::whereIn('patient_id', $patientsIds)
+                ->whereBetween('dateH_visite', [$start, $end])
+                ->count();
+
+            $chartData[] = [
+                'name' => $month->translatedFormat('M'),
+                'visites' => $count
+            ];
+        }
+        Carbon::setLocale($originalLocale);
+
         return response()->json([
             'prochain_rdv' => $prochainRdv,
             'stats' => [
                 'ordonnances_actives' => $ordonnancesActives,
-                'total_dossiers_geres' => $patientsIds->count(),
-                'nom_principal' => $user->prenom,
+                'total_dossiers_geres' => $allPatientsIds->count(), // Toujours le total des dossiers accessibles
+                'nom_principal' => $requestedPatientId 
+                    ? (Patient::find($requestedPatientId)->enfant->prenom ?? $user->prenom) 
+                    : $user->prenom,
             ],
+            'chart_data' => $chartData,
             'activites_recentes' => $activites
         ]);
     }
@@ -137,21 +193,41 @@ class DashboardController extends Controller
 
         $user = $request->user();
         
-        // --- Récupération des IDs de patients (Même logique que index) ---
+        // --- Récupération des IDs de patients ---
         $dossierPrincipal = Patient::where('utilisateur_id', $user->id)->first();
         $enfantsIds = Enfant::where('parent_id', $user->id)->pluck('id');
+        $allPatientsIds = collect([]);
+        if ($dossierPrincipal) $allPatientsIds->push($dossierPrincipal->id);
         $dossiersEnfants = Patient::whereIn('enfant_id', $enfantsIds)->get();
+        foreach ($dossiersEnfants as $d) $allPatientsIds->push($d->id);
 
+        // --- Filtrage ---
+        $requestedPatientId = $request->query('patient_id');
         $patientsIds = collect([]);
-        if ($dossierPrincipal) $patientsIds->push($dossierPrincipal->id);
-        foreach ($dossiersEnfants as $d) $patientsIds->push($d->id);
+
+        if ($requestedPatientId && $requestedPatientId !== 'all') {
+            if ($allPatientsIds->contains($requestedPatientId)) {
+                $patientsIds->push($requestedPatientId);
+            } else {
+                return response()->json(['message' => 'Accès non autorisé.'], 403);
+            }
+        } elseif ($requestedPatientId === 'all') {
+            $patientsIds = $allPatientsIds;
+        } else {
+            // Par défaut : Titulaire
+            if ($dossierPrincipal) {
+                $patientsIds->push($dossierPrincipal->id);
+            } else if ($allPatientsIds->isNotEmpty()) {
+                $patientsIds->push($allPatientsIds->first());
+            }
+        }
 
         if ($patientsIds->isEmpty()) {
             return response()->json([]);
         }
 
-        // 1. Tous les RDVs (Futurs et Passés)
         $rdvs = Rdv::whereIn('patient_id', $patientsIds)
+            ->with(['medecin:id,nom', 'patient.enfant', 'patient.utilisateur'])
             ->orderBy('dateH_rdv', 'desc')
             ->get()
             ->map(function($item) {
@@ -160,12 +236,14 @@ class DashboardController extends Controller
                     'date' => $item->dateH_rdv,
                     'medecin' => $item->medecin ? "Dr. " . $item->medecin->nom : 'Inconnu',
                     'motif' => $item->motif,
-                    'statut' => $item->statut
+                    'statut' => $item->statut,
+                    'patient_nom' => $item->patient->nom_complet
                 ];
             });
 
         // 2. Toutes les Consultations
         $consultations = Consultation::whereIn('patient_id', $patientsIds)
+            ->with(['medecin:id,nom', 'patient.enfant', 'patient.utilisateur'])
             ->orderBy('dateH_visite', 'desc')
             ->get()
             ->map(function($item) {
@@ -174,23 +252,30 @@ class DashboardController extends Controller
                     'date' => $item->dateH_visite,
                     'medecin' => $item->medecin ? "Dr. " . $item->medecin->nom : 'Inconnu',
                     'motif' => $item->motif ?: 'Consultation',
-                    'statut' => 'Terminé'
+                    'statut' => 'Terminé',
+                    'patient_nom' => $item->patient->nom_complet
                 ];
             });
 
-        // 3. Toutes les Demandes
-        $demandes = Demande::where('utilisateur_id', $user->id)
-            ->orderBy('date_creation', 'desc')
-            ->get()
-            ->map(function($item) {
-                return [
-                    'type' => 'demande',
-                    'date' => $item->date_creation,
-                    'medecin' => 'Service Client',
-                    'motif' => ucfirst($item->type) . ' : ' . $item->objet,
-                    'statut' => $item->statut
-                ];
-            });
+        // 3. Toutes les Demandes (Uniquement pour le titulaire)
+        $isTitulaire = $dossierPrincipal && $patientsIds->contains($dossierPrincipal->id);
+        $demandes = collect([]);
+
+        if ($requestedPatientId === 'all' || $isTitulaire) {
+            $demandes = Demande::where('utilisateur_id', $user->id)
+                ->orderBy('date_creation', 'desc')
+                ->get()
+                ->map(function($item) use ($user) {
+                    return [
+                        'type' => 'demande',
+                        'date' => $item->date_creation,
+                        'medecin' => 'Service Client',
+                        'motif' => ucfirst($item->type) . ' : ' . $item->objet,
+                        'statut' => $item->statut,
+                        'patient_nom' => $user->prenom
+                    ];
+                });
+        }
 
         // Fusion et Tri Global
         $activites = $rdvs->merge($consultations)

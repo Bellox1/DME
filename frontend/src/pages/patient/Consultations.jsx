@@ -35,7 +35,9 @@ const Consultations = () => {
             <div className="p-4 md:p-8 max-w-[1600px] mx-auto w-full flex flex-col gap-6 md:gap-8 transition-all duration-[800ms]">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="flex flex-col gap-1">
-                        <h1 className="text-2xl md:text-3xl font-black text-titles dark:text-white tracking-tight uppercase italic">Mes Consultations</h1>
+                        <h1 className="text-2xl md:text-3xl font-black text-titles dark:text-white tracking-tight uppercase italic">
+                            Mes <span className="text-secondary">Consultations</span>
+                        </h1>
                         <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 font-medium italic">Historique et rendez-vous à venir.</p>
                     </div>
                     <button

@@ -37,12 +37,14 @@ class CompteController extends Controller
                 'nullable', 
                 'string', 
                 'max:20', 
+                'regex:/^\+?[0-9]+$/',
                 \Illuminate\Validation\Rule::unique('utilisateurs', 'tel')->ignore($user->id)
             ],
             'whatsapp' => [
                 'nullable', 
                 'string', 
                 'max:20', 
+                'regex:/^\+?[0-9]+$/',
                 \Illuminate\Validation\Rule::unique('utilisateurs', 'whatsapp')->ignore($user->id)
             ],
         ], [
@@ -50,6 +52,8 @@ class CompteController extends Controller
             'whatsapp.unique' => 'Ce numéro WhatsApp est déjà utilisé par un autre compte.',
             'tel.max' => 'Le numéro de téléphone ne doit pas dépasser 20 caractères.',
             'whatsapp.max' => 'Le numéro WhatsApp ne doit pas dépasser 20 caractères.',
+            'tel.regex' => 'Le numéro de téléphone ne doit contenir que des chiffres et peut commencer par +.',
+            'whatsapp.regex' => 'Le numéro WhatsApp ne doit contenir que des chiffres et peut commencer par +.',
             'ville.max' => 'La ville ne doit pas dépasser 100 caractères.',
         ]);
 

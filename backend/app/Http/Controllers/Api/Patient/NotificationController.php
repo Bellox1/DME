@@ -17,21 +17,21 @@ class NotificationController extends Controller
         $user = $request->user();
         \Carbon\Carbon::setLocale('fr');
         
-        // On récupère les demandes traitées (approuvé ou rejeté)
-        // On les trie par date de modification (date du traitement)
+        // On récupère les demandes traitées (approuvé ou rejeté) liées au compte
         $demandesTraitees = Demande::where('utilisateur_id', $user->id)
             ->whereIn('statut', ['approuvé', 'rejeté'])
             ->orderBy('date_modification', 'desc')
             ->get()
-            ->map(function($demande) {
+            ->map(function($demande) use ($user) {
                 return [
                     'id' => 'DEM-' . $demande->id,
-                    'type' => 'assignment', // Icône pour les demandes
+                    'type' => 'assignment', 
                     'title' => 'Demande traitée',
                     'desc' => "Votre demande \"" . $demande->objet . "\" a été " . $demande->statut . ".",
                     'time' => $demande->date_modification->diffForHumans(),
-                    'isUnread' => $demande->date_modification->gt(now()->subDays(1)), // Simulé : considéré comme non lu si traité il y a moins de 24h
-                    'statut' => $demande->statut
+                    'isUnread' => $demande->date_modification->gt(now()->subDays(1)),
+                    'statut' => $demande->statut,
+                    'patient_nom' => $user->prenom
                 ];
             });
 

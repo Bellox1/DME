@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import PatientLayout from '../../components/layouts/PatientLayout';
 import patientService from '../../services/patient/patientService';
 
@@ -12,9 +13,10 @@ const PatientDashboard = () => {
     const [successMessage, setSuccessMessage] = useState('');
 
     useEffect(() => {
-        const fetchStats = async () => {
+        const fetchStats = async (patientId = null) => {
             try {
-                const data = await patientService.getDashboardStats();
+                setLoading(true);
+                const data = await patientService.getDashboardStats(patientId);
                 setStats(data);
             } catch (error) {
                 console.error("Erreur chargement dashboard", error);
@@ -22,7 +24,20 @@ const PatientDashboard = () => {
                 setLoading(false);
             }
         };
-        fetchStats();
+
+        // Charger le profil actif au montage
+        const savedProfile = localStorage.getItem('active-patient-profile');
+        const activeId = savedProfile ? JSON.parse(savedProfile).id : null;
+        fetchStats(activeId);
+
+        // Écouter les changements de profil depuis le Layout
+        const handleProfileChange = (event) => {
+            const newProfile = event.detail;
+            fetchStats(newProfile.id);
+        };
+
+        window.addEventListener('patientProfileChanged', handleProfileChange);
+        return () => window.removeEventListener('patientProfileChanged', handleProfileChange);
     }, []);
 
     const handleDemandeSubmit = async (e) => {
@@ -69,7 +84,7 @@ const PatientDashboard = () => {
         );
     }
 
-    const { prochain_rdv, stats: kpi, activites_recentes } = stats || {};
+    const { prochain_rdv, stats: kpi, activites_recentes, chart_data } = stats || {};
     const firstName = kpi?.nom_principal || 'Patient';
 
     return (
@@ -87,7 +102,7 @@ const PatientDashboard = () => {
                                 <span className="size-2 rounded-full bg-green-400 animate-ping"></span>
                             </div>
                             <h1 className="text-3xl md:text-5xl font-black tracking-tighter leading-none italic uppercase">
-                                Bonjour, <span className="text-white/80">{firstName}</span> 👋
+                                Bonjour, <span className="text-secondary">{firstName}</span> 👋
                             </h1>
                             <p className="text-lg text-white/70 font-medium italic max-w-md">
                                 Content de vous revoir. Vous gérez actuellement {kpi?.total_dossiers_geres || 0} dossier(s) médical(aux).
@@ -111,9 +126,9 @@ const PatientDashboard = () => {
                         {
                             label: 'Prochain RDV',
                             value: prochain_rdv ? formatDate(prochain_rdv.dateH_rdv) : 'Aucun',
-                            sub: prochain_rdv ? formatTime(prochain_rdv.dateH_rdv) : '',
+                            sub: prochain_rdv ? (prochain_rdv.patient_nom ? `${formatTime(prochain_rdv.dateH_rdv)} (${prochain_rdv.patient_nom})` : formatTime(prochain_rdv.dateH_rdv)) : '',
                             icon: 'event',
-                            color: 'bg-blue-500'
+                            color: 'bg-secondary'
                         },
                         { label: 'Ordonnances actives', value: kpi?.ordonnances_actives || 0, icon: 'prescriptions', color: 'bg-primary' },
                         { label: 'Dossiers gérés', value: kpi?.total_dossiers_geres || 0, icon: 'folder_shared', color: 'bg-green-500' },
@@ -131,6 +146,68 @@ const PatientDashboard = () => {
                             </div>
                         </div>
                     ))}
+                </div>
+
+                {/* Graph Section */}
+                <div className="bg-white dark:bg-[#1c2229] border border-slate-200 dark:border-[#2d363f] rounded-[2.5rem] p-8 shadow-sm">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+                        <div className="flex flex-col gap-1">
+                            <h3 className="text-xl font-black text-titles dark:text-white">Activité Hospitalière</h3>
+                            <p className="text-xs text-slate-500 font-medium">Nombre de visites et examens sur les 6 derniers mois.</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1.5">
+                                <span className="size-2 rounded-full bg-primary"></span>
+                                <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider mt-0.5">Visites</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="h-[300px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={chart_data || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                <defs>
+                                    <linearGradient id="colorVisites" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#4F91FF" stopOpacity={0.3} />
+                                        <stop offset="95%" stopColor="#4F91FF" stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                <XAxis
+                                    dataKey="name"
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }}
+                                    dy={10}
+                                />
+                                <YAxis
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }}
+                                />
+                                <Tooltip
+                                    contentStyle={{
+                                        borderRadius: '16px',
+                                        border: 'none',
+                                        boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+                                        background: 'rgba(255, 255, 255, 0.9)',
+                                        backdropFilter: 'blur(4px)',
+                                        fontSize: '11px',
+                                        fontWeight: '800'
+                                    }}
+                                />
+                                <Area
+                                    type="monotone"
+                                    dataKey="visites"
+                                    stroke="#4F91FF"
+                                    strokeWidth={4}
+                                    fillOpacity={1}
+                                    fill="url(#colorVisites)"
+                                    animationDuration={1500}
+                                />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -153,9 +230,15 @@ const PatientDashboard = () => {
                                                         {item.type === 'rdv' ? 'event_note' : (item.type === 'demande' ? 'assignment' : 'stethoscope')}
                                                     </span>
                                                 </div>
-                                                <div className="flex flex-col">
-                                                    <span className="text-sm font-black text-titles dark:text-white">{item.medecin}</span>
-                                                    <span className="text-[11px] text-slate-500 font-bold uppercase tracking-wider">{item.motif}</span>
+                                                <div className="flex flex-col gap-1">
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <span className="text-sm font-black text-titles dark:text-white capitalize line-clamp-1">{item.medecin}</span>
+                                                        <div className="flex items-center gap-1.5 px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                                                            <span className="material-symbols-outlined text-[10px] text-slate-400">person</span>
+                                                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-tighter truncate max-w-[80px]">{item.patient_nom}</span>
+                                                        </div>
+                                                    </div>
+                                                    <span className="text-[11px] text-slate-500 font-bold uppercase tracking-wider line-clamp-1">{item.motif}</span>
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-12 text-right">

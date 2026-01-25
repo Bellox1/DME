@@ -7,9 +7,10 @@ const Activites = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetchAllActivities = async () => {
+        const fetchAllActivities = async (patientId = null) => {
             try {
-                const data = await patientService.getAllActivities();
+                setLoading(true);
+                const data = await patientService.getAllActivities(patientId);
                 setActivites(data);
             } catch (error) {
                 console.error("Erreur chargement activites", error);
@@ -17,7 +18,17 @@ const Activites = () => {
                 setLoading(false);
             }
         };
-        fetchAllActivities();
+
+        const savedProfile = localStorage.getItem('active-patient-profile');
+        const activeId = savedProfile ? JSON.parse(savedProfile).id : null;
+        fetchAllActivities(activeId);
+
+        const handleProfileChange = (event) => {
+            fetchAllActivities(event.detail.id);
+        };
+
+        window.addEventListener('patientProfileChanged', handleProfileChange);
+        return () => window.removeEventListener('patientProfileChanged', handleProfileChange);
     }, []);
 
     const formatDate = (dateString) => {
@@ -48,7 +59,9 @@ const Activites = () => {
         <PatientLayout>
             <div className="p-4 md:p-8 max-w-[1600px] mx-auto w-full flex flex-col gap-8 transition-all duration-[800ms]">
                 <div className="flex flex-col gap-1">
-                    <h1 className="text-3xl font-black text-titles dark:text-white tracking-tight">Activités</h1>
+                    <h1 className="text-3xl font-black text-titles dark:text-white tracking-tight">
+                        Vos <span className="text-secondary">Activités</span>
+                    </h1>
                     <p className="text-slate-500 dark:text-slate-400 font-medium">Historique complet de vos rendez-vous, demandes et consultations.</p>
                 </div>
 
@@ -70,9 +83,15 @@ const Activites = () => {
                                                         {item.type === 'rdv' ? 'event_note' : (item.type === 'demande' ? 'assignment' : 'stethoscope')}
                                                     </span>
                                                 </div>
-                                                <div className="flex flex-col">
-                                                    <span className="text-sm font-black text-titles dark:text-white">{item.medecin}</span>
-                                                    <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">{item.motif}</span>
+                                                <div className="flex flex-col gap-1">
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <span className="text-sm font-black text-titles dark:text-white capitalize line-clamp-1">{item.medecin}</span>
+                                                        <div className="flex items-center gap-1.5 px-2 py-0.5 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+                                                            <span className="material-symbols-outlined text-[10px] text-slate-400">person</span>
+                                                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-tighter truncate max-w-[100px]">{item.patient_nom}</span>
+                                                        </div>
+                                                    </div>
+                                                    <span className="text-xs text-slate-500 font-bold uppercase tracking-wider line-clamp-1">{item.motif}</span>
                                                 </div>
                                             </div>
                                             <div className="flex items-center justify-between md:justify-end gap-12 text-right w-full md:w-auto mt-2 md:mt-0 pl-[4.5rem] md:pl-0">

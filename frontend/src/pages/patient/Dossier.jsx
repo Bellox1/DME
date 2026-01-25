@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import PatientLayout from '../../components/layouts/PatientLayout';
 import patientService from '../../services/patient/patientService';
 
 const Dossier = () => {
+    const { patientId } = useParams();
+    const navigate = useNavigate();
     const [profils, setProfils] = useState([]);
     const [selectedProfilId, setSelectedProfilId] = useState(null);
     const [dossier, setDossier] = useState(null);
@@ -15,22 +18,47 @@ const Dossier = () => {
         const fetchProfils = async () => {
             try {
                 const data = await patientService.getProfils();
-                console.log("PROFILS RECUS:", data); // DEBUG
                 setProfils(data);
-                if (data.length > 0) {
-                    console.log("SELECTION PROFIL:", data[0].id); // DEBUG
-                    setSelectedProfilId(data[0].id);
+
+                // Priorité de sélection :
+                // 1. URL Parameter (:patientId)
+                // 2. localStorage (active-patient-profile)
+                // 3. Premier profil de la liste
+
+                if (patientId) {
+                    setSelectedProfilId(parseInt(patientId));
                 } else {
-                    console.warn("AUCUN PROFIL TROUVÉ POUR CET UTILISATEUR");
-                    setLoading(false);
+                    const saved = localStorage.getItem('active-patient-profile');
+                    if (saved) {
+                        const profile = JSON.parse(saved);
+                        if (profile.id) {
+                            setSelectedProfilId(profile.id);
+                        } else if (data.length > 0) {
+                            // Si c'est "Global", on prend le premier profil réel (Titulaire)
+                            setSelectedProfilId(data[0].id);
+                        }
+                    } else if (data.length > 0) {
+                        setSelectedProfilId(data[0].id);
+                    }
                 }
             } catch (error) {
                 console.error("Erreur chargement profils", error);
-                setLoading(false);
             }
         };
         fetchProfils();
-    }, []);
+
+        // Écouter les changements de profil globaux
+        const handleProfileChange = (event) => {
+            if (event.detail.id) {
+                setSelectedProfilId(event.detail.id);
+                // Optionnel : Mettre à jour l'URL sans recharger
+                navigate(`/patient/dossier/${event.detail.id}`, { replace: true });
+            }
+        };
+
+        window.addEventListener('patientProfileChanged', handleProfileChange);
+        return () => window.removeEventListener('patientProfileChanged', handleProfileChange);
+    }, [patientId, navigate]);
 
     // 2. Charger le détail du dossier quand l'ID change
     useEffect(() => {
@@ -95,27 +123,12 @@ const Dossier = () => {
             <div className="p-4 md:p-8 max-w-[1600px] mx-auto w-full flex flex-col gap-8 transition-all duration-[800ms]">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div className="flex flex-col gap-1">
-                        <h1 className="text-3xl font-black text-titles dark:text-white tracking-tight">Dossier Médical</h1>
+                        <h1 className="text-3xl font-black text-titles dark:text-white tracking-tight">
+                            Dossier <span className="text-secondary">Médical</span>
+                        </h1>
                         <p className="text-slate-500 dark:text-slate-400 font-medium">L'ensemble des données de santé.</p>
                     </div>
 
-                    {/* Sélecteur de Profil (Si + d'un profil) */}
-                    {profils.length > 1 && (
-                        <div className="flex bg-white dark:bg-[#1c2229] p-1 rounded-xl shadow-sm border border-slate-200 dark:border-[#2d363f]">
-                            {profils.map((p) => (
-                                <button
-                                    key={p.id}
-                                    onClick={() => setSelectedProfilId(p.id)}
-                                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${selectedProfilId === p.id
-                                        ? 'bg-primary text-white shadow-md'
-                                        : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'
-                                        }`}
-                                >
-                                    {p.nom_affichage}
-                                </button>
-                            ))}
-                        </div>
-                    )}
                 </div>
 
                 {!dossier ? (

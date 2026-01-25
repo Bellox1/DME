@@ -2,8 +2,9 @@ import api from '../api';
 
 const patientService = {
     // --- DASHBOARD ---
-    async getDashboardStats() {
-        const response = await api.get('/patient/dashboard');
+    async getDashboardStats(patientId = null) {
+        const url = patientId ? `/patient/dashboard?patient_id=${patientId}` : '/patient/dashboard';
+        const response = await api.get(url);
         return response.data;
     },
 
@@ -41,13 +42,15 @@ const patientService = {
         return response.data;
     },
 
-    async getAllActivities() {
-        const response = await api.get('/patient/activites');
+    async getAllActivities(patientId = null) {
+        const url = patientId ? `/patient/activites?patient_id=${patientId}` : '/patient/activites';
+        const response = await api.get(url);
         return response.data;
     },
 
-    async getNotifications() {
-        const response = await api.get('/patient/notifications');
+    async getNotifications(patientId = null) {
+        const url = patientId ? `/patient/notifications?patient_id=${patientId}` : '/patient/notifications';
+        const response = await api.get(url);
         return response.data;
     },
 
