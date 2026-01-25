@@ -4,9 +4,14 @@ import AdminLayout from '../../components/layouts/AdminLayout';
 const AdminProfil = () => {
     const [activeTab, setActiveTab] = useState('general');
 
+    const [user] = useState(() => {
+        const saved = localStorage.getItem('user');
+        return saved ? JSON.parse(saved) : { nom: '', prenom: '', role: 'admin', tel: '', whatsapp: '', sexe: 'M' };
+    });
+
     return (
         <AdminLayout>
-            <div className="p-4 md:p-8 max-w-6xl mx-auto w-full flex flex-col gap-8 md:gap-12 transition-all duration-[800ms]">
+            <div className="p-4 md:p-8 max-w-[1600px] mx-auto w-full flex flex-col gap-8 md:gap-12 transition-all duration-[800ms]">
                 {/* Header avec Bannière Premium */}
                 <div className="relative">
                     {/* Bannière */}
@@ -15,7 +20,7 @@ const AdminProfil = () => {
 
                         {/* Nom et Rôle SUR l'arrière-plan */}
                         <div className="absolute bottom-6 md:bottom-10 left-36 md:left-48 right-6 flex flex-col gap-1 md:ml-4 animate-in fade-in slide-in-from-left-4 duration-700">
-                            <h1 className="text-xl sm:text-2xl md:text-4xl font-black text-white drop-shadow-lg tracking-tight uppercase italic transition-all leading-tight">Jean Dupont</h1>
+                            <h1 className="text-xl sm:text-2xl md:text-4xl font-black text-white drop-shadow-lg tracking-tight uppercase italic transition-all leading-tight">{user.prenom} {user.nom}</h1>
                             <div className="flex items-center gap-2">
                                 <span className="px-2 py-0.5 bg-white/20 backdrop-blur-md rounded-md text-[9px] md:text-[10px] font-bold text-white uppercase tracking-widest border border-white/30">ADMIN</span>
                                 <span className="size-1.5 rounded-full bg-green-400 shadow-sm animate-pulse"></span>
@@ -45,7 +50,6 @@ const AdminProfil = () => {
                             {[
                                 { id: 'general', label: 'Informations', icon: 'person' },
                                 { id: 'security', label: 'Sécurité', icon: 'security' },
-                                { id: 'notifications', label: 'Notifications', icon: 'notifications' }
                             ].map((tab) => (
                                 <button
                                     key={tab.id}
@@ -77,18 +81,18 @@ const AdminProfil = () => {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                         <div className="space-y-2.5">
                                             <label className="text-[11px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-[0.15em] pl-1">Nom</label>
-                                            <input type="text" defaultValue="DUPONT" className="w-full h-14 bg-slate-50 dark:bg-slate-800/50 border-2 border-transparent focus:border-primary/20 rounded-2xl px-5 text-sm font-bold text-titles dark:text-white transition-all outline-none" />
+                                            <input type="text" defaultValue={user.nom} className="w-full h-14 bg-slate-50 dark:bg-slate-800/50 border-2 border-transparent focus:border-primary/20 rounded-2xl px-5 text-sm font-bold text-titles dark:text-white transition-all outline-none" />
                                         </div>
                                         <div className="space-y-2.5">
                                             <label className="text-[11px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-[0.15em] pl-1">Prénom</label>
-                                            <input type="text" defaultValue="Jean" className="w-full h-14 bg-slate-50 dark:bg-slate-800/50 border-2 border-transparent focus:border-primary/20 rounded-2xl px-5 text-sm font-bold text-titles dark:text-white transition-all outline-none" />
+                                            <input type="text" defaultValue={user.prenom} className="w-full h-14 bg-slate-50 dark:bg-slate-800/50 border-2 border-transparent focus:border-primary/20 rounded-2xl px-5 text-sm font-bold text-titles dark:text-white transition-all outline-none" />
                                         </div>
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                         <div className="space-y-2.5">
                                             <label className="text-[11px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-[0.15em] pl-1">Sexe</label>
-                                            <select className="w-full h-14 bg-slate-50 dark:bg-slate-800/50 border-2 border-transparent focus:border-primary/20 rounded-2xl px-5 text-sm font-bold text-titles dark:text-white transition-all outline-none appearance-none cursor-pointer">
+                                            <select defaultValue={user.sexe === 'Homme' ? 'M' : 'F'} className="w-full h-14 bg-slate-50 dark:bg-slate-800/50 border-2 border-transparent focus:border-primary/20 rounded-2xl px-5 text-sm font-bold text-titles dark:text-white transition-all outline-none appearance-none cursor-pointer">
                                                 <option value="M">Masculin</option>
                                                 <option value="F">Féminin</option>
                                             </select>
@@ -97,7 +101,7 @@ const AdminProfil = () => {
                                             <label className="text-[11px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-[0.15em] pl-1">Numéro de Téléphone</label>
                                             <div className="relative">
                                                 <span className="absolute left-5 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-400 text-[20px]">call</span>
-                                                <input type="tel" defaultValue="+229 90 00 00 00" className="w-full h-14 bg-slate-50 dark:bg-slate-800/50 border-2 border-transparent focus:border-primary/20 rounded-2xl pl-12 pr-5 text-sm font-bold text-titles dark:text-white transition-all outline-none" />
+                                                <input type="tel" defaultValue={user.tel} className="w-full h-14 bg-slate-50 dark:bg-slate-800/50 border-2 border-transparent focus:border-primary/20 rounded-2xl pl-12 pr-5 text-sm font-bold text-titles dark:text-white transition-all outline-none" />
                                             </div>
                                         </div>
                                     </div>
@@ -107,13 +111,7 @@ const AdminProfil = () => {
                                             <label className="text-[11px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-[0.15em] pl-1">WhatsApp</label>
                                             <div className="relative">
                                                 <span className="absolute left-5 top-1/2 -translate-y-1/2 material-symbols-outlined text-green-500 text-[20px]">chat</span>
-                                                <input type="tel" defaultValue="+229 90 00 00 00" className="w-full h-14 bg-slate-50 dark:bg-slate-800/50 border-2 border-transparent focus:border-primary/20 rounded-2xl pl-12 pr-5 text-sm font-bold text-titles dark:text-white transition-all outline-none" />
-                                            </div>
-                                        </div>
-                                        <div className="space-y-2.5">
-                                            <label className="text-[11px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-[0.15em] pl-1">Rôle Système</label>
-                                            <div className="h-14 bg-slate-50/50 dark:bg-slate-800/30 rounded-2xl px-5 flex items-center text-sm font-bold text-titles dark:text-white border border-transparent italic">
-                                                ADMIN_SUPER_USER
+                                                <input type="tel" defaultValue={user.whatsapp} className="w-full h-14 bg-slate-50 dark:bg-slate-800/50 border-2 border-transparent focus:border-primary/20 rounded-2xl pl-12 pr-5 text-sm font-bold text-titles dark:text-white transition-all outline-none" />
                                             </div>
                                         </div>
                                     </div>
@@ -140,16 +138,16 @@ const AdminProfil = () => {
                                 <form className="space-y-8" onSubmit={e => e.preventDefault()}>
                                     <div className="space-y-2.5">
                                         <label className="text-[11px] font-black uppercase text-slate-400 tracking-wider pl-1">Mot de passe actuel</label>
-                                        <input type="password" placeholder="••••••••••••" className="w-full h-14 bg-slate-50 dark:bg-slate-800/50 border-none rounded-2xl px-5 text-sm font-bold text-titles dark:text-white focus:ring-2 focus:ring-orange-500/20 transition-all outline-none" />
+                                        <input type="password" placeholder="Mot de passe actuel" autoComplete="new-password" className="w-full h-14 bg-slate-50 dark:bg-slate-800/50 border-none rounded-2xl px-5 text-sm font-bold text-titles dark:text-white focus:ring-2 focus:ring-orange-500/20 transition-all outline-none" />
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                         <div className="space-y-2.5">
                                             <label className="text-[11px] font-black uppercase text-slate-400 tracking-wider pl-1">Nouveau mot de passe</label>
-                                            <input type="password" placeholder="••••••••••••" className="w-full h-14 bg-slate-50 dark:bg-slate-800/50 border-none rounded-2xl px-5 text-sm font-bold text-titles dark:text-white focus:ring-2 focus:ring-primary/20 transition-all outline-none" />
+                                            <input type="password" placeholder="Nouveau mot de passe" autoComplete="new-password" className="w-full h-14 bg-slate-50 dark:bg-slate-800/50 border-none rounded-2xl px-5 text-sm font-bold text-titles dark:text-white focus:ring-2 focus:ring-primary/20 transition-all outline-none" />
                                         </div>
                                         <div className="space-y-2.5">
                                             <label className="text-[11px] font-black uppercase text-slate-400 tracking-wider pl-1">Confirmer le nouveau</label>
-                                            <input type="password" placeholder="••••••••••••" className="w-full h-14 bg-slate-50 dark:bg-slate-800/50 border-none rounded-2xl px-5 text-sm font-bold text-titles dark:text-white focus:ring-2 focus:ring-primary/20 transition-all outline-none" />
+                                            <input type="password" placeholder="Confirmer le mot de passe" autoComplete="new-password" className="w-full h-14 bg-slate-50 dark:bg-slate-800/50 border-none rounded-2xl px-5 text-sm font-bold text-titles dark:text-white focus:ring-2 focus:ring-primary/20 transition-all outline-none" />
                                         </div>
                                     </div>
                                     <div className="pt-6">
@@ -161,40 +159,7 @@ const AdminProfil = () => {
                             </div>
                         )}
 
-                        {activeTab === 'notifications' && (
-                            <div className="animate-in fade-in slide-in-from-bottom-6 duration-700 bg-white dark:bg-[#1c2229] border border-slate-200 dark:border-[#2d363f] rounded-[2rem] p-6 md:p-10 shadow-sm">
-                                <h3 className="text-lg md:text-xl font-black text-titles dark:text-white mb-8 md:mb-10 flex items-center gap-3 uppercase italic">
-                                    <div className="size-10 md:size-11 shrink-0 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center">
-                                        <span className="material-symbols-outlined text-[20px] md:text-[24px]">notifications_active</span>
-                                    </div>
-                                    Préférences de notification
-                                </h3>
 
-                                <div className="space-y-6">
-                                    {[
-                                        { title: 'Inscriptions utilisateurs', desc: 'Recevoir une notification lors d\'un nouveau compte.', icon: 'person_add' },
-                                        { title: 'Alertes de sécurité', desc: 'Alertes sur les tentatives de connexion suspectes.', icon: 'gpp_maybe' },
-                                        { title: 'Rapports hebdomadaires', desc: 'Résumé de l\'activité hebdomadaire du système.', icon: 'assessment' },
-                                    ].map((pref, i) => (
-                                        <div key={i} className="flex items-center justify-between p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/30 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition-all">
-                                            <div className="flex items-center gap-4">
-                                                <div className="size-11 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center text-slate-400 border border-slate-100 dark:border-slate-700 shadow-sm">
-                                                    <span className="material-symbols-outlined text-[20px]">{pref.icon}</span>
-                                                </div>
-                                                <div className="flex flex-col">
-                                                    <span className="text-sm font-bold text-titles dark:text-white">{pref.title}</span>
-                                                    <span className="text-[11px] text-slate-500 font-medium">{pref.desc}</span>
-                                                </div>
-                                            </div>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input type="checkbox" className="sr-only peer" defaultChecked={i < 2} />
-                                                <div className="w-12 h-6.5 bg-slate-300 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                                            </label>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
                     </div>
                 </div>
             </div>

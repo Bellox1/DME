@@ -22,14 +22,10 @@ class Consultation extends Model
         'observations_medecin',
         'traitement',
         'duree_traitement',
-        'prix',
-        'paye',
     ];
 
     protected $casts = [
         'dateH_visite' => 'datetime',
-        'paye' => 'boolean',
-        'prix' => 'decimal:2',
     ];
 
     public function patient()

@@ -12,6 +12,10 @@ const AdminLayout = ({ children }) => {
         return saved === null ? true : saved === 'true';
     });
     const [isProfileOpen, setIsProfileOpen] = useState(false);
+    const [user, setUser] = useState(() => {
+        const saved = localStorage.getItem('user');
+        return saved ? JSON.parse(saved) : { nom: '', prenom: '', role: 'admin' };
+    });
 
     useEffect(() => {
         localStorage.setItem('sidebar-expanded', isSidebarOpen);
@@ -26,6 +30,11 @@ const AdminLayout = ({ children }) => {
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    const handleLogout = () => {
+        localStorage.clear();
+        window.location.href = '/login';
+    };
 
     // Menu structure with categories
     const menuSections = [
@@ -121,15 +130,15 @@ const AdminLayout = ({ children }) => {
                             </div>
                         )}
 
-                        <Link
-                            to="/login"
+                        <button
+                            onClick={handleLogout}
                             className={`flex items-center rounded-xl h-11 bg-slate-50 dark:bg-slate-800 text-titles dark:text-white text-[13px] font-bold transition-all duration-200 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 ${isSidebarOpen ? 'px-4 gap-2 w-full' : 'justify-center w-full'
                                 }`}
                             title={!isSidebarOpen ? 'Déconnexion' : ''}
                         >
                             <span className="material-symbols-outlined text-[20px]">logout</span>
                             {isSidebarOpen && <span className="whitespace-nowrap">Déconnexion</span>}
-                        </Link>
+                        </button>
                     </div>
                 </div>
             </aside>
@@ -192,7 +201,7 @@ const AdminLayout = ({ children }) => {
                                         }`}
                                 >
                                     <div className="bg-primary size-9 rounded-full flex items-center justify-center overflow-hidden shadow-sm shadow-primary/20">
-                                        <span className="text-white text-xs font-black">JD</span>
+                                        <span className="text-white text-xs font-black">{(user.prenom?.[0] || '')}{(user.nom?.[0] || '')}</span>
                                     </div>
                                     <span className="material-symbols-outlined text-[18px] text-slate-400 transition-transform duration-300" style={{ transform: isProfileOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
                                         expand_more
@@ -205,11 +214,11 @@ const AdminLayout = ({ children }) => {
                                         <div className="p-5 border-b border-slate-100 dark:border-[#2d363f] bg-slate-50/50 dark:bg-[#252c35]/50">
                                             <div className="flex items-center gap-3">
                                                 <div className="size-12 rounded-full bg-primary flex items-center justify-center text-white text-xl font-black">
-                                                    JD
+                                                    {(user.prenom?.[0] || 'A')}{(user.nom?.[0] || 'D')}
                                                 </div>
                                                 <div className="flex flex-col">
-                                                    <p className="text-sm font-bold text-titles dark:text-white">Jean Dupont</p>
-                                                    <p className="text-[11px] text-[#6c757f] font-medium">Administrateur</p>
+                                                    <p className="text-sm font-bold text-titles dark:text-white">{user.prenom} {user.nom}</p>
+                                                    <p className="text-[11px] text-[#6c757f] font-medium uppercase tracking-widest">Administrateur</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -234,10 +243,13 @@ const AdminLayout = ({ children }) => {
                                             </Link>
                                         </div>
                                         <div className="p-2 border-t border-slate-100 dark:border-[#2d363f] bg-slate-50/30 dark:bg-slate-900/30">
-                                            <Link to="/login" className="flex items-center gap-3 p-3 rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-all font-bold text-sm">
+                                            <button
+                                                onClick={handleLogout}
+                                                className="w-full flex items-center gap-3 p-3 rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-all font-bold text-sm text-left"
+                                            >
                                                 <span className="material-symbols-outlined text-[20px]">logout</span>
                                                 <span>Se déconnecter</span>
-                                            </Link>
+                                            </button>
                                         </div>
                                     </div>
                                 )}

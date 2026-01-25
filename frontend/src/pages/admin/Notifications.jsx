@@ -47,7 +47,7 @@ const AdminNotifications = () => {
 
     return (
         <AdminLayout>
-            <div className="p-8 max-w-4xl mx-auto w-full flex flex-col gap-8 transition-all duration-[800ms]">
+            <div className="p-8 max-w-[1600px] mx-auto w-full flex flex-col gap-8 transition-all duration-[800ms]">
                 <div className="flex justify-between items-end">
                     <div>
                         <h1 className="text-4xl font-black text-titles dark:text-white tracking-tight">Notifications</h1>

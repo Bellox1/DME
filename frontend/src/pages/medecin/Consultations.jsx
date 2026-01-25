@@ -1,63 +1,268 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation, Link } from 'react-router-dom';
 import DoctorLayout from '../../components/layouts/DoctorLayout';
+import medecinService from '../../services/medecin/medecinService';
+import patientService from '../../services/patient/patientService';
 
 const ConsultationsMedecin = () => {
-    const consultations = [
-        { patient: 'Alice Patient', date: '21/01/2026', time: '09:00', type: 'Suivi', diagnosis: 'Hypertension stable' },
-        { patient: 'Léo Patient', date: '21/01/2026', time: '10:30', type: 'Première visite', diagnosis: 'Angine virale' },
-        { patient: 'Jean Dupont', date: '20/01/2026', time: '14:20', type: 'Urgence', diagnosis: 'Tachycardie subite' },
-    ];
+    const [consultations, setConsultations] = useState([]);
+    const [patients, setPatients] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const location = useLocation();
+
+    const queryParams = new URLSearchParams(location.search);
+    const patientIdFilter = queryParams.get('patient');
+    const [selectedPatientId, setSelectedPatientId] = useState(patientIdFilter || '');
+
+    useEffect(() => {
+        if (patientIdFilter && queryParams.get('new') === 'true') {
+            setShowNewModal(true);
+            setSelectedPatientId(patientIdFilter);
+        }
+    }, [patientIdFilter]);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+                const patientsData = await patientService.getAllPatients();
+                setPatients(patientsData);
+
+                const currentUser = JSON.parse(localStorage.getItem('user'));
+                const medecinId = currentUser?.id;
+
+                if (patientIdFilter) {
+                    // Si on filtre par patient, on charge tout son historique (car un médecin doit voir le passé du patient)
+                    const data = await consultationService.getPatientConsultations(patientIdFilter);
+                    setConsultations(data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)));
+                } else {
+                    // Sinon on charge les consultations faites par CE médecin sur tous ses patients
+                    const allConsultationsPromises = patientsData.map(p =>
+                        consultationService.getPatientConsultations(p.id).catch(() => [])
+                    );
+                    const results = await Promise.all(allConsultationsPromises);
+                    const flattened = results.flat()
+                        .filter(c => c.medecin_id === medecinId)
+                        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                    setConsultations(flattened);
+                }
+            } catch (err) {
+                console.error('Erreur chargement consultations:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, [patientIdFilter]);
+
+    const [showNewModal, setShowNewModal] = useState(false);
+    const [newConsultation, setNewConsultation] = useState({
+        motif: '',
+        diagnostic: '',
+        poids: '',
+        tension: '',
+        temperature: ''
+    });
+
+    const handleCreateConsultation = async (e) => {
+        e.preventDefault();
+        try {
+            await consultationService.createConsultation({
+                ...newConsultation,
+                patient_id: selectedPatientId,
+                medecin_id: 1 // À remplacer par l'ID réel du médecin connecté
+            });
+            setShowNewModal(false);
+            // Recharger les données
+            window.location.reload();
+        } catch (err) {
+            console.error('Erreur création consultation:', err);
+            alert('Erreur lors de l\'enregistrement de la consultation');
+        }
+    };
+
+    const getPatientName = (patientId) => {
+        const patient = patients.find(p => p.id === parseInt(patientId));
+        return patient ? `${patient.nom} ${patient.prenom}` : `Patient #${patientId}`;
+    };
 
     return (
         <DoctorLayout>
-            <div className="p-4 md:p-8 max-w-7xl mx-auto w-full flex flex-col gap-6 md:gap-8 transition-all duration-[800ms]">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-4">
-                    <div className="flex flex-col gap-1">
-                        <h1 className="text-2xl md:text-3xl font-black text-titles dark:text-white tracking-tight leading-none italic uppercase transition-all">Historique des Consultations</h1>
-                        <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 font-medium italic">Gérez vos comptes rendus médicaux et diagnostics.</p>
+            <div className="p-4 md:p-8 max-w-[1400px] mx-auto w-full flex flex-col gap-8 md:gap-12 transition-all duration-1000 animate-in fade-in slide-in-from-bottom-4">
+
+                {/* Modal Nouvelle Consultation */}
+                {showNewModal && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+                        <div className="bg-white dark:bg-[#1c2229] w-full max-w-2xl rounded-[3rem] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
+                            <div className="p-8 md:p-10 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                                <div>
+                                    <h3 className="text-2xl font-black text-titles dark:text-white uppercase italic tracking-tighter">Nouvelle Consultation</h3>
+                                    {!patientIdFilter ? (
+                                        <p className="text-sm text-slate-400 font-medium italic">Sélectionnez un patient pour cette séance.</p>
+                                    ) : (
+                                        <p className="text-sm text-slate-400 font-medium italic">Enregistrement clinique pour : {getPatientName(patientIdFilter)}</p>
+                                    )}
+                                </div>
+                                <button onClick={() => setShowNewModal(false)} className="size-12 rounded-2xl bg-slate-50 dark:bg-slate-800 text-slate-400 flex items-center justify-center hover:text-rose-500 transition-colors">
+                                    <span className="material-symbols-outlined">close</span>
+                                </button>
+                            </div>
+                            <form onSubmit={handleCreateConsultation} className="p-8 md:p-10 space-y-6">
+                                {!patientIdFilter && (
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-2">Sélectionner le Patient</label>
+                                        <select
+                                            value={selectedPatientId}
+                                            onChange={e => setSelectedPatientId(e.target.value)}
+                                            className="w-full h-14 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl px-5 text-sm font-bold text-titles dark:text-white outline-none ring-2 ring-transparent focus:ring-primary/20 transition-all appearance-none cursor-pointer"
+                                            required
+                                        >
+                                            <option value="">-- Choisir un patient --</option>
+                                            {patients.map(p => (
+                                                <option key={p.id} value={p.id}>{p.nom} {p.prenom} (ID: {p.id})</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
+                                <div className="grid grid-cols-3 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-2">Poids (kg)</label>
+                                        <input type="text" value={newConsultation.poids} onChange={e => setNewConsultation({ ...newConsultation, poids: e.target.value })} className="w-full h-14 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl px-5 text-sm font-bold text-titles dark:text-white outline-none ring-2 ring-transparent focus:ring-primary/20 transition-all" placeholder="75" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-2">Tension</label>
+                                        <input type="text" value={newConsultation.tension} onChange={e => setNewConsultation({ ...newConsultation, tension: e.target.value })} className="w-full h-14 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl px-5 text-sm font-bold text-titles dark:text-white outline-none ring-2 ring-transparent focus:ring-primary/20 transition-all" placeholder="12/8" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-2">Temp (°C)</label>
+                                        <input type="text" value={newConsultation.temperature} onChange={e => setNewConsultation({ ...newConsultation, temperature: e.target.value })} className="w-full h-14 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl px-5 text-sm font-bold text-titles dark:text-white outline-none ring-2 ring-transparent focus:ring-primary/20 transition-all" placeholder="37.5" />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-2">Motif de consultation</label>
+                                    <textarea value={newConsultation.motif} onChange={e => setNewConsultation({ ...newConsultation, motif: e.target.value })} className="w-full h-32 bg-slate-50 dark:bg-slate-900 border-none rounded-[2rem] p-6 text-sm font-bold text-titles dark:text-white outline-none ring-2 ring-transparent focus:ring-primary/20 transition-all resize-none" placeholder="Décrivez les symptômes..." required></textarea>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-2">Diagnostic clinique</label>
+                                    <textarea value={newConsultation.diagnostic} onChange={e => setNewConsultation({ ...newConsultation, diagnostic: e.target.value })} className="w-full h-32 bg-slate-50 dark:bg-slate-900 border-none rounded-[2rem] p-6 text-sm font-bold text-titles dark:text-white outline-none ring-2 ring-transparent focus:ring-primary/20 transition-all resize-none" placeholder="Votre conclusion médicale..." required></textarea>
+                                </div>
+                                <button type="submit" className="w-full h-16 bg-primary text-white rounded-[2rem] font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all">
+                                    Enregistrer la consultation
+                                </button>
+                            </form>
+                        </div>
                     </div>
-                    <button className="w-full sm:w-auto h-12 px-6 md:px-8 bg-primary text-white rounded-2xl text-[10px] md:text-[11px] font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-105 transition-all">
+                )}
+
+                {/* Header Section */}
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 pb-4 border-b border-slate-100 dark:border-slate-800">
+                    <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-3">
+                            <span className="p-2 bg-primary/10 text-primary rounded-xl material-symbols-outlined text-[20px]">history</span>
+                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Archives Médicales</span>
+                        </div>
+                        <h1 className="text-3xl md:text-5xl font-black text-titles dark:text-white tracking-tighter leading-none italic uppercase">
+                            Historique des <span className="text-primary italic">Consultations</span>
+                        </h1>
+                        <p className="text-base text-slate-500 dark:text-slate-400 font-medium italic">Accédez à l'intégralité des dossiers et comptes rendus cliniques.</p>
+                    </div>
+                    <button
+                        onClick={() => {
+                            setShowNewModal(true);
+                            if (!patientIdFilter) setSelectedPatientId('');
+                        }}
+                        className="w-full md:w-auto h-14 px-10 bg-primary text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-2xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3"
+                    >
+                        <span className="material-symbols-outlined text-[20px]">add_circle</span>
                         Nouvelle Consultation
                     </button>
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 md:gap-6">
-                    {consultations.map((c, i) => (
-                        <div key={i} className="bg-white dark:bg-[#1c2229] border border-slate-200 dark:border-[#2d363f] rounded-[2rem] p-5 md:p-8 shadow-sm hover:shadow-xl hover:shadow-primary/5 transition-all group border-l-4 md:border-l-8 border-l-primary">
-                            <div className="flex flex-col gap-4 md:gap-6">
-                                <div className="flex items-center gap-4 md:gap-5">
-                                    <div className="size-12 md:size-14 shrink-0 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-                                        <span className="material-symbols-outlined text-[28px] md:text-[32px]">stethoscope</span>
-                                    </div>
-                                    <div className="flex flex-col flex-1 min-w-0">
-                                        <span className="text-base md:text-lg font-black text-titles dark:text-white uppercase tracking-tighter truncate">{c.patient}</span>
-                                        <span className="text-[11px] md:text-xs font-bold text-slate-400 italic">Le {c.date} à {c.time}</span>
-                                    </div>
-                                </div>
-
-                                <div className="flex-1 px-4 py-3 border-l-2 border-slate-100 dark:border-slate-800 ml-0 md:ml-4 bg-slate-50/50 dark:bg-slate-900/30 rounded-r-xl">
-                                    <span className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-1">Diagnostic</span>
-                                    <p className="text-xs md:text-sm font-bold text-titles dark:text-white italic leading-relaxed">"{c.diagnosis}"</p>
-                                </div>
-
-                                <div className="flex items-center gap-3 md:gap-4 flex-wrap">
-                                    <span className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg text-[9px] md:text-[10px] font-black text-slate-500 uppercase tracking-widest">{c.type}</span>
-                                    <div className="flex items-center gap-2 ml-auto">
-                                        <button className="size-9 md:size-10 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center hover:bg-primary hover:text-white transition-all">
-                                            <span className="material-symbols-outlined text-[18px] md:text-[20px]">visibility</span>
-                                        </button>
-                                        <button className="size-9 md:size-10 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-400 border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:text-primary transition-all">
-                                            <span className="material-symbols-outlined text-[18px] md:text-[20px]">edit</span>
-                                        </button>
-                                    </div>
-                                </div>
+                {loading ? (
+                    <div className="flex flex-col items-center justify-center py-32 gap-4">
+                        <div className="relative">
+                            <div className="size-16 rounded-full border-4 border-primary/10 border-t-primary animate-spin"></div>
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <span className="material-symbols-outlined text-primary text-[24px] animate-pulse">stethoscope</span>
                             </div>
                         </div>
-                    ))}
-                </div>
+                        <p className="text-slate-400 font-black uppercase tracking-widest text-[10px] italic">Synchronisation des dossiers...</p>
+                    </div>
+                ) : consultations.length === 0 ? (
+                    <div className="text-center py-32 bg-white dark:bg-[#1c2229] rounded-[3rem] border-2 border-dashed border-slate-100 dark:border-slate-800 flex flex-col items-center gap-6">
+                        <div className="size-24 rounded-full bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-slate-200">
+                            <span className="material-symbols-outlined text-6xl">folder_off</span>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <p className="text-xl font-black text-titles dark:text-white uppercase italic tracking-tight">Aucune consultation enregistrée</p>
+                            <p className="text-sm text-slate-400 font-medium italic">Commencez par appeler un patient de la file d'attente.</p>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 gap-6 md:gap-8">
+                        {consultations.map((c, i) => (
+                            <div key={i} className="group relative bg-white dark:bg-[#1c2229] border border-slate-100 dark:border-[#2d363f] rounded-[3rem] p-6 md:p-10 shadow-sm hover:shadow-2xl hover:shadow-primary/10 transition-all duration-700 flex flex-col md:flex-row gap-8 items-start md:items-center">
+
+                                {/* Date / Status Column */}
+                                <div className="flex flex-col items-center justify-center min-w-[120px] p-6 bg-slate-50 dark:bg-slate-900 rounded-[2.5rem] group-hover:bg-primary group-hover:text-white transition-all duration-500">
+                                    <span className="text-[10px] font-black uppercase tracking-widest opacity-50 mb-1">{new Date(c.created_at).toLocaleDateString('fr-FR', { weekday: 'short' })}</span>
+                                    <span className="text-3xl font-black italic tracking-tighter tabular-nums mb-1">{new Date(c.created_at).getDate()}</span>
+                                    <span className="text-[10px] font-black uppercase tracking-widest opacity-60">{new Date(c.created_at).toLocaleDateString('fr-FR', { month: 'short' })}</span>
+                                </div>
+
+                                {/* Main Info */}
+                                <div className="flex-1 space-y-4">
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                                        <h4 className="text-xl md:text-2xl font-black text-titles dark:text-white uppercase tracking-tighter italic flex items-center gap-3">
+                                            {getPatientName(c.patient_id)}
+                                            <span className="size-1.5 rounded-full bg-primary/30"></span>
+                                            <span className="text-xs font-bold text-slate-400 tracking-normal non-italic">ID #{c.patient_id}</span>
+                                        </h4>
+                                        <span className="px-4 py-1.5 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-xl text-[9px] font-black uppercase tracking-widest w-fit border border-indigo-100 dark:border-indigo-500/20">
+                                            {c.type || 'Suivi Clinique'}
+                                        </span>
+                                    </div>
+
+                                    <div className="relative pl-6 py-2 border-l-4 border-slate-100 dark:border-slate-800 group-hover:border-primary/20 transition-all">
+                                        <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest block mb-2">Diagnostic & Observations</span>
+                                        <p className="text-sm md:text-base font-bold text-titles dark:text-white italic leading-relaxed opacity-80 group-hover:opacity-100">
+                                            "{c.motif || c.diagnostic || 'Compte rendu en cours de finalisation par le médecin...'}"
+                                        </p>
+                                    </div>
+
+                                    <div className="flex items-center gap-6 text-slate-400">
+                                        <div className="flex items-center gap-2">
+                                            <span className="material-symbols-outlined text-[18px]">schedule</span>
+                                            <span className="text-[10px] font-black uppercase tracking-widest italic">{new Date(c.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="material-symbols-outlined text-[18px]">medical_information</span>
+                                            <span className="text-[10px] font-black uppercase tracking-widest italic">Dr. {c.medecin_nom || 'Intervenant'}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Actions Column */}
+                                <div className="flex md:flex-col gap-3 w-full md:w-auto mt-4 md:mt-0">
+                                    <button className="flex-1 md:size-14 rounded-2xl bg-primary text-white flex items-center justify-center hover:scale-110 active:scale-90 transition-all shadow-xl shadow-primary/20 group/btn">
+                                        <span className="material-symbols-outlined text-[24px]">visibility</span>
+                                    </button>
+                                    <button className="flex-1 md:size-14 rounded-2xl bg-white dark:bg-slate-800 text-slate-400 border border-slate-100 dark:border-slate-700 flex items-center justify-center hover:text-primary hover:border-primary/50 transition-all shadow-sm">
+                                        <span className="material-symbols-outlined text-[24px]">description</span>
+                                    </button>
+                                    <button className="flex-1 md:size-14 rounded-2xl bg-white dark:bg-slate-800 text-slate-400 border border-slate-100 dark:border-slate-700 flex items-center justify-center hover:text-rose-500 hover:border-rose-500/50 transition-all shadow-sm">
+                                        <span className="material-symbols-outlined text-[24px]">share</span>
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
         </DoctorLayout>
     );
 };
 
 export default ConsultationsMedecin;
+

@@ -52,7 +52,7 @@ const PatientAide = () => {
 
     return (
         <PatientLayout>
-            <div className="p-8 max-w-6xl mx-auto w-full flex flex-col gap-16 transition-all duration-[800ms]">
+            <div className="p-8 max-w-[1600px] mx-auto w-full flex flex-col gap-16 transition-all duration-[800ms]">
                 {/* Hero Search Section */}
                 <div className="relative pt-8 pb-4">
                     <div className="flex flex-col items-center text-center gap-6 max-w-3xl mx-auto relative z-10">

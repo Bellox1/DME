@@ -21,7 +21,7 @@ const AdminLogs = () => {
 
     return (
         <AdminLayout>
-            <div className="p-4 md:p-8 max-w-6xl mx-auto w-full">
+            <div className="p-4 md:p-8 max-w-[1600px] mx-auto w-full">
                 <div className="mb-6 md:mb-8 text-titles dark:text-white">
                     <h1 className="text-2xl md:text-4xl font-black tracking-tight uppercase italic transition-all">Logs du Système</h1>
                     <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 mt-2 italic">Suivez l'activité détaillée et les événements de sécurité de l'application.</p>

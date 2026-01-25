@@ -4,7 +4,7 @@ import DoctorLayout from '../../components/layouts/DoctorLayout';
 const AideMedecin = () => {
     return (
         <DoctorLayout>
-            <div className="p-8 max-w-5xl mx-auto w-full flex flex-col gap-10 transition-all duration-[800ms]">
+            <div className="p-8 max-w-[1600px] mx-auto w-full flex flex-col gap-10 transition-all duration-[800ms]">
                 <div className="flex flex-col gap-1 text-center">
                     <h1 className="text-3xl font-black text-titles dark:text-white tracking-tight leading-none italic uppercase">Espace Assistance Médicale</h1>
                     <p className="text-slate-500 dark:text-slate-400 font-medium">Guide d'utilisation et support technique pour les praticiens.</p>

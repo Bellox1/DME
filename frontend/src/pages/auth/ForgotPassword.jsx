@@ -2,15 +2,27 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import ThemeToggle from '../../components/ThemeToggle';
 import Logo from '../../components/common/Logo';
+import authService from '../../services/auth/authService';
 
 const ForgotPassword = () => {
     const [phone, setPhone] = useState('');
     const [isSubmitted, setIsSubmitted] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        // Logic for sending reset code/link to phone/whatsapp
-        setIsSubmitted(true);
+        setError('');
+        setLoading(true);
+
+        try {
+            await authService.forgotPassword(phone);
+            setIsSubmitted(true);
+        } catch (err) {
+            setError(err.response?.data?.message || "Une erreur est survenue lors de l'envoi.");
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -62,9 +74,27 @@ const ForgotPassword = () => {
                                             />
                                         </div>
                                     </div>
-                                    <button className="w-full h-14 bg-primary hover:bg-primary/90 text-white rounded-2xl font-black shadow-xl shadow-primary/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2" type="submit">
-                                        <span>Réinitialiser</span>
-                                        <span className="material-symbols-outlined text-[20px]">refresh</span>
+
+                                    {error && (
+                                        <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-900/40 flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
+                                            <span className="material-symbols-outlined text-rose-500 font-bold">warning</span>
+                                            <p className="text-xs font-bold text-rose-600 dark:text-rose-400 uppercase italic tracking-tight">{error}</p>
+                                        </div>
+                                    )}
+
+                                    <button
+                                        className="w-full h-14 bg-primary hover:bg-primary/90 text-white rounded-2xl font-black shadow-xl shadow-primary/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50"
+                                        type="submit"
+                                        disabled={loading}
+                                    >
+                                        {loading ? (
+                                            <div className="animate-spin rounded-full size-6 border-b-2 border-white"></div>
+                                        ) : (
+                                            <>
+                                                <span>Réinitialiser</span>
+                                                <span className="material-symbols-outlined text-[20px]">refresh</span>
+                                            </>
+                                        )}
                                     </button>
                                 </form>
                             </>

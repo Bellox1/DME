@@ -10,7 +10,7 @@ const Resultats = () => {
 
     return (
         <PatientLayout>
-            <div className="p-8 max-w-7xl mx-auto w-full flex flex-col gap-8 transition-all duration-[800ms]">
+            <div className="p-8 max-w-[1600px] mx-auto w-full flex flex-col gap-8 transition-all duration-[800ms]">
                 <div className="flex flex-col gap-1">
                     <h1 className="text-3xl font-black text-titles dark:text-white tracking-tight">Analyses & Examens</h1>
                     <p className="text-slate-500 dark:text-slate-400 font-medium">Suivez vos résultats biologiques et rapports d'imagerie.</p>

@@ -17,7 +17,7 @@ return new class extends Migration
             $table->enum('statut', ['programmé', 'annulé', 'passé'])->default('programmé');
             $table->text('motif')->nullable();
             $table->foreignId('patient_id')->constrained('patients')->onDelete('cascade');
-            $table->foreignId('medecin_id')->constrained('utilisateurs')->onDelete('cascade');
+            $table->foreignId('medecin_id')->nullable()->constrained('utilisateurs')->onDelete('cascade');
             $table->timestamp('date_creation')->useCurrent();
             $table->timestamp('date_modification')->useCurrent()->useCurrentOnUpdate();
         });

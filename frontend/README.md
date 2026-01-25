@@ -1,16 +1,54 @@
-# React + Vite
+# DME - Frontend (React + Vite)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## 🏥 Description
+L'interface utilisateur moderne et responsive de la plateforme DME. Conçue pour offrir une expérience premium aux patients, médecins, personnel d'accueil et administrateurs.
 
-Currently, two official plugins are available:
+## ✨ Fonctionnalités & Design
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### 🎨 Design Premium
+- **Tableaux de Bord Unifiés** : Design cohérent (max-w-[1600px]) pour tous les rôles.
+- **Glassmorphism & Dégradés** : Esthétique soignée avec effets de flou et couleurs harmonieuses.
+- **Responsive** : Adapté aux mobiles, tablettes et grands écrans.
+- **Animations** : Transitions fluides entre les pages et micro-interactions.
 
-## React Compiler
+### 🔑 Gestion de Compte
+- **Première Connexion** : Page dédiée pour définir son mot de passe après activation.
+- **Mot de Passe Oublié** : Interface pour demander et définir un nouveau mot de passe.
+- **Profil Utilisateur** : Gestion des informations personnelles et sécurité.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 👥 Espaces Dédiés
+- **Espace Patient** : Suivi des constantes, historique, ordonnances, prise de RDV.
+- **Espace Médecin** : Agenda, consultations, dossiers patients.
+- **Espace Accueil** : Gestion file d'attente, enregistrement rapide.
+- **Espace Admin** : Vue d'ensemble, logs, gestion utilisateurs.
 
-## Expanding the ESLint configuration
+## 🛠️ Installation
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### Prérequis
+- Node.js (LTS recommandé)
+- npm
+
+### Étapes
+1. **Installer les dépendances**
+   ```bash
+   npm install
+   ```
+
+2. **Configuration**
+   Créez un fichier `.env` à la racine si nécessaire pour lier l'API :
+   ```env
+   VITE_API_BASE_URL=http://localhost:8000/api
+   ```
+
+3. **Lancer en développement**
+   ```bash
+   npm run dev
+   ```
+
+## 📁 Structure
+- `src/pages/auth` : Pages de connexion, activation, reset mot de passe.
+- `src/pages/patient` : Vues de l'espace Patient.
+- `src/pages/medecin` : Vues de l'espace Médecin.
+- `src/pages/admin` : Vues de l'espace Admin.
+- `src/components` : Composants réutilisables (Layouts, Inputs, Modals...).
+- `src/services` : Services API (AuthService, PatientService...).
