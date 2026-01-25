@@ -1,3 +1,6 @@
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import DoctorLayout from '../../components/layouts/DoctorLayout';
 import medicalService from '../../services/medicalService';
 
 const DoctorDashboard = () => {
@@ -15,8 +18,11 @@ const DoctorDashboard = () => {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                const currentUser = JSON.parse(localStorage.getItem('user'));
-                setUserName({ nom: currentUser?.nom || '', prenom: currentUser?.prenom || '' });
+                const userString = localStorage.getItem('user');
+                if (userString) {
+                    const currentUser = JSON.parse(userString);
+                    setUserName({ nom: currentUser?.nom || '', prenom: currentUser?.prenom || '' });
+                }
 
                 // Récupérer la file d'attente du jour via le nouveau service médical
                 const response = await medicalService.getQueue();
@@ -28,8 +34,8 @@ const DoctorDashboard = () => {
                 setStats({
                     consultations: queueData.filter(q => q.statut === 'passé').length,
                     waiting: queueData.filter(q => q.statut === 'programmé').length,
-                    urgent: 0, // Optionnel: peut être déduit d'un autre champ plus tard
-                    tomorrow: 0 // Nécessitera un appel séparé getQueue(demain) si besoin
+                    urgent: 0,
+                    tomorrow: 0
                 });
 
             } catch (err) {
@@ -41,16 +47,6 @@ const DoctorDashboard = () => {
 
         fetchData();
     }, []);
-
-    const getPatientName = (patientId) => {
-        const patient = patients.find(p => p.id === parseInt(patientId));
-        return patient ? `${patient.nom} ${patient.prenom}` : `Patient #${patientId}`;
-    };
-
-    const getPatientType = (patientId) => {
-        const patient = patients.find(p => p.id === parseInt(patientId));
-        return patient ? patient.genre : 'Standard';
-    };
 
     return (
         <DoctorLayout>
