@@ -18,7 +18,7 @@ class ConsultationFactory extends Factory
     {
         return [
             'patient_id' => \App\Models\Patient::factory(),
-            'medecin_id' => \App\Models\Utilisateur::factory(),
+            'medecin_id' => \App\Models\Utilisateur::factory()->create(['role' => 'medecin']),
             'dateH_visite' => $this->faker->dateTimeThisYear(),
             'motif' => $this->faker->sentence(),
             'antecedents' => $this->faker->text(50),
@@ -29,7 +29,6 @@ class ConsultationFactory extends Factory
             'duree_traitement' => $this->faker->word(),
             'prix' => $this->faker->numberBetween(1000, 20000),
             'paye' => false,
-            'mode_paiement' => null,
         ];
     }
 }
