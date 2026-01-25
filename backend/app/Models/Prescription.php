@@ -12,11 +12,14 @@ class Prescription extends Model
     protected $table = 'prescriptions';
 
     protected $fillable = [
+        'numero_ordonnance',
         'consultation_id',
         'medecin_id',
         'nom_medicament',
         'dosage',
         'instructions',
+        'statut',
+        'fichier_pdf',
     ];
 
     public function consultation()
