@@ -16,6 +16,13 @@ const Login = () => {
     React.useEffect(() => {
         const token = localStorage.getItem('token');
         const userString = localStorage.getItem('user');
+        const isFirstLogin = localStorage.getItem('user-first-login');
+
+        // If logged in BUT it's a first login pending, force logout to show login screen
+        if (isFirstLogin && isFirstLogin !== 'false') {
+            localStorage.clear();
+            return;
+        }
 
         if (token && userString) {
             try {
@@ -47,6 +54,15 @@ const Login = () => {
             localStorage.setItem('user', JSON.stringify(response.user));
             if (response.token) {
                 localStorage.setItem('token', response.token);
+            }
+
+            // Check for First Login status (handle boolean, integer 1, or string "1")
+            const isFirstLogin = response.premiere_connexion;
+            if (isFirstLogin === true || isFirstLogin === 1 || isFirstLogin === '1') {
+                // Logout immediately (client-side)
+                authService.logout();
+                setError("Ce compte n'est pas encore activé. Veuillez utiliser le lien reçu par SMS/WhatsApp.");
+                return;
             }
 
             // Role-based redirection
