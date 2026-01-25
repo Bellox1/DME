@@ -57,13 +57,9 @@ class PhoneHelper
     public static function formatGeneric(?string $number): ?string
     {
         if (empty($number)) return null;
-        $clean = preg_replace('/\s+/', '', $number);
         
-        if (str_starts_with($clean, '+')) return $clean;
-        
-        // Si ça commence par 229, on ajoute juste le +
-        if (str_starts_with($clean, '229')) return '+' . $clean;
-        
-        return '+229' . $clean;
+        // On branche sur la logique béninoise par défaut pour la cohérence
+        // car c'est ce qui a été injecté via les seeders/fix_formats.
+        return self::formatBeninTel($number);
     }
 }
