@@ -13,11 +13,62 @@ class DemandeRdvController extends Controller
      */
     public function index(Request $request)
     {
-        // Récupérer l'utilisateur connecté
+        if (!$request->user()->hasPermission('voir_demandes')) {
+            return response()->json(['message' => 'Accès non autorisé.'], 403);
+        }
+
         $user = $request->user();
 
-        // Filtrer les demandes de l'utilisateur connecté
-        $demandes = \App\Models\DemandeRdv::where('utilisateur_id', $user->id)
+        // --- Récupération des dossiers accessibles ---
+        $dossierPrincipal = \App\Models\Patient::where('utilisateur_id', $user->id)->first();
+        $enfantsIds = \App\Models\Enfant::where('parent_id', $user->id)->pluck('id');
+        $dossiersEnfants = \App\Models\Patient::whereIn('enfant_id', $enfantsIds)->get();
+
+        $allPatientsIds = collect([]);
+        if ($dossierPrincipal) $allPatientsIds->push($dossierPrincipal->id);
+        foreach ($dossiersEnfants as $d) $allPatientsIds->push($d->id);
+
+        // --- Filtrage par Patient Spécifique (Optionnel) ---
+        $requestedPatientId = $request->query('patient_id');
+        $patientsIds = collect([]);
+
+        if ($requestedPatientId && $requestedPatientId !== 'all') {
+            // Sécurité : Vérifier que l'utilisateur a le droit d'accéder à ce patient précis
+            if ($allPatientsIds->contains($requestedPatientId)) {
+                $patientsIds->push($requestedPatientId);
+            } else {
+                return response()->json(['message' => 'Accès non autorisé à ce profil.'], 403);
+            }
+        } elseif ($requestedPatientId === 'all') {
+            // Vue Globale (Optionnelle)
+            $patientsIds = $allPatientsIds;
+        } else {
+            // Vue Par Défaut : Titulaire uniquement
+            if ($dossierPrincipal) {
+                $patientsIds->push($dossierPrincipal->id);
+            } else if ($allPatientsIds->isNotEmpty()) {
+                $patientsIds->push($allPatientsIds->first());
+            }
+        }
+
+        if ($patientsIds->isEmpty()) {
+            return response()->json(['message' => 'Aucun dossier patient associé.'], 200);
+        }
+
+        // Récupérer les patients correspondants pour obtenir les utilisateur_id
+        $patients = \App\Models\Patient::whereIn('id', $patientsIds)->get();
+
+        // Pour les demandes, on retourne toutes les demandes du parent, peu importe le profil
+        // car les demandes sont toujours créées par le parent (utilisateur connecté)
+        $utilisateursIds = $patients->pluck('utilisateur_id')->filter();
+
+        // Si on est sur un profil enfant (utilisateur_id null), utiliser l'utilisateur connecté
+        if ($utilisateursIds->isEmpty() && $requestedPatientId) {
+            $utilisateursIds = collect([$user->id]);
+        }
+
+        // Filtrer les demandes de l'utilisateur connecté et de ses enfants
+        $demandes = \App\Models\DemandeRdv::whereIn('utilisateur_id', $utilisateursIds)
             ->where('type', 'rendez-vous')
             ->orderBy('date_creation', 'desc')
             ->get();
@@ -30,25 +81,59 @@ class DemandeRdvController extends Controller
      */
     public function store(Request $request)
     {
+        if (!$request->user()->hasPermission('creer_demandes')) {
+            return response()->json(['message' => 'Accès non autorisé.'], 403);
+        }
+
         $validated = $request->validate([
             'objet' => 'required|string|max:255',
             'description' => 'required|string',
             'date_souhaitee' => 'nullable|date',
             'time' => 'nullable|string',
+            'patient_id' => 'nullable|exists:patients,id',
         ]);
 
-        $user = auth()->user();
+        $user = $request->user();
+
+        // --- Validation du patient_id si fourni ---
+        $patientId = $validated['patient_id'] ?? null;
+        if ($patientId) {
+            // Récupérer les dossiers accessibles
+            $dossierPrincipal = \App\Models\Patient::where('utilisateur_id', $user->id)->first();
+            $enfantsIds = \App\Models\Enfant::where('parent_id', $user->id)->pluck('id');
+            $dossiersEnfants = \App\Models\Patient::whereIn('enfant_id', $enfantsIds)->get();
+
+            $allPatientsIds = collect([]);
+            if ($dossierPrincipal) $allPatientsIds->push($dossierPrincipal->id);
+            foreach ($dossiersEnfants as $d) $allPatientsIds->push($d->id);
+
+            if (!$allPatientsIds->contains($patientId)) {
+                return response()->json(['message' => 'Accès non autorisé à ce profil.'], 403);
+            }
+
+            // Récupérer le patient pour obtenir l'utilisateur_id correspondant
+            $patient = \App\Models\Patient::find($patientId);
+            if ($patient && $patient->utilisateur_id) {
+                $utilisateurId = $patient->utilisateur_id;
+            } else {
+                // Pour les enfants (utilisateur_id null), utiliser l'utilisateur connecté (le parent)
+                $utilisateurId = $user->id;
+            }
+        } else {
+            // Par défaut, utiliser l'utilisateur connecté
+            $utilisateurId = $user->id;
+        }
 
         $dateTimeSouhaitee = null;
-        if ($validated['date_souhaitee']) {
+        if (isset($validated['date_souhaitee']) && $validated['date_souhaitee']) {
             $dateTimeSouhaitee = $validated['date_souhaitee'];
-            if ($validated['time']) {
+            if (isset($validated['time']) && $validated['time']) {
                 $dateTimeSouhaitee .= ' ' . $validated['time'];
             }
         }
 
         $demande = new \App\Models\DemandeRdv();
-        $demande->utilisateur_id = $user->id;
+        $demande->utilisateur_id = $utilisateurId;
         $demande->type = 'rendez-vous';
         $demande->objet = $validated['objet'];
         $demande->description = $validated['description'] . ($dateTimeSouhaitee ? ' (Date/heure souhaitée: ' . $dateTimeSouhaitee . ')' : '');
