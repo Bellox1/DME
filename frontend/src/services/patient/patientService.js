@@ -85,10 +85,22 @@ const patientService = {
         return response.data;
     },
 
+    // Créer une demande de rendez-vous
+    async createDemandeRdv(data) {
+        const response = await api.post('/demande-rdv', data);
+        return response.data;
+    },
+
     // --- DEMANDES ---
     async getDemandes() {
         // A implémenter si route dispo
         return [];
+    },
+
+    // Récupérer les demandes de l'utilisateur connecté
+    async getMesDemandes() {
+        const response = await api.get('/demande-rdv');
+        return response.data;
     }
 };
 
