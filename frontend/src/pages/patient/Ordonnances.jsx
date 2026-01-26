@@ -16,7 +16,8 @@ const Ordonnances = () => {
         totalOrdonnances,
         activeOrdonnances,
         expiredOrdonnances,
-        cancelledOrdonnances
+        cancelledOrdonnances,
+        activeProfile
     } = usePrescriptions();
 
     const handleDownloadPdf = async (ordonnanceId) => {
@@ -27,7 +28,7 @@ const Ordonnances = () => {
         }
     };
 
-    const filteredOrdonnances = selectedStatus 
+    const filteredOrdonnances = selectedStatus
         ? ordonnancesGrouped.filter(ord => ord.statut === selectedStatus)
         : ordonnancesGrouped;
 
@@ -71,16 +72,20 @@ const Ordonnances = () => {
         <PatientLayout>
             <div className="p-8 max-w-[1600px] mx-auto w-full flex flex-col gap-8 transition-all duration-[800ms]">
                 <div className="flex flex-col gap-1">
-                    <h1 className="text-3xl font-black text-titles dark:text-white tracking-tight">
-                        Mes <span className="text-secondary">Ordonnances</span>
+                    <h1 className="text-3xl font-black text-titles dark:text-white tracking-tight italic uppercase">
+                        Ordonnances <span className="text-secondary">{activeProfile?.type === 'Global' ? 'Globales' : activeProfile?.nom_affichage}</span>
                     </h1>
-                    <p className="text-slate-500 dark:text-slate-400 font-medium">Consultez et téléchargez vos prescriptions médicales.</p>
+                    <p className="text-slate-500 dark:text-slate-400 font-medium">
+                        {activeProfile?.type === 'Global'
+                            ? 'Consultez les prescriptions de tous vos dossiers.'
+                            : `Consultez les prescriptions pour ${activeProfile?.nom_affichage}.`}
+                    </p>
                 </div>
 
                 {error && (
-                    <Alert 
-                        type="error" 
-                        message={error} 
+                    <Alert
+                        type="error"
+                        message={error}
                         onClose={clearError}
                     />
                 )}
@@ -98,7 +103,7 @@ const Ordonnances = () => {
                             </div>
                         </div>
                     </div>
-                    
+
                     <div className="bg-white dark:bg-[#1c2229] border border-slate-200 dark:border-[#2d363f] rounded-2xl p-6">
                         <div className="flex items-center gap-4">
                             <div className="size-12 rounded-xl bg-green-100 text-green-600 flex items-center justify-center">
@@ -110,7 +115,7 @@ const Ordonnances = () => {
                             </div>
                         </div>
                     </div>
-                    
+
                     <div className="bg-white dark:bg-[#1c2229] border border-slate-200 dark:border-[#2d363f] rounded-2xl p-6">
                         <div className="flex items-center gap-4">
                             <div className="size-12 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center">
@@ -122,7 +127,7 @@ const Ordonnances = () => {
                             </div>
                         </div>
                     </div>
-                    
+
                     <div className="bg-white dark:bg-[#1c2229] border border-slate-200 dark:border-[#2d363f] rounded-2xl p-6">
                         <div className="flex items-center gap-4">
                             <div className="size-12 rounded-xl bg-red-100 text-red-600 flex items-center justify-center">
@@ -140,41 +145,37 @@ const Ordonnances = () => {
                 <div className="flex flex-wrap gap-2">
                     <button
                         onClick={() => setSelectedStatus('')}
-                        className={`px-4 py-2 rounded-xl font-medium text-sm transition-all ${
-                            selectedStatus === ''
-                                ? 'bg-primary text-white'
-                                : 'bg-white dark:bg-[#1c2229] border border-slate-200 dark:border-[#2d363f] text-slate-600 dark:text-slate-400'
-                        }`}
+                        className={`px-4 py-2 rounded-xl font-medium text-sm transition-all ${selectedStatus === ''
+                            ? 'bg-primary text-white'
+                            : 'bg-white dark:bg-[#1c2229] border border-slate-200 dark:border-[#2d363f] text-slate-600 dark:text-slate-400'
+                            }`}
                     >
                         Toutes ({totalOrdonnances})
                     </button>
                     <button
                         onClick={() => setSelectedStatus('ACTIVE')}
-                        className={`px-4 py-2 rounded-xl font-medium text-sm transition-all ${
-                            selectedStatus === 'ACTIVE'
-                                ? 'bg-green-600 text-white'
-                                : 'bg-white dark:bg-[#1c2229] border border-slate-200 dark:border-[#2d363f] text-slate-600 dark:text-slate-400'
-                        }`}
+                        className={`px-4 py-2 rounded-xl font-medium text-sm transition-all ${selectedStatus === 'ACTIVE'
+                            ? 'bg-green-600 text-white'
+                            : 'bg-white dark:bg-[#1c2229] border border-slate-200 dark:border-[#2d363f] text-slate-600 dark:text-slate-400'
+                            }`}
                     >
                         Actives ({activeOrdonnances})
                     </button>
                     <button
                         onClick={() => setSelectedStatus('EXPIREE')}
-                        className={`px-4 py-2 rounded-xl font-medium text-sm transition-all ${
-                            selectedStatus === 'EXPIREE'
-                                ? 'bg-orange-600 text-white'
-                                : 'bg-white dark:bg-[#1c2229] border border-slate-200 dark:border-[#2d363f] text-slate-600 dark:text-slate-400'
-                        }`}
+                        className={`px-4 py-2 rounded-xl font-medium text-sm transition-all ${selectedStatus === 'EXPIREE'
+                            ? 'bg-orange-600 text-white'
+                            : 'bg-white dark:bg-[#1c2229] border border-slate-200 dark:border-[#2d363f] text-slate-600 dark:text-slate-400'
+                            }`}
                     >
                         Expirées ({expiredOrdonnances})
                     </button>
                     <button
                         onClick={() => setSelectedStatus('ANNULEE')}
-                        className={`px-4 py-2 rounded-xl font-medium text-sm transition-all ${
-                            selectedStatus === 'ANNULEE'
-                                ? 'bg-red-600 text-white'
-                                : 'bg-white dark:bg-[#1c2229] border border-slate-200 dark:border-[#2d363f] text-slate-600 dark:text-slate-400'
-                        }`}
+                        className={`px-4 py-2 rounded-xl font-medium text-sm transition-all ${selectedStatus === 'ANNULEE'
+                            ? 'bg-red-600 text-white'
+                            : 'bg-white dark:bg-[#1c2229] border border-slate-200 dark:border-[#2d363f] text-slate-600 dark:text-slate-400'
+                            }`}
                     >
                         Annulées ({cancelledOrdonnances})
                     </button>
@@ -205,10 +206,10 @@ const Ordonnances = () => {
                                     <div className="p-4 rounded-3xl bg-slate-50 dark:bg-slate-900 border border-transparent">
                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Date</p>
                                         <p className="text-sm font-bold text-titles dark:text-white">
-                                            {new Date(ordonnance.date).toLocaleDateString('fr-FR', { 
-                                                day: 'numeric', 
-                                                month: 'short', 
-                                                year: 'numeric' 
+                                            {new Date(ordonnance.date).toLocaleDateString('fr-FR', {
+                                                day: 'numeric',
+                                                month: 'short',
+                                                year: 'numeric'
                                             })}
                                         </p>
                                     </div>
@@ -237,7 +238,7 @@ const Ordonnances = () => {
                                     </div>
                                 )}
 
-                                <button 
+                                <button
                                     onClick={() => handleDownloadPdf(ordonnance.medicaments[0]?.id)}
                                     disabled={loading}
                                     className="w-full h-12 bg-slate-900 dark:bg-white dark:text-slate-900 text-white rounded-2xl font-black text-xs hover:bg-primary dark:hover:bg-primary dark:hover:text-white transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"

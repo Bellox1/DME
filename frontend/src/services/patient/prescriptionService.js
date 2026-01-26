@@ -4,9 +4,10 @@ const prescriptionService = {
     // --- GESTION DES ORDONNANCES ---
 
     // Récupérer toutes les ordonnances du patient
-    async getMesOrdonnances() {
+    async getMesOrdonnances(patientId = null) {
         try {
-            const response = await api.get('/ordonnances');
+            const url = patientId ? `/ordonnances?patient_id=${patientId}` : '/ordonnances';
+            const response = await api.get(url);
             return response.data;
         } catch (error) {
             console.error('Erreur lors de la récupération des ordonnances:', error);
@@ -42,29 +43,29 @@ const prescriptionService = {
             const response = await api.get(`/ordonnances/${id}/download`, {
                 responseType: 'blob'
             });
-            
+
             // Créer un URL temporaire pour le téléchargement
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
-            
+
             // Extraire le nom du fichier depuis les headers ou utiliser un nom par défaut
             const contentDisposition = response.headers['content-disposition'];
             let filename = `ordonnance_${id}.pdf`;
-            
+
             if (contentDisposition) {
                 const filenameMatch = contentDisposition.match(/filename="(.+)"/);
                 if (filenameMatch) {
                     filename = filenameMatch[1];
                 }
             }
-            
+
             link.setAttribute('download', filename);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
             window.URL.revokeObjectURL(url);
-            
+
             return { success: true, filename };
         } catch (error) {
             console.error(`Erreur lors du téléchargement du PDF de l'ordonnance ${id}:`, error);
@@ -73,9 +74,10 @@ const prescriptionService = {
     },
 
     // Obtenir les statistiques des ordonnances du patient
-    async getOrdonnancesStats() {
+    async getOrdonnancesStats(patientId = null) {
         try {
-            const response = await api.get('/ordonnances/stats');
+            const url = patientId ? `/ordonnances/stats?patient_id=${patientId}` : '/ordonnances/stats';
+            const response = await api.get(url);
             return response.data;
         } catch (error) {
             console.error('Erreur lors de la récupération des statistiques des ordonnances:', error);
@@ -90,8 +92,8 @@ const prescriptionService = {
         return {
             id: prescription.id,
             numero: prescription.numero_ordonnance || `ORD-${prescription.id}`,
-            medecin: prescription.medecin ? 
-                `Dr. ${prescription.medecin.nom} ${prescription.medecin.prenom}` : 
+            medecin: prescription.medecin ?
+                `Dr. ${prescription.medecin.nom} ${prescription.medecin.prenom}` :
                 'Médecin non spécifié',
             medicament: prescription.nom_medicament,
             dosage: prescription.dosage,
@@ -112,10 +114,10 @@ const prescriptionService = {
     // Grouper les ordonnances par numéro d'ordonnance
     groupOrdonnancesByNumero(prescriptions) {
         const grouped = {};
-        
+
         prescriptions.forEach(prescription => {
             const numero = prescription.numero_ordonnance || `ORD-${prescription.id}`;
-            
+
             if (!grouped[numero]) {
                 grouped[numero] = {
                     numero,
@@ -126,19 +128,19 @@ const prescriptionService = {
                     fichiersPdf: []
                 };
             }
-            
+
             grouped[numero].medicaments.push({
                 id: prescription.id,
                 nom: prescription.nom_medicament,
                 dosage: prescription.dosage,
                 instructions: prescription.instructions
             });
-            
+
             if (prescription.fichier_pdf && !grouped[numero].fichiersPdf.includes(prescription.fichier_pdf)) {
                 grouped[numero].fichiersPdf.push(prescription.fichier_pdf);
             }
         });
-        
+
         return Object.values(grouped);
     },
 

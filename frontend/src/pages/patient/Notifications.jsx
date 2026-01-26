@@ -6,20 +6,34 @@ const Notifications = () => {
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
 
+    const [activeProfile, setActiveProfile] = useState(() => {
+        const saved = localStorage.getItem('active-patient-profile');
+        return saved ? JSON.parse(saved) : { id: null, nom_affichage: 'Vue d\'ensemble' };
+    });
+
+    const fetchNotifications = async (profileId = activeProfile?.id) => {
+        try {
+            setLoading(true);
+            const data = await patientService.getNotifications(profileId);
+            setNotifications(data);
+        } catch (error) {
+            console.error("Erreur chargement notifications", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchNotifications = async () => {
-            try {
-                setLoading(true);
-                const data = await patientService.getNotifications();
-                setNotifications(data);
-            } catch (error) {
-                console.error("Erreur chargement notifications", error);
-            } finally {
-                setLoading(false);
-            }
+        fetchNotifications();
+
+        const handleProfileChange = (e) => {
+            const newProfile = e.detail;
+            setActiveProfile(newProfile);
+            fetchNotifications(newProfile.id);
         };
 
-        fetchNotifications();
+        window.addEventListener('patientProfileChanged', handleProfileChange);
+        return () => window.removeEventListener('patientProfileChanged', handleProfileChange);
     }, []);
 
     return (
@@ -27,8 +41,8 @@ const Notifications = () => {
             <div className="p-8 max-w-[1600px] mx-auto w-full flex flex-col gap-8 transition-all duration-[800ms]">
                 <div className="flex justify-between items-center">
                     <div className="flex flex-col gap-1">
-                        <h1 className="text-3xl font-black text-titles dark:text-white tracking-tight">
-                            Mes <span className="text-secondary">Notifications</span>
+                        <h1 className="text-3xl font-black text-titles dark:text-white tracking-tight italic uppercase">
+                            Notifications <span className="text-secondary">{activeProfile?.type === 'Global' ? 'Globales' : activeProfile?.nom_affichage}</span>
                         </h1>
                         <p className="text-slate-500 dark:text-slate-400 font-medium">Restez informé de votre suivi médical.</p>
                     </div>

@@ -42,7 +42,7 @@ const PatientLayout = ({ children }) => {
                 const profilList = fetchedProfils.map(p => ({
                     ...p,
                     initial: p.nom_affichage.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase(),
-                    color: p.type === 'Titulaire' ? 'bg-primary' : (p.type === 'Enfant' ? 'bg-blue-500' : 'bg-slate-400')
+                    color: p.type === 'Titulaire' ? 'bg-primary' : (p.type === 'Enfant' ? 'bg-secondary' : 'bg-slate-400')
                 }));
                 setProfiles(profilList);
 
@@ -213,17 +213,6 @@ const PatientLayout = ({ children }) => {
                                     {isSidebarOpen ? 'menu_open' : 'menu'}
                                 </span>
                             </button>
-
-                            <div className="flex-1 max-w-2xl hidden sm:block">
-                                <label className="flex items-center w-full h-11 bg-slate-50 dark:bg-slate-800 rounded-xl px-4 group ring-1 ring-slate-200 dark:ring-slate-700 focus-within:ring-2 focus-within:ring-primary/40 transition-all duration-[400ms]">
-                                    <span className="material-symbols-outlined text-slate-400 mr-3 text-[22px]">search</span>
-                                    <input
-                                        className="w-full bg-transparent border-none focus:ring-0 focus:outline-none text-titles dark:text-white text-sm placeholder:text-slate-400"
-                                        placeholder="Rechercher..."
-                                        type="text"
-                                    />
-                                </label>
-                            </div>
                         </div>
 
                         <div className="flex items-center gap-3 md:gap-6 ml-3 md:ml-6">
@@ -356,17 +345,7 @@ const PatientLayout = ({ children }) => {
                         </div>
                     </div>
 
-                    {/* Barre de recherche mobile */}
-                    <div className="sm:hidden px-4 pb-4">
-                        <label className="flex items-center w-full h-11 bg-slate-50 dark:bg-slate-800 rounded-xl px-4 group ring-1 ring-slate-200 dark:ring-slate-700 focus-within:ring-2 focus-within:ring-primary/40 transition-all duration-[400ms]">
-                            <span className="material-symbols-outlined text-slate-400 mr-3 text-[22px]">search</span>
-                            <input
-                                className="w-full bg-transparent border-none focus:ring-0 focus:outline-none text-titles dark:text-white text-sm placeholder:text-slate-400"
-                                placeholder="Rechercher..."
-                                type="text"
-                            />
-                        </label>
-                    </div>
+
                 </header>
 
                 <div className="flex-1">

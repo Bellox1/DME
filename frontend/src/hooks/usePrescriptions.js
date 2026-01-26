@@ -7,19 +7,23 @@ export const usePrescriptions = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [stats, setStats] = useState(null);
+    const [activeProfile, setActiveProfile] = useState(() => {
+        const saved = localStorage.getItem('active-patient-profile');
+        return saved ? JSON.parse(saved) : { id: null, nom_affichage: 'Vue d\'ensemble' };
+    });
 
     // Charger toutes les ordonnances
-    const loadOrdonnances = async () => {
+    const loadOrdonnances = async (profileId = activeProfile?.id) => {
         setLoading(true);
         setError(null);
-        
+
         try {
-            const response = await prescriptionService.getMesOrdonnances();
-            
+            const response = await prescriptionService.getMesOrdonnances(profileId);
+
             if (response.success && response.data) {
                 const formattedOrdonnances = prescriptionService.formatOrdonnancesList(response.data);
                 const grouped = prescriptionService.groupOrdonnancesByNumero(response.data);
-                
+
                 setOrdonnances(formattedOrdonnances);
                 setOrdonnancesGrouped(grouped);
             } else {
@@ -36,9 +40,9 @@ export const usePrescriptions = () => {
     };
 
     // Charger les statistiques
-    const loadStats = async () => {
+    const loadStats = async (profileId = activeProfile?.id) => {
         try {
-            const response = await prescriptionService.getOrdonnancesStats();
+            const response = await prescriptionService.getOrdonnancesStats(profileId);
             if (response.success) {
                 setStats(response.data);
             }
@@ -65,10 +69,10 @@ export const usePrescriptions = () => {
     const loadOrdonnancesByConsultation = async (consultationId) => {
         setLoading(true);
         setError(null);
-        
+
         try {
             const response = await prescriptionService.getOrdonnancesByConsultation(consultationId);
-            
+
             if (response.success && response.data) {
                 const formattedOrdonnances = prescriptionService.formatOrdonnancesList(response.data);
                 return formattedOrdonnances;
@@ -108,6 +112,16 @@ export const usePrescriptions = () => {
     useEffect(() => {
         loadOrdonnances();
         loadStats();
+
+        const handleProfileChange = (e) => {
+            const newProfile = e.detail;
+            setActiveProfile(newProfile);
+            loadOrdonnances(newProfile.id);
+            loadStats(newProfile.id);
+        };
+
+        window.addEventListener('patientProfileChanged', handleProfileChange);
+        return () => window.removeEventListener('patientProfileChanged', handleProfileChange);
     }, []);
 
     return {
@@ -117,7 +131,8 @@ export const usePrescriptions = () => {
         stats,
         loading,
         error,
-        
+        activeProfile,
+
         // Méthodes
         loadOrdonnances,
         loadStats,
@@ -127,7 +142,7 @@ export const usePrescriptions = () => {
         sortOrdonnances,
         refresh,
         clearError,
-        
+
         // Utilitaires
         hasOrdonnances: ordonnances.length > 0,
         hasGroupedOrdonnances: ordonnancesGrouped.length > 0,

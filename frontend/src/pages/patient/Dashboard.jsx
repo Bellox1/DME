@@ -8,7 +8,7 @@ const PatientDashboard = () => {
     const navigate = useNavigate();
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [demandeForm, setDemandeForm] = useState({ type: 'rendez-vous', objet: '', description: '' });
+    const [demandeForm, setDemandeForm] = useState({ type: 'modification_profil', objet: '', description: '' });
     const [submitting, setSubmitting] = useState(false);
     const [successMessage, setSuccessMessage] = useState('');
 
@@ -47,7 +47,7 @@ const PatientDashboard = () => {
         try {
             await patientService.createDemande(demandeForm);
             setSuccessMessage('Demande envoyée avec succès !');
-            setDemandeForm({ type: 'rendez-vous', objet: '', description: '' });
+            setDemandeForm({ type: 'modification_profil', objet: '', description: '' });
             setTimeout(() => setSuccessMessage(''), 5000);
         } catch (error) {
             console.error("Erreur lors de l'envoi de la demande", error);
@@ -91,7 +91,7 @@ const PatientDashboard = () => {
         <PatientLayout>
             <div className="p-4 md:p-8 max-w-[1600px] mx-auto w-full flex flex-col gap-8 md:gap-12 transition-all duration-[800ms]">
                 {/* Welcome Section Premium Style */}
-                <div className="relative overflow-hidden rounded-[3rem] bg-gradient-to-r from-[#35577D] to-primary p-8 md:p-12 text-white shadow-2xl shadow-primary/20">
+                <div className="relative overflow-hidden rounded-[3rem] bg-gradient-to-r from-primary to-secondary p-8 md:p-12 text-white shadow-2xl shadow-primary/20">
                     <div className="absolute top-0 right-0 size-64 bg-white/10 rounded-full -mr-32 -mt-32 blur-3xl animate-pulse"></div>
                     <div className="absolute bottom-0 left-0 size-48 bg-primary/20 rounded-full -ml-24 -mb-24 blur-2xl"></div>
 
@@ -139,7 +139,7 @@ const PatientDashboard = () => {
                                 <span className="material-symbols-outlined">{stat.icon}</span>
                             </div>
                             <div className="flex flex-col">
-                                <span className="text-[11px] font-black uppercase text-slate-400 tracking-wider font-display">{stat.label}</span>
+                                <span className="text-[11px] font-black uppercase text-slate-400 tracking-wider">{stat.label}</span>
                                 <span className="text-xl font-black text-titles dark:text-white">
                                     {stat.value} <span className="text-sm text-slate-400 font-medium ml-1">{stat.sub}</span>
                                 </span>
@@ -168,8 +168,8 @@ const PatientDashboard = () => {
                             <AreaChart data={chart_data || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                                 <defs>
                                     <linearGradient id="colorVisites" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#4F91FF" stopOpacity={0.3} />
-                                        <stop offset="95%" stopColor="#4F91FF" stopOpacity={0} />
+                                        <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3} />
+                                        <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
                                     </linearGradient>
                                 </defs>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -199,7 +199,7 @@ const PatientDashboard = () => {
                                 <Area
                                     type="monotone"
                                     dataKey="visites"
-                                    stroke="#4F91FF"
+                                    stroke="#f59e0b"
                                     strokeWidth={4}
                                     fillOpacity={1}
                                     fill="url(#colorVisites)"
@@ -303,7 +303,6 @@ const PatientDashboard = () => {
                                         className="h-11 px-4 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl text-xs font-bold text-titles dark:text-white focus:ring-2 focus:ring-primary/20 transition-all outline-none"
                                         required
                                     >
-                                        <option value="rendez-vous">Demande de RDV</option>
                                         <option value="modification_profil">Modification profil</option>
                                         <option value="autre">Autre demande</option>
                                     </select>

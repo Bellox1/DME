@@ -114,16 +114,36 @@ class DossierMedicalController extends Controller
         if (!$request->user()->hasPermission('voir_consultations')) {
             return response()->json(['message' => 'Accès non autorisé.'], 403);
         }
-
+        
         $user = $request->user();
-        $patient = Patient::where('utilisateur_id', $user->id)->first();
+        $requestedPatientId = $request->query('patient_id');
 
-        if (!$patient) {
+        // Récupération des dossiers accessibles pour validation
+        $dossierPrincipal = Patient::where('utilisateur_id', $user->id)->first();
+        $enfants = \App\Models\Enfant::where('parent_id', $user->id)->get();
+        $dossiersEnfants = Patient::whereIn('enfant_id', $enfants->pluck('id'))->get();
+
+        $allPatientsIds = collect([]);
+        if ($dossierPrincipal) $allPatientsIds->push($dossierPrincipal->id);
+        foreach ($dossiersEnfants as $d) $allPatientsIds->push($d->id);
+
+        $patientsIds = collect([]);
+        if ($requestedPatientId && $requestedPatientId !== 'all') {
+            if ($allPatientsIds->contains((int)$requestedPatientId)) {
+                $patientsIds->push((int)$requestedPatientId);
+            } else {
+                return response()->json(['message' => 'Accès non autorisé.'], 403);
+            }
+        } else {
+            $patientsIds = $allPatientsIds;
+        }
+
+        if ($patientsIds->isEmpty()) {
             return response()->json([]);
         }
 
-        $consultations = Consultation::where('patient_id', $patient->id)
-            ->with('medecin')
+        $consultations = Consultation::whereIn('patient_id', $patientsIds)
+            ->with(['medecin', 'patient.enfant', 'patient.utilisateur'])
             ->orderBy('dateH_visite', 'desc')
             ->get();
 
@@ -143,6 +163,7 @@ class DossierMedicalController extends Controller
                 'date' => $c->dateH_visite,
                 'status' => 'disponible',
                 'conclusion' => $c->diagnostic ?: 'Aucun diagnostic enregistré',
+                'patient_nom' => $c->patient->nom_complet
             ];
         });
 

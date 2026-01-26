@@ -42,42 +42,45 @@ class PrescriptionController extends Controller
     {
         $user = Auth::user();
 
-        // Récupérer l'ID du patient (soit directement depuis utilisateur, soit depuis enfant)
-        $patientId = null;
-        $patient = \App\Models\Patient::where('utilisateur_id', $user->id)->first();
-        if ($patient) {
-            $patientId = $patient->id;
-        } else {
-            // Si l'utilisateur est un parent, chercher ses enfants
-            $enfants = \App\Models\Enfant::where('parent_id', $user->id)->get();
-            if ($enfants->isEmpty()) {
-                return response()->json([
-                    'success' => true,
-                    'data' => [
-                        'total' => 0,
-                        'active' => 0,
-                        'expired' => 0,
-                        'cancelled' => 0
-                    ]
-                ]);
+        // --- Récupération des dossiers accessibles ---
+        $dossierPrincipal = \App\Models\Patient::where('utilisateur_id', $user->id)->first();
+        $enfantsIds = \App\Models\Enfant::where('parent_id', $user->id)->pluck('id');
+        $dossiersEnfants = \App\Models\Patient::whereIn('enfant_id', $enfantsIds)->get();
+
+        $allPatientsIds = collect([]);
+        if ($dossierPrincipal) $allPatientsIds->push($dossierPrincipal->id);
+        foreach ($dossiersEnfants as $d) $allPatientsIds->push($d->id);
+
+        // --- Filtrage par Patient Spécifique (Optionnel) ---
+        $requestedPatientId = $request->query('patient_id');
+        $patientsIds = collect([]);
+
+        if ($requestedPatientId && $requestedPatientId !== 'all') {
+            if ($allPatientsIds->contains($requestedPatientId)) {
+                $patientsIds->push($requestedPatientId);
+            } else {
+                return response()->json(['message' => 'Accès non autorisé.'], 403);
             }
-        }
-
-        $query = Prescription::with(['consultation']);
-
-        if ($patientId) {
-            $query->whereHas('consultation', function($q) use ($patientId) {
-                $q->where('patient_id', $patientId);
-            });
         } else {
-            // Pour les parents, chercher les ordonnances de tous les enfants
-            $enfantIds = $enfants->pluck('id');
-            $query->whereHas('consultation', function($q) use ($enfantIds) {
-                $q->whereIn('patient_id', $enfantIds);
-            });
+            // Vue Globale / Tous les dossiers
+            $patientsIds = $allPatientsIds;
         }
 
-        $prescriptions = $query->get();
+        if ($patientsIds->isEmpty()) {
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'total' => 0,
+                    'active' => 0,
+                    'expired' => 0,
+                    'cancelled' => 0
+                ]
+            ]);
+        }
+
+        $prescriptions = Prescription::whereHas('consultation', function($q) use ($patientsIds) {
+            $q->whereIn('patient_id', $patientsIds);
+        })->get();
 
         $stats = [
             'total' => $prescriptions->count(),
@@ -99,36 +102,41 @@ class PrescriptionController extends Controller
     {
         $user = Auth::user();
 
-        // Récupérer l'ID du patient (soit directement depuis utilisateur, soit depuis enfant)
-        $patientId = null;
-        $patient = \App\Models\Patient::where('utilisateur_id', $user->id)->first();
-        if ($patient) {
-            $patientId = $patient->id;
-        }
+        // --- Récupération des dossiers accessibles ---
+        $dossierPrincipal = \App\Models\Patient::where('utilisateur_id', $user->id)->first();
+        $enfantsIds = \App\Models\Enfant::where('parent_id', $user->id)->pluck('id');
+        $dossiersEnfants = \App\Models\Patient::whereIn('enfant_id', $enfantsIds)->get();
 
-        $query = Prescription::with(['consultation', 'medecin']);
+        $allPatientsIds = collect([]);
+        if ($dossierPrincipal) $allPatientsIds->push($dossierPrincipal->id);
+        foreach ($dossiersEnfants as $d) $allPatientsIds->push($d->id);
 
-        if ($patientId) {
-            // Patient direct
-            $query->whereHas('consultation', function($q) use ($patientId) {
-                $q->where('patient_id', $patientId);
-            });
-        } else {
-            // Parent : chercher les ordonnances de tous ses enfants
-            $enfants = \App\Models\Enfant::where('parent_id', $user->id)->get();
-            if ($enfants->isNotEmpty()) {
-                $enfantIds = $enfants->pluck('id');
-                $query->whereHas('consultation', function($q) use ($enfantIds) {
-                    $q->whereIn('patient_id', $enfantIds);
-                });
+        // --- Filtrage par Patient Spécifique (Optionnel) ---
+        $requestedPatientId = $request->query('patient_id');
+        $patientsIds = collect([]);
+
+        if ($requestedPatientId && $requestedPatientId !== 'all') {
+            if ($allPatientsIds->contains($requestedPatientId)) {
+                $patientsIds->push($requestedPatientId);
             } else {
-                // Aucun enfant trouvé
-                return response()->json([
-                    'success' => true,
-                    'data' => []
-                ]);
+                return response()->json(['message' => 'Accès non autorisé.'], 403);
             }
+        } else {
+            // Vue Globale
+            $patientsIds = $allPatientsIds;
         }
+
+        if ($patientsIds->isEmpty()) {
+            return response()->json([
+                'success' => true,
+                'data' => []
+            ]);
+        }
+
+        $query = Prescription::with(['consultation', 'medecin'])
+            ->whereHas('consultation', function($q) use ($patientsIds) {
+                $q->whereIn('patient_id', $patientsIds);
+            });
 
         // Filtrage par consultation si spécifié
         if ($request->has('consultation_id')) {
@@ -193,11 +201,19 @@ class PrescriptionController extends Controller
      */
     public function getByConsultation($consultationId)
     {
-        $patientId = Auth::id();
+        $user = Auth::user();
 
-        // Vérifier que la consultation appartient au patient
-        $consultation = Consultation::where('patient_id', $patientId)
-            ->findOrFail($consultationId);
+        // Trouver la consultation et vérifier l'accès
+        $consultation = Consultation::with('patient')->findOrFail($consultationId);
+        
+        $isOwner = ($consultation->patient->utilisateur_id == $user->id);
+        $isParent = \App\Models\Enfant::where('id', $consultation->patient->enfant_id)
+            ->where('parent_id', $user->id)
+            ->exists();
+
+        if (!$isOwner && !$isParent) {
+            return response()->json(['message' => 'Accès non autorisé.'], 403);
+        }
 
         $prescriptions = Prescription::with(['medecin'])
             ->where('consultation_id', $consultationId)

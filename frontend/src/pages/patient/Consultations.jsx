@@ -10,7 +10,11 @@ const Consultations = () => {
     const [consultations, setConsultations] = useState([]);
     const [demandes, setDemandes] = useState([]);
     const [activeTab, setActiveTab] = useState('rendez-vous');
-    
+    const [activeProfile, setActiveProfile] = useState(() => {
+        const saved = localStorage.getItem('active-patient-profile');
+        return saved ? JSON.parse(saved) : { id: null, nom_affichage: 'Vue d\'ensemble' };
+    });
+
     const [formData, setFormData] = useState({
         objet: '',
         description: '',
@@ -18,12 +22,12 @@ const Consultations = () => {
         time: ''
     });
 
-    const loadData = async () => {
+    const loadData = async (profileId = activeProfile?.id) => {
         try {
-            const rdvData = await patientService.getMesRdv();
+            const rdvData = await patientService.getMesRdv(profileId);
             setConsultations(rdvData || []);
-            
-            const demandesData = await patientService.getMesDemandes();
+
+            const demandesData = await patientService.getMesDemandes(profileId);
             setDemandes(demandesData || []);
         } catch (error) {
             console.error('Erreur de chargement:', error);
@@ -32,6 +36,15 @@ const Consultations = () => {
 
     useEffect(() => {
         loadData();
+
+        const handleProfileChange = (e) => {
+            const newProfile = e.detail;
+            setActiveProfile(newProfile);
+            loadData(newProfile.id);
+        };
+
+        window.addEventListener('patientProfileChanged', handleProfileChange);
+        return () => window.removeEventListener('patientProfileChanged', handleProfileChange);
     }, []);
 
     const handleSubmit = async (e) => {
@@ -45,7 +58,7 @@ const Consultations = () => {
             setMessageType('success');
             setFormData({ objet: '', description: '', date_souhaitee: '', time: '' });
             setIsModalOpen(false);
-            
+
             const demandesData = await patientService.getMesDemandes();
             setDemandes(demandesData || []);
         } catch (error) {
@@ -85,9 +98,13 @@ const Consultations = () => {
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="flex flex-col gap-1">
                         <h1 className="text-2xl md:text-3xl font-black text-titles dark:text-white tracking-tight uppercase italic">
-                            Mes <span className="text-secondary">Consultations</span>
+                            Consultations <span className="text-secondary">{activeProfile?.type === 'Global' ? 'Globales' : activeProfile?.nom_affichage}</span>
                         </h1>
-                        <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 font-medium italic">Historique et rendez-vous à venir.</p>
+                        <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 font-medium italic">
+                            {activeProfile?.type === 'Global'
+                                ? 'Historique et rendez-vous de tous vos dossiers.'
+                                : `Historique et rendez-vous pour ${activeProfile?.nom_affichage}.`}
+                        </p>
                     </div>
                     <button
                         onClick={() => setIsModalOpen(true)}
@@ -102,21 +119,19 @@ const Consultations = () => {
                 <div className="bg-white dark:bg-[#1c2229] border border-slate-200 dark:border-[#2d363f] rounded-[2rem] p-2 flex gap-2">
                     <button
                         onClick={() => setActiveTab('rendez-vous')}
-                        className={`flex-1 py-3 px-6 rounded-xl font-black text-sm uppercase tracking-wider transition-all ${
-                            activeTab === 'rendez-vous'
-                                ? 'bg-primary text-white shadow-lg shadow-primary/30'
-                                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-                        }`}
+                        className={`flex-1 py-3 px-6 rounded-xl font-black text-sm uppercase tracking-wider transition-all ${activeTab === 'rendez-vous'
+                            ? 'bg-primary text-white shadow-lg shadow-primary/30'
+                            : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                            }`}
                     >
                         Mes Rendez-vous ({consultations.length})
                     </button>
                     <button
                         onClick={() => setActiveTab('demandes')}
-                        className={`flex-1 py-3 px-6 rounded-xl font-black text-sm uppercase tracking-wider transition-all ${
-                            activeTab === 'demandes'
-                                ? 'bg-primary text-white shadow-lg shadow-primary/30'
-                                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-                        }`}
+                        className={`flex-1 py-3 px-6 rounded-xl font-black text-sm uppercase tracking-wider transition-all ${activeTab === 'demandes'
+                            ? 'bg-primary text-white shadow-lg shadow-primary/30'
+                            : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                            }`}
                     >
                         Mes Demandes ({demandes.filter(d => d.statut === 'en_attente').length})
                     </button>
@@ -124,11 +139,10 @@ const Consultations = () => {
 
                 {/* Message de feedback */}
                 {message && (
-                    <div className={`p-4 rounded-xl flex items-center gap-3 ${
-                        messageType === 'success'
-                            ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800'
-                            : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800'
-                    }`}>
+                    <div className={`p-4 rounded-xl flex items-center gap-3 ${messageType === 'success'
+                        ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800'
+                        : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800'
+                        }`}>
                         <span className="material-symbols-outlined text-[20px]">
                             {messageType === 'success' ? 'check_circle' : 'error'}
                         </span>
@@ -223,13 +237,12 @@ const Consultations = () => {
                                                     </span>
                                                 </td>
                                                 <td className="px-4 md:px-8 py-4 md:py-5">
-                                                    <span className={`px-2 md:px-3 py-1 rounded-full text-[9px] md:text-[10px] font-black uppercase inline-flex whitespace-nowrap ${
-                                                        d.statut === 'en_attente'
-                                                            ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/20'
-                                                            : d.statut === 'approuvé'
+                                                    <span className={`px-2 md:px-3 py-1 rounded-full text-[9px] md:text-[10px] font-black uppercase inline-flex whitespace-nowrap ${d.statut === 'en_attente'
+                                                        ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/20'
+                                                        : d.statut === 'approuvé'
                                                             ? 'bg-green-100 text-green-600 dark:bg-green-900/20'
                                                             : 'bg-red-100 text-red-600 dark:bg-red-900/20'
-                                                    }`}>
+                                                        }`}>
                                                         {d.statut === 'en_attente' ? 'En attente' : d.statut === 'approuvé' ? 'Approuvée' : 'Rejetée'}
                                                     </span>
                                                 </td>
@@ -239,7 +252,7 @@ const Consultations = () => {
                                                             <span className="material-symbols-outlined text-[16px] md:text-[18px]">visibility</span>
                                                         </button>
                                                         {d.statut === 'en_attente' && (
-                                                            <button 
+                                                            <button
                                                                 onClick={() => handleAnnulerRdv(d.id)}
                                                                 className="size-8 md:size-9 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-red-500 transition-all flex items-center justify-center"
                                                             >
@@ -270,10 +283,10 @@ const Consultations = () => {
 
             {/* Modal de demande de rendez-vous */}
             {isModalOpen && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-                    <div className="bg-white dark:bg-[#1c2229] rounded-[2rem] max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-in zoom-in-95 duration-200">
-                        {/* Header du modal */}
-                        <div className="sticky top-0 bg-gradient-to-r from-primary to-[#35577D] p-6 md:p-8 rounded-t-[2rem]">
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-[100] flex items-center justify-center p-2 sm:p-4 animate-in fade-in duration-300">
+                    <div className="bg-white dark:bg-[#1c2229] rounded-[2.5rem] max-w-2xl w-full max-h-[95vh] sm:max-h-[90vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-300 overflow-hidden">
+                        {/* Header du modal - Fixe */}
+                        <div className="bg-gradient-to-r from-primary to-secondary p-5 sm:p-8 shrink-0">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-4">
                                     <div className="size-12 md:size-14 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center">
@@ -293,103 +306,105 @@ const Consultations = () => {
                             </div>
                         </div>
 
-                        {/* Contenu du modal */}
-                        <form onSubmit={handleSubmit} className="p-6 md:p-8 space-y-6">
-                            {/* Date */}
-                            <div className="space-y-2">
-                                <label className="flex items-center gap-2 text-sm font-black text-titles dark:text-white uppercase tracking-wider">
-                                    <span className="material-symbols-outlined text-primary text-[20px]">event</span>
-                                    Date souhaitée
-                                </label>
-                                <input
-                                    type="date"
-                                    name="date_souhaitee"
-                                    value={formData.date_souhaitee}
-                                    onChange={handleChange}
-                                    required
-                                    min={new Date().toISOString().split('T')[0]}
-                                    className="w-full h-12 px-4 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all text-titles dark:text-white font-semibold"
-                                />
-                            </div>
-
-                            {/* Heure */}
-                            <div className="space-y-2">
-                                <label className="flex items-center gap-2 text-sm font-black text-titles dark:text-white uppercase tracking-wider">
-                                    <span className="material-symbols-outlined text-primary text-[20px]">schedule</span>
-                                    Heure souhaitée
-                                </label>
-                                <input
-                                    type="time"
-                                    name="time"
-                                    value={formData.time}
-                                    onChange={handleChange}
-                                    required
-                                    className="w-full h-12 px-4 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all text-titles dark:text-white font-semibold"
-                                />
-                            </div>
-
-                            {/* Objet */}
-                            <div className="space-y-2">
-                                <label className="flex items-center gap-2 text-sm font-black text-titles dark:text-white uppercase tracking-wider">
-                                    <span className="material-symbols-outlined text-primary text-[20px]">title</span>
-                                    Objet de la demande
-                                </label>
-                                <input
-                                    type="text"
-                                    name="objet"
-                                    value={formData.objet}
-                                    onChange={handleChange}
-                                    required
-                                    placeholder="Ex: Consultation générale"
-                                    className="w-full h-12 px-4 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all text-titles dark:text-white font-semibold"
-                                />
-                            </div>
-
-                            {/* Description */}
-                            <div className="space-y-2">
-                                <label className="flex items-center gap-2 text-sm font-black text-titles dark:text-white uppercase tracking-wider">
-                                    <span className="material-symbols-outlined text-primary text-[20px]">description</span>
-                                    Description
-                                </label>
-                                <textarea
-                                    name="description"
-                                    value={formData.description}
-                                    onChange={handleChange}
-                                    required
-                                    rows="4"
-                                    placeholder="Décrivez brièvement la raison de votre consultation..."
-                                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all text-titles dark:text-white font-medium resize-none placeholder:text-slate-400"
-                                ></textarea>
-                            </div>
-
-                            {/* Info */}
-                            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
-                                <div className="flex gap-3">
-                                    <span className="material-symbols-outlined text-blue-600 dark:text-blue-400 text-[20px] shrink-0">info</span>
-                                    <p className="text-xs text-blue-700 dark:text-blue-300 font-medium leading-relaxed">
-                                        Votre demande sera envoyée à nos équipes. Vous recevrez une confirmation par email une fois qu'un médecin aura validé votre rendez-vous.
-                                    </p>
+                        {/* Contenu du modal - Scrollable Forcé */}
+                        <div className="flex-1 overflow-y-auto overflow-x-hidden p-6 sm:p-8 pt-0 sm:pt-0">
+                            <form onSubmit={handleSubmit} className="space-y-6 py-6">
+                                {/* Date */}
+                                <div className="space-y-2">
+                                    <label className="flex items-center gap-2 text-sm font-black text-titles dark:text-white uppercase tracking-wider">
+                                        <span className="material-symbols-outlined text-primary text-[20px]">event</span>
+                                        Date souhaitée
+                                    </label>
+                                    <input
+                                        type="date"
+                                        name="date_souhaitee"
+                                        value={formData.date_souhaitee}
+                                        onChange={handleChange}
+                                        required
+                                        min={new Date().toISOString().split('T')[0]}
+                                        className="w-full h-12 px-4 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all text-titles dark:text-white font-semibold"
+                                    />
                                 </div>
-                            </div>
 
-                            {/* Boutons */}
-                            <div className="flex flex-col sm:flex-row gap-4 pt-6">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsModalOpen(false)}
-                                    className="w-full sm:flex-1 py-4 sm:py-0 sm:h-14 px-6 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-2xl font-black text-base uppercase tracking-wider hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
-                                >
-                                    Annuler
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="w-full sm:flex-1 py-4 sm:py-0 sm:h-14 px-6 bg-primary text-white rounded-2xl font-black text-base uppercase tracking-wider shadow-xl shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
-                                >
-                                    <span className="material-symbols-outlined text-[22px]">send</span>
-                                    Envoyer la demande
-                                </button>
-                            </div>
-                        </form>
+                                {/* Heure */}
+                                <div className="space-y-2">
+                                    <label className="flex items-center gap-2 text-sm font-black text-titles dark:text-white uppercase tracking-wider">
+                                        <span className="material-symbols-outlined text-primary text-[20px]">schedule</span>
+                                        Heure souhaitée
+                                    </label>
+                                    <input
+                                        type="time"
+                                        name="time"
+                                        value={formData.time}
+                                        onChange={handleChange}
+                                        required
+                                        className="w-full h-12 px-4 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all text-titles dark:text-white font-semibold"
+                                    />
+                                </div>
+
+                                {/* Objet */}
+                                <div className="space-y-2">
+                                    <label className="flex items-center gap-2 text-sm font-black text-titles dark:text-white uppercase tracking-wider">
+                                        <span className="material-symbols-outlined text-primary text-[20px]">title</span>
+                                        Objet de la demande
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="objet"
+                                        value={formData.objet}
+                                        onChange={handleChange}
+                                        required
+                                        placeholder="Ex: Consultation générale"
+                                        className="w-full h-12 px-4 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all text-titles dark:text-white font-semibold"
+                                    />
+                                </div>
+
+                                {/* Description */}
+                                <div className="space-y-2">
+                                    <label className="flex items-center gap-2 text-sm font-black text-titles dark:text-white uppercase tracking-wider">
+                                        <span className="material-symbols-outlined text-primary text-[20px]">description</span>
+                                        Description
+                                    </label>
+                                    <textarea
+                                        name="description"
+                                        value={formData.description}
+                                        onChange={handleChange}
+                                        required
+                                        rows="4"
+                                        placeholder="Décrivez brièvement la raison de votre consultation..."
+                                        className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all text-titles dark:text-white font-medium resize-none placeholder:text-slate-400"
+                                    ></textarea>
+                                </div>
+
+                                {/* Info */}
+                                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
+                                    <div className="flex gap-3">
+                                        <span className="material-symbols-outlined text-blue-600 dark:text-blue-400 text-[20px] shrink-0">info</span>
+                                        <p className="text-xs text-blue-700 dark:text-blue-300 font-medium leading-relaxed">
+                                            Votre demande sera envoyée à nos équipes. Vous recevrez une confirmation par email une fois qu'un médecin aura validé votre rendez-vous.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Boutons */}
+                                <div className="flex flex-col sm:flex-row gap-4 pt-6">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsModalOpen(false)}
+                                        className="w-full sm:flex-1 py-4 sm:py-0 sm:h-14 px-6 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-2xl font-black text-base uppercase tracking-wider hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
+                                    >
+                                        Annuler
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="w-full sm:flex-1 py-4 sm:py-0 sm:h-14 px-6 bg-primary text-white rounded-2xl font-black text-base uppercase tracking-wider shadow-xl shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <span className="material-symbols-outlined text-[22px]">send</span>
+                                        Envoyer la demande
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
             )}

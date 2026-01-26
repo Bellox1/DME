@@ -59,7 +59,7 @@ const Activites = () => {
         <PatientLayout>
             <div className="p-4 md:p-8 max-w-[1600px] mx-auto w-full flex flex-col gap-8 transition-all duration-[800ms]">
                 <div className="flex flex-col gap-1">
-                    <h1 className="text-3xl font-black text-titles dark:text-white tracking-tight">
+                    <h1 className="text-3xl font-black text-titles dark:text-white tracking-tight uppercase italic">
                         Vos <span className="text-secondary">Activités</span>
                     </h1>
                     <p className="text-slate-500 dark:text-slate-400 font-medium">Historique complet de vos rendez-vous, demandes et consultations.</p>
@@ -76,30 +76,30 @@ const Activites = () => {
                                 activites.map((item, i) => {
                                     const statutDisplay = item.type === 'rdv' ? item.statut : (item.type === 'demande' ? item.statut : 'Consultation');
                                     return (
-                                        <div key={i} className="flex flex-col md:flex-row md:items-center justify-between p-6 rounded-3xl bg-slate-50 dark:bg-slate-900/40 border border-transparent hover:border-slate-200 dark:hover:border-slate-800 transition-all gap-4">
+                                        <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 md:p-6 rounded-3xl bg-slate-50 dark:bg-slate-900/40 border border-transparent hover:border-slate-200 dark:hover:border-slate-800 transition-all">
                                             <div className="flex items-center gap-4">
-                                                <div className="size-14 rounded-2xl bg-white dark:bg-slate-800 flex items-center justify-center text-primary shadow-sm shrink-0">
+                                                <div className="size-12 md:size-14 rounded-2xl bg-white dark:bg-slate-800 flex items-center justify-center text-primary shadow-sm shrink-0">
                                                     <span className="material-symbols-outlined text-[24px]">
                                                         {item.type === 'rdv' ? 'event_note' : (item.type === 'demande' ? 'assignment' : 'stethoscope')}
                                                     </span>
                                                 </div>
-                                                <div className="flex flex-col gap-1">
+                                                <div className="flex-1 min-w-0">
                                                     <div className="flex items-center gap-2 flex-wrap">
-                                                        <span className="text-sm font-black text-titles dark:text-white capitalize line-clamp-1">{item.medecin}</span>
+                                                        <span className="text-sm font-black text-titles dark:text-white capitalize truncate max-w-[120px] sm:max-w-none">{item.medecin}</span>
                                                         <div className="flex items-center gap-1.5 px-2 py-0.5 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
                                                             <span className="material-symbols-outlined text-[10px] text-slate-400">person</span>
-                                                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-tighter truncate max-w-[100px]">{item.patient_nom}</span>
+                                                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-tighter truncate max-w-[70px]">{item.patient_nom}</span>
                                                         </div>
                                                     </div>
-                                                    <span className="text-xs text-slate-500 font-bold uppercase tracking-wider line-clamp-1">{item.motif}</span>
+                                                    <span className="text-xs text-slate-500 font-bold uppercase tracking-wider block truncate">{item.motif}</span>
                                                 </div>
                                             </div>
-                                            <div className="flex items-center justify-between md:justify-end gap-12 text-right w-full md:w-auto mt-2 md:mt-0 pl-[4.5rem] md:pl-0">
-                                                <div className="flex flex-col items-start md:items-end">
+                                            <div className="flex items-center justify-between sm:justify-end gap-4 sm:gap-12 mt-1 sm:mt-0 pl-16 sm:pl-0">
+                                                <div className="flex flex-col items-start sm:items-end">
                                                     <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Date</span>
-                                                    <span className="text-sm font-bold text-titles dark:text-white">{formatDate(item.date)}</span>
+                                                    <span className="text-sm font-bold text-titles dark:text-white whitespace-nowrap">{formatDate(item.date)}</span>
                                                 </div>
-                                                <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase whitespace-nowrap ${getStatusColor(statutDisplay)}`}>
+                                                <span className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase whitespace-nowrap shrink-0 ${getStatusColor(statutDisplay)}`}>
                                                     {statutDisplay}
                                                 </span>
                                             </div>

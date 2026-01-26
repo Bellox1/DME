@@ -40,10 +40,11 @@ const patientService = {
     // --- RENDEZ-VOUS CONFIRMÉS ---
 
     // Lister mes rendez-vous confirmés (demandes approuvées)
-    async getMesRdv() {
-        const response = await api.get('/demande-rdv');
+    async getMesRdv(patientId = null) {
+        const url = patientId ? `/demande-rdv?patient_id=${patientId}` : '/demande-rdv';
+        const response = await api.get(url);
         // Filtrer uniquement les demandes approuvées qui sont devenues des RDV
-        const demandesApprouvees = response.data.filter(demande => 
+        const demandesApprouvees = response.data.filter(demande =>
             demande.statut === 'approuvé' || demande.statut === 'approuve'
         );
         return demandesApprouvees;
@@ -98,8 +99,9 @@ const patientService = {
     },
 
     // Récupérer les demandes de l'utilisateur connecté
-    async getMesDemandes() {
-        const response = await api.get('/demande-rdv');
+    async getMesDemandes(patientId = null) {
+        const url = patientId ? `/demande-rdv?patient_id=${patientId}` : '/demande-rdv';
+        const response = await api.get(url);
         return response.data;
     }
 };
