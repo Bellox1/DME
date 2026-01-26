@@ -45,6 +45,15 @@ Route::middleware(['auth:sanctum', 'role:patient'])->prefix('patient')->group(fu
     Route::get('/consultations/{consultationId}/ordonnances', [PrescriptionController::class, 'getByConsultation']);
 });
 
+// Routes ordonnances sans prefix patient (compatibilité frontend)
+Route::middleware(['auth:sanctum', 'role:patient'])->group(function () {
+    Route::get('/ordonnances', [PrescriptionController::class, 'index']);
+    Route::get('/ordonnances/stats', [PrescriptionController::class, 'getStats']);
+    Route::get('/ordonnances/{id}', [PrescriptionController::class, 'show']);
+    Route::get('/ordonnances/{id}/download', [PrescriptionController::class, 'downloadPdf']);
+    Route::get('/consultations/{consultationId}/ordonnances', [PrescriptionController::class, 'getByConsultation']);
+});
+
 // Demandes de RDV (Patient Actions - Authentifié)
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/demande-rdv', [DemandeRdvController::class, 'index']); // List own demands

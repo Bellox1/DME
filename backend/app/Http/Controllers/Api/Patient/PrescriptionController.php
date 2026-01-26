@@ -44,8 +44,9 @@ class PrescriptionController extends Controller
 
         // Récupérer l'ID du patient (soit directement depuis utilisateur, soit depuis enfant)
         $patientId = null;
-        if ($user->patient) {
-            $patientId = $user->patient->id;
+        $patient = \App\Models\Patient::where('utilisateur_id', $user->id)->first();
+        if ($patient) {
+            $patientId = $patient->id;
         } else {
             // Si l'utilisateur est un parent, chercher ses enfants
             $enfants = \App\Models\Enfant::where('parent_id', $user->id)->get();
@@ -100,8 +101,9 @@ class PrescriptionController extends Controller
 
         // Récupérer l'ID du patient (soit directement depuis utilisateur, soit depuis enfant)
         $patientId = null;
-        if ($user->patient) {
-            $patientId = $user->patient->id;
+        $patient = \App\Models\Patient::where('utilisateur_id', $user->id)->first();
+        if ($patient) {
+            $patientId = $patient->id;
         }
 
         $query = Prescription::with(['consultation', 'medecin']);
@@ -150,8 +152,9 @@ class PrescriptionController extends Controller
 
         // Récupérer l'ID du patient (soit directement depuis utilisateur, soit depuis enfant)
         $patientId = null;
-        if ($user->patient) {
-            $patientId = $user->patient->id;
+        $patient = \App\Models\Patient::where('utilisateur_id', $user->id)->first();
+        if ($patient) {
+            $patientId = $patient->id;
         }
 
         $query = Prescription::with(['consultation', 'medecin']);
@@ -217,8 +220,9 @@ class PrescriptionController extends Controller
 
         // Récupérer l'ID du patient (soit directement depuis utilisateur, soit depuis enfant)
         $patientId = null;
-        if ($user->patient) {
-            $patientId = $user->patient->id;
+        $patient = \App\Models\Patient::where('utilisateur_id', $user->id)->first();
+        if ($patient) {
+            $patientId = $patient->id;
         }
 
         $query = Prescription::with(['consultation', 'medecin']);

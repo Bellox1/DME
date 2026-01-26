@@ -16,11 +16,6 @@ class DemandeRdvController extends Controller
         // Récupérer l'utilisateur connecté
         $user = $request->user();
 
-        // Vérifier les permissions
-        if (!$user->hasPermission('voir_demandes')) {
-            return response()->json(['message' => 'Accès non autorisé.'], 403);
-        }
-
         // Filtrer les demandes de l'utilisateur connecté
         $demandes = \App\Models\DemandeRdv::where('utilisateur_id', $user->id)
             ->where('type', 'rendez-vous')
@@ -35,9 +30,6 @@ class DemandeRdvController extends Controller
      */
     public function store(Request $request)
     {
-        if (!$request->user()->hasPermission('creer_demandes')) {
-            return response()->json(['message' => 'Accès non autorisé.'], 403);
-        }
         $validated = $request->validate([
             'objet' => 'required|string|max:255',
             'description' => 'required|string',
@@ -71,9 +63,6 @@ class DemandeRdvController extends Controller
      */
     public function valider(Request $request, $id)
     {
-        if (!$request->user()->hasPermission('modifier_demandes')) {
-            return response()->json(['message' => 'Accès non autorisé.'], 403);
-        }
         $demande = \App\Models\DemandeRdv::findOrFail($id);
         if ($demande->statut !== 'en_attente') {
             return response()->json(['error' => 'Demande déjà traitée'], 400);
