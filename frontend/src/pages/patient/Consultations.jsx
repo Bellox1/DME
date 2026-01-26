@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import PatientLayout from '../../components/layouts/PatientLayout';
 import patientService from '../../services/patient/patientService';
+import useSousCompte from '../../hooks/useSousCompte';
+import ProfilSelector from '../../components/SousCompte/ProfilSelector';
 
 const Consultations = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -10,10 +12,16 @@ const Consultations = () => {
     const [consultations, setConsultations] = useState([]);
     const [demandes, setDemandes] = useState([]);
     const [activeTab, setActiveTab] = useState('rendez-vous');
-    const [activeProfile, setActiveProfile] = useState(() => {
-        const saved = localStorage.getItem('active-patient-profile');
-        return saved ? JSON.parse(saved) : { id: null, nom_affichage: 'Vue d\'ensemble' };
-    });
+    const [loadingData, setLoadingData] = useState(false);
+
+    // Utiliser notre hook de sous-compte
+    const {
+        profilActuel,
+        error: errorProfils,
+        getPatientId,
+        getNomProfil,
+        isTitulaire
+    } = useSousCompte();
 
     const [formData, setFormData] = useState({
         objet: '',
@@ -22,30 +30,33 @@ const Consultations = () => {
         time: ''
     });
 
-    const loadData = async (profileId = activeProfile?.id) => {
+    const loadData = useCallback(async () => {
+        if (!profilActuel) return;
+        
+        setLoadingData(true);
         try {
-            const rdvData = await patientService.getMesRdv(profileId);
+            const patientId = getPatientId();
+            
+            // Charger les données du profil actuel
+            const rdvData = await patientService.getMesRdv(patientId);
             setConsultations(rdvData || []);
 
-            const demandesData = await patientService.getMesDemandes(profileId);
+            const demandesData = await patientService.getMesDemandes(patientId);
             setDemandes(demandesData || []);
         } catch (error) {
             console.error('Erreur de chargement:', error);
+            setMessage('Erreur lors du chargement des données');
+            setMessageType('error');
+        } finally {
+            setLoadingData(false);
         }
-    };
+    }, [profilActuel, getPatientId]);
 
     useEffect(() => {
-        loadData();
-
-        const handleProfileChange = (e) => {
-            const newProfile = e.detail;
-            setActiveProfile(newProfile);
-            loadData(newProfile.id);
-        };
-
-        window.addEventListener('patientProfileChanged', handleProfileChange);
-        return () => window.removeEventListener('patientProfileChanged', handleProfileChange);
-    }, []);
+        if (profilActuel) {
+            loadData();
+        }
+    }, [profilActuel, loadData]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -53,14 +64,15 @@ const Consultations = () => {
         setMessage('');
 
         try {
+            // Le service ajoute automatiquement le patient_id si c'est un enfant
             await patientService.createDemandeRdv(formData);
             setMessage('Demande de rendez-vous envoyée avec succès !');
             setMessageType('success');
             setFormData({ objet: '', description: '', date_souhaitee: '', time: '' });
             setIsModalOpen(false);
 
-            const demandesData = await patientService.getMesDemandes();
-            setDemandes(demandesData || []);
+            // Recharger les données du profil actuel
+            await loadData();
         } catch (error) {
             setMessage(error.response?.data?.message || 'Erreur lors de l\'envoi de la demande');
             setMessageType('error');
@@ -98,21 +110,23 @@ const Consultations = () => {
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="flex flex-col gap-1">
                         <h1 className="text-2xl md:text-3xl font-black text-titles dark:text-white tracking-tight uppercase italic">
-                            Consultations <span className="text-secondary">{activeProfile?.type === 'Global' ? 'Globales' : activeProfile?.nom_affichage}</span>
+                            Consultations <span className="text-secondary">{getNomProfil()}</span>
                         </h1>
                         <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 font-medium italic">
-                            {activeProfile?.type === 'Global'
-                                ? 'Historique et rendez-vous de tous vos dossiers.'
-                                : `Historique et rendez-vous pour ${activeProfile?.nom_affichage}.`}
+                            {isTitulaire()
+                                ? 'Historique et rendez-vous de votre dossier médical.'
+                                : `Historique et rendez-vous pour ${getNomProfil()}.`}
                         </p>
                     </div>
-                    <button
-                        onClick={() => setIsModalOpen(true)}
-                        className="w-full md:w-auto h-12 px-6 md:px-8 bg-primary text-white rounded-2xl font-black text-xs md:text-sm shadow-xl shadow-primary/20 hover:scale-[1.02] transition-all active:scale-95 flex items-center justify-center gap-2"
-                    >
-                        <span className="material-symbols-outlined text-[20px]">add</span>
-                        Prendre rendez-vous
-                    </button>
+                    <div className="flex flex-col md:flex-row gap-3">
+                        <button
+                            onClick={() => setIsModalOpen(true)}
+                            className="w-full md:w-auto h-12 px-6 md:px-8 bg-primary text-white rounded-2xl font-black text-xs md:text-sm shadow-xl shadow-primary/20 hover:scale-[1.02] transition-all active:scale-95 flex items-center justify-center gap-2"
+                        >
+                            <span className="material-symbols-outlined text-[20px]">add</span>
+                            Prendre rendez-vous
+                        </button>
+                    </div>
                 </div>
 
                 {/* Onglets */}
@@ -147,6 +161,22 @@ const Consultations = () => {
                             {messageType === 'success' ? 'check_circle' : 'error'}
                         </span>
                         <span className="font-medium">{message}</span>
+                    </div>
+                )}
+
+                {/* Message d'erreur de profils */}
+                {errorProfils && (
+                    <div className="bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 p-4 rounded-xl flex items-center gap-3">
+                        <span className="material-symbols-outlined text-[20px]">error</span>
+                        <span className="font-medium">{errorProfils}</span>
+                    </div>
+                )}
+
+                {/* Indicateur de chargement */}
+                {loadingData && (
+                    <div className="flex items-center justify-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                        <span className="ml-3 text-slate-600">Chargement des données...</span>
                     </div>
                 )}
 

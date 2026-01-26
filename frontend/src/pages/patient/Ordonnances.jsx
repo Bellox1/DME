@@ -1,24 +1,71 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import PatientLayout from '../../components/layouts/PatientLayout';
 import { usePrescriptions } from '../../hooks/usePrescriptions';
+import useSousCompte from '../../hooks/useSousCompte';
 import Loader from '../../components/ui/Loader';
 import Alert from '../../components/ui/Alert';
+import prescriptionService from '../../services/patient/prescriptionService';
 
 const Ordonnances = () => {
     const [selectedStatus, setSelectedStatus] = useState('');
+    const [loadingData, setLoadingData] = useState(false);
+    const [ordonnances, setOrdonnances] = useState([]);
+    const [error, setError] = useState('');
+
+    // Utiliser notre hook de sous-compte
     const {
-        ordonnancesGrouped,
-        loading,
-        error,
+        profilActuel,
+        error: errorProfils,
+        getPatientId,
+        getNomProfil,
+        isTitulaire
+    } = useSousCompte();
+
+    // Hook existant pour les prescriptions
+    const {
         downloadPdf,
-        clearError,
-        hasOrdonnances,
-        totalOrdonnances,
-        activeOrdonnances,
-        expiredOrdonnances,
-        cancelledOrdonnances,
-        activeProfile
+        clearError: clearPrescriptionError
     } = usePrescriptions();
+
+    const loadData = useCallback(async () => {
+        if (!profilActuel) return;
+        
+        setLoadingData(true);
+        setError('');
+        try {
+            const patientId = getPatientId();
+            
+            // Charger les ordonnances du profil actuel
+            const response = await prescriptionService.getOrdonnancesParProfil(patientId);
+            console.log('Ordonnances brutes:', response);
+            
+            // Extraire les données du tableau depuis la réponse de l'API
+            const ordonnancesData = response && response.data ? response.data : response;
+            console.log('Ordonnances extraites:', ordonnancesData);
+            
+            // Grouper les ordonnances par numéro
+            const ordonnancesGroupes = prescriptionService.groupOrdonnancesByNumero(ordonnancesData || []);
+            console.log('Ordonnances groupées:', ordonnancesGroupes);
+            
+            // S'assurer que c'est bien un tableau
+            const ordonnancesArray = Array.isArray(ordonnancesGroupes) ? ordonnancesGroupes : [];
+            setOrdonnances(ordonnancesArray);
+
+            // Les statistiques sont calculées localement
+        } catch (err) {
+            console.error('Erreur lors du chargement des ordonnances:', err);
+            setError('Erreur lors du chargement des ordonnances');
+            setOrdonnances([]); // S'assurer que c'est un tableau vide en cas d'erreur
+        } finally {
+            setLoadingData(false);
+        }
+    }, [profilActuel, getPatientId]);
+
+    useEffect(() => {
+        if (profilActuel) {
+            loadData();
+        }
+    }, [profilActuel, loadData]);
 
     const handleDownloadPdf = async (ordonnanceId) => {
         try {
@@ -29,8 +76,16 @@ const Ordonnances = () => {
     };
 
     const filteredOrdonnances = selectedStatus
-        ? ordonnancesGrouped.filter(ord => ord.statut === selectedStatus)
-        : ordonnancesGrouped;
+        ? (Array.isArray(ordonnances) ? ordonnances : []).filter(ord => ord && ord.statut === selectedStatus)
+        : (Array.isArray(ordonnances) ? ordonnances : []);
+
+    // Calculer les statistiques localement avec validation
+    const ordonnancesArray = Array.isArray(ordonnances) ? ordonnances : [];
+    const totalOrdonnances = ordonnancesArray.length;
+    const activeOrdonnances = ordonnancesArray.filter(ord => ord && ord.statut === 'ACTIVE').length;
+    const expiredOrdonnances = ordonnancesArray.filter(ord => ord && ord.statut === 'EXPIREE').length;
+    const cancelledOrdonnances = ordonnancesArray.filter(ord => ord && ord.statut === 'ANNULEE').length;
+    const hasOrdonnances = totalOrdonnances > 0;
 
     const getStatusColor = (status) => {
         switch (status) {
@@ -58,7 +113,7 @@ const Ordonnances = () => {
         }
     };
 
-    if (loading && ordonnancesGrouped.length === 0) {
+    if (loadingData && ordonnances.length === 0) {
         return (
             <PatientLayout>
                 <div className="p-8 max-w-[1600px] mx-auto w-full flex justify-center items-center min-h-[400px]">
@@ -71,23 +126,37 @@ const Ordonnances = () => {
     return (
         <PatientLayout>
             <div className="p-8 max-w-[1600px] mx-auto w-full flex flex-col gap-8 transition-all duration-[800ms]">
-                <div className="flex flex-col gap-1">
-                    <h1 className="text-3xl font-black text-titles dark:text-white tracking-tight italic uppercase">
-                        Ordonnances <span className="text-secondary">{activeProfile?.type === 'Global' ? 'Globales' : activeProfile?.nom_affichage}</span>
-                    </h1>
-                    <p className="text-slate-500 dark:text-slate-400 font-medium">
-                        {activeProfile?.type === 'Global'
-                            ? 'Consultez les prescriptions de tous vos dossiers.'
-                            : `Consultez les prescriptions pour ${activeProfile?.nom_affichage}.`}
-                    </p>
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="flex flex-col gap-1">
+                        <h1 className="text-3xl font-black text-titles dark:text-white tracking-tight italic uppercase">
+                            Ordonnances <span className="text-secondary">{getNomProfil()}</span>
+                        </h1>
+                        <p className="text-slate-500 dark:text-slate-400 font-medium">
+                            {isTitulaire()
+                                ? 'Consultez les prescriptions de votre dossier médical.'
+                                : `Consultez les prescriptions pour ${getNomProfil()}.`}
+                        </p>
+                    </div>
+                    {/* Le sélecteur de profil est masqué */}
                 </div>
 
-                {error && (
+                {(error || errorProfils) && (
                     <Alert
                         type="error"
-                        message={error}
-                        onClose={clearError}
+                        message={error || errorProfils}
+                        onClose={() => {
+                            setError('');
+                            clearPrescriptionError();
+                        }}
                     />
+                )}
+
+                {/* Indicateur de chargement */}
+                {loadingData && (
+                    <div className="flex items-center justify-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                        <span className="ml-3 text-slate-600">Chargement des ordonnances...</span>
+                    </div>
                 )}
 
                 {/* Statistiques */}
@@ -240,11 +309,11 @@ const Ordonnances = () => {
 
                                 <button
                                     onClick={() => handleDownloadPdf(ordonnance.medicaments[0]?.id)}
-                                    disabled={loading}
+                                    disabled={loadingData}
                                     className="w-full h-12 bg-slate-900 dark:bg-white dark:text-slate-900 text-white rounded-2xl font-black text-xs hover:bg-primary dark:hover:bg-primary dark:hover:text-white transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     <span className="material-symbols-outlined text-[18px]">download</span>
-                                    {loading ? 'Téléchargement...' : 'Télécharger PDF'}
+                                    {loadingData ? 'Téléchargement...' : 'Télécharger PDF'}
                                 </button>
                             </div>
                         ))}
