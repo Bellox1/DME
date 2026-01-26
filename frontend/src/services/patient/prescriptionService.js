@@ -1,4 +1,5 @@
 import api from '../api';
+import sousCompteService from './sousCompteService';
 
 const prescriptionService = {
     // --- GESTION DES ORDONNANCES ---
@@ -6,7 +7,8 @@ const prescriptionService = {
     // Récupérer toutes les ordonnances du patient
     async getMesOrdonnances(patientId = null) {
         try {
-            const url = patientId ? `/ordonnances?patient_id=${patientId}` : '/ordonnances';
+            const params = sousCompteService.preparerParamsAvecPatientId({}, patientId);
+            const url = sousCompteService.construireUrlAvecPatientId('/ordonnances', params);
             const response = await api.get(url);
             return response.data;
         } catch (error) {
@@ -76,7 +78,8 @@ const prescriptionService = {
     // Obtenir les statistiques des ordonnances du patient
     async getOrdonnancesStats(patientId = null) {
         try {
-            const url = patientId ? `/ordonnances/stats?patient_id=${patientId}` : '/ordonnances/stats';
+            const params = sousCompteService.preparerParamsAvecPatientId({}, patientId);
+            const url = sousCompteService.construireUrlAvecPatientId('/ordonnances/stats', params);
             const response = await api.get(url);
             return response.data;
         } catch (error) {
@@ -157,6 +160,162 @@ const prescriptionService = {
             const dateB = new Date(b.date_creation);
             return order === 'desc' ? dateB - dateA : dateA - dateB;
         });
+    },
+
+    // --- UTILITAIRES POUR LES SOUS-COMPTES ---
+
+    /**
+     * Obtenir les ordonnances du profil actuel
+     * @param {string|null} patientIdForcé - Patient_id spécifique
+     * @returns {Promise<Array>} Ordonnances filtrées
+     */
+    async getOrdonnancesParProfil(patientIdForcé = null) {
+        const patientId = sousCompteService.getPatientId(patientIdForcé);
+        return this.getMesOrdonnances(patientId);
+    },
+
+    /**
+     * Obtenir les statistiques du profil actuel
+     * @param {string|null} patientIdForcé - Patient_id spécifique
+     * @returns {Promise<Object>} Statistiques filtrées
+     */
+    async getStatsParProfil(patientIdForcé = null) {
+        const patientId = sousCompteService.getPatientId(patientIdForcé);
+        return this.getOrdonnancesStats(patientId);
+    },
+
+    /**
+     * Obtenir les statistiques globales pour tous les profils
+     * @returns {Promise<Object>} Statistiques globales
+     */
+    async getStatsGlobales() {
+        // Forcer l'utilisation de 'all' pour obtenir toutes les données
+        return this.getOrdonnancesStats('all');
+    },
+
+    /**
+     * Télécharger une ordonnance avec validation d'accès
+     * @param {string} id - ID de l'ordonnance
+     * @param {string|null} patientIdForcé - Patient_id spécifique
+     * @returns {Promise<Object>} Résultat du téléchargement
+     */
+    async downloadOrdonnanceAvecValidation(id, patientIdForcé = null) {
+        try {
+            // Valider l'accès au profil si nécessaire
+            if (patientIdForcé) {
+                const aAcces = await sousCompteService.validerAccesPatient(patientIdForcé);
+                if (!aAcces) {
+                    throw new Error('Accès non autorisé à cette ordonnance');
+                }
+            }
+            
+            return this.downloadOrdonnancePdf(id);
+        } catch (error) {
+            console.error(`Erreur lors du téléchargement de l'ordonnance ${id}:`, error);
+            throw error;
+        }
+    },
+
+    /**
+     * Filtrer les ordonnances par profil actuel
+     * @param {Array} ordonnances - Liste des ordonnances
+     * @param {string} champPatientId - Champ contenant l'ID du patient
+     * @returns {Array} Ordonnances filtrées
+     */
+    filterOrdonnancesByProfil(ordonnances, champPatientId = 'patient_id') {
+        return sousCompteService.filterByProfilActuel(ordonnances, champPatientId);
+    },
+
+    /**
+     * Obtenir les ordonnances groupées par profil
+     * @param {string|null} patientIdForcé - Patient_id spécifique
+     * @returns {Promise<Object>} Ordonnances groupées
+     */
+    async getOrdonnancesGroupesParProfil(patientIdForcé = null) {
+        try {
+            const ordonnances = await this.getOrdonnancesParProfil(patientIdForcé);
+            return this.groupOrdonnancesByNumero(ordonnances);
+        } catch (error) {
+            console.error('Erreur lors du groupement des ordonnances:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Créer un rapport d'ordonnances pour le profil actuel
+     * @param {Object} options - Options du rapport
+     * @returns {Promise<Object>} Rapport généré
+     */
+    async creerRapportOrdonnances(options = {}) {
+        try {
+            const {
+                inclureInactives = false,
+                periode = null,
+                format = 'complet'
+            } = options;
+
+            let ordonnances = await this.getOrdonnancesParProfil();
+            
+            // Filtrer par statut
+            if (!inclureInactives) {
+                ordonnances = this.filterOrdonnancesByStatus(ordonnances, 'ACTIVE');
+            }
+            
+            // Filtrer par période
+            if (periode) {
+                const maintenant = new Date();
+                const dateLimite = new Date();
+                
+                switch (periode) {
+                    case '7jours':
+                        dateLimite.setDate(maintenant.getDate() - 7);
+                        break;
+                    case '30jours':
+                        dateLimite.setDate(maintenant.getDate() - 30);
+                        break;
+                    case '3mois':
+                        dateLimite.setMonth(maintenant.getMonth() - 3);
+                        break;
+                    default:
+                        break;
+                }
+                
+                ordonnances = ordonnances.filter(ord => 
+                    new Date(ord.date_creation) >= dateLimite
+                );
+            }
+            
+            // Formatter selon le format demandé
+            switch (format) {
+                case 'simple':
+                    return {
+                        total: ordonnances.length,
+                        ordonnances: ordonnances.map(ord => ({
+                            id: ord.id,
+                            medicament: ord.nom_medicament,
+                            dosage: ord.dosage,
+                            date: ord.date
+                        }))
+                    };
+                case 'statistiques': {
+                    const stats = await this.getStatsParProfil();
+                    return {
+                        ...stats,
+                        periode,
+                        ordonnancesRecentes: ordonnances.slice(0, 5)
+                    };
+                }
+                default:
+                    return {
+                        ...await this.getStatsParProfil(),
+                        ordonnances: this.formatOrdonnancesList(ordonnances),
+                        groupees: this.groupOrdonnancesByNumero(ordonnances)
+                    };
+            }
+        } catch (error) {
+            console.error('Erreur lors de la création du rapport:', error);
+            throw error;
+        }
     }
 };
 

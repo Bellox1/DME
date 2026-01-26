@@ -1,9 +1,11 @@
 import api from '../api';
+import sousCompteService from './sousCompteService';
 
 const patientService = {
     // --- DASHBOARD ---
     async getDashboardStats(patientId = null) {
-        const url = patientId ? `/patient/dashboard?patient_id=${patientId}` : '/patient/dashboard';
+        const params = sousCompteService.preparerParamsAvecPatientId({}, patientId);
+        const url = sousCompteService.construireUrlAvecPatientId('/patient/dashboard', params);
         const response = await api.get(url);
         return response.data;
     },
@@ -17,6 +19,12 @@ const patientService = {
 
     // Récupérer le détail complet d'un dossier
     async getDossier(patientId) {
+        // Valider l'accès au patient
+        const aAcces = await sousCompteService.validerAccesPatient(patientId);
+        if (!aAcces) {
+            throw new Error('Accès non autorisé à ce dossier');
+        }
+        
         const response = await api.get(`/patient/dossier/${patientId}`);
         return response.data;
     },
@@ -41,7 +49,8 @@ const patientService = {
 
     // Lister mes rendez-vous confirmés (demandes approuvées)
     async getMesRdv(patientId = null) {
-        const url = patientId ? `/demande-rdv?patient_id=${patientId}` : '/demande-rdv';
+        const params = sousCompteService.preparerParamsAvecPatientId({}, patientId);
+        const url = sousCompteService.construireUrlAvecPatientId('/demande-rdv', params);
         const response = await api.get(url);
         // Filtrer uniquement les demandes approuvées qui sont devenues des RDV
         const demandesApprouvees = response.data.filter(demande =>
@@ -64,19 +73,23 @@ const patientService = {
         return response.data;
     },
 
-    async getExamens() {
-        const response = await api.get('/patient/examens');
+    async getExamens(patientId = null) {
+        const params = sousCompteService.preparerParamsAvecPatientId({}, patientId);
+        const url = sousCompteService.construireUrlAvecPatientId('/patient/examens', params);
+        const response = await api.get(url);
         return response.data;
     },
 
     async getAllActivities(patientId = null) {
-        const url = patientId ? `/patient/activites?patient_id=${patientId}` : '/patient/activites';
+        const params = sousCompteService.preparerParamsAvecPatientId({}, patientId);
+        const url = sousCompteService.construireUrlAvecPatientId('/patient/activites', params);
         const response = await api.get(url);
         return response.data;
     },
 
     async getNotifications(patientId = null) {
-        const url = patientId ? `/patient/notifications?patient_id=${patientId}` : '/patient/notifications';
+        const params = sousCompteService.preparerParamsAvecPatientId({}, patientId);
+        const url = sousCompteService.construireUrlAvecPatientId('/patient/notifications', params);
         const response = await api.get(url);
         return response.data;
     },
@@ -88,6 +101,12 @@ const patientService = {
 
     // Créer une demande de rendez-vous
     async createDemandeRdv(data) {
+        // Ajouter le patient_id si spécifié dans le profil actuel
+        const profilActuel = sousCompteService.getProfilActuel();
+        if (profilActuel && profilActuel.type === 'Enfant') {
+            data = { ...data, patient_id: profilActuel.id };
+        }
+        
         const response = await api.post('/demande-rdv', data);
         return response.data;
     },
@@ -100,9 +119,91 @@ const patientService = {
 
     // Récupérer les demandes de l'utilisateur connecté
     async getMesDemandes(patientId = null) {
-        const url = patientId ? `/demande-rdv?patient_id=${patientId}` : '/demande-rdv';
+        const params = sousCompteService.preparerParamsAvecPatientId({}, patientId);
+        const url = sousCompteService.construireUrlAvecPatientId('/demande-rdv', params);
         const response = await api.get(url);
         return response.data;
+    },
+
+    // --- UTILITAIRES POUR LES SOUS-COMPTES ---
+
+    /**
+     * Obtenir les données filtrées par profil actuel
+     * @param {string} typeDonnees - Type de données ('demandes', 'rdv', 'ordonnances', etc.)
+     * @returns {Promise<Array>} Données filtrées
+     */
+    async getDonneesParProfil(typeDonnees) {
+        const patientId = sousCompteService.getPatientId();
+        
+        switch (typeDonnees) {
+            case 'demandes':
+                return this.getMesDemandes(patientId);
+            case 'rdv':
+                return this.getMesRdv(patientId);
+            case 'dashboard':
+                return this.getDashboardStats(patientId);
+            case 'activites':
+                return this.getAllActivities(patientId);
+            case 'notifications':
+                return this.getNotifications(patientId);
+            case 'examens':
+                return this.getExamens(patientId);
+            default:
+                throw new Error(`Type de données non supporté: ${typeDonnees}`);
+        }
+    },
+
+    /**
+     * Créer une demande pour un profil spécifique
+     * @param {Object} data - Données de la demande
+     * @param {string} patientIdCible - ID du patient cible
+     * @returns {Promise<Object>} Demande créée
+     */
+    async createDemandePourProfil(data, patientIdCible = null) {
+        const patientId = patientIdCible || sousCompteService.getPatientId();
+        
+        // Valider l'accès au profil cible
+        if (patientIdCible) {
+            const aAcces = await sousCompteService.validerAccesPatient(patientIdCible);
+            if (!aAcces) {
+                throw new Error('Accès non autorisé à ce profil');
+            }
+        }
+        
+        const dataAvecPatient = patientId ? { ...data, patient_id: patientId } : data;
+        return this.createDemandeRdv(dataAvecPatient);
+    },
+
+    /**
+     * Obtenir les statistiques combinées pour tous les profils
+     * @returns {Promise<Object>} Statistiques globales
+     */
+    async getStatsGlobales() {
+        // Forcer l'utilisation de 'all' pour obtenir toutes les données
+        return this.getDashboardStats('all');
+    },
+
+    /**
+     * Synchroniser le profil actuel avec le backend
+     * @returns {Promise<Object>} Profil synchronisé
+     */
+    async synchroniserProfilActuel() {
+        const profilActuel = sousCompteService.getProfilActuel();
+        if (!profilActuel) {
+            throw new Error('Aucun profil actuel défini');
+        }
+        
+        // Valider que le profil est toujours accessible
+        const profils = await this.getProfils();
+        const profilExiste = profils.find(p => p.id === profilActuel.id);
+        
+        if (!profilExiste) {
+            // Le profil n'existe plus, réinitialiser au titulaire
+            sousCompteService.resetToTitulaire();
+            throw new Error('Le profil sélectionné n\'est plus accessible. Retour au profil titulaire.');
+        }
+        
+        return profilExiste;
     }
 };
 
