@@ -22,6 +22,7 @@ class ConsultationController extends Controller
             'dateH_visite' => 'required|date',
             'motif' => 'nullable|string',
             'diagnostic' => 'nullable|string',
+            'signature' => 'nullable|string',
         ]);
 
         $consultation = DB::transaction(function () use ($request) {

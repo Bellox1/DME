@@ -5,28 +5,25 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Consultation extends Model
+class Resultat extends Model
 {
     use HasFactory;
 
-    protected $table = 'consultations';
+    protected $table = 'resultats';
 
     protected $fillable = [
         'patient_id',
         'medecin_id',
-        'dateH_visite',
-        'motif',
-        'antecedents',
-        'allergies',
-        'diagnostic',
-        'observations_medecin',
-        'traitement',
-        'duree_traitement',
-        'signature',
+        'type',
+        'titre',
+        'description',
+        'fichier',
+        'statut',
+        'date_examen',
     ];
 
     protected $casts = [
-        'dateH_visite' => 'datetime',
+        'date_examen' => 'datetime',
     ];
 
     public function patient()
@@ -37,11 +34,6 @@ class Consultation extends Model
     public function medecin()
     {
         return $this->belongsTo(Utilisateur::class, 'medecin_id');
-    }
-
-    public function prescriptions()
-    {
-        return $this->hasMany(Prescription::class, 'consultation_id');
     }
 
     const CREATED_AT = 'date_creation';

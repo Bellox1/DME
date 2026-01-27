@@ -26,6 +26,8 @@ const authService = {
         if (response.data.token) {
             localStorage.setItem('token', response.data.token);
             localStorage.setItem('user', JSON.stringify(response.data.user));
+            // Force first login flag for new registrations
+            localStorage.setItem('user-first-login', '1');
         }
         return response.data;
     },

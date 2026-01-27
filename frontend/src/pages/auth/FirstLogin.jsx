@@ -11,28 +11,31 @@ const FirstLogin = () => {
     // Auth & Validity Check
     useEffect(() => {
         const verify = async () => {
-            // 1. Check if user is already logged in
-            const token = localStorage.getItem('token');
-            if (token) {
-                // Try to redirect based on role or just generic fallback
-                try {
-                    const user = JSON.parse(localStorage.getItem('user'));
-                    if (user && user.role) {
-                        if (user.role === 'admin') navigate('/admin');
-                        else if (user.role === 'accueil') navigate('/accueil');
-                        else if (user.role === 'medecin') navigate('/medecin');
-                        else if (user.role === 'patient') navigate('/patient');
-                        return;
-                    }
-                } catch (e) { }
-                navigate('/login'); // Fallback
-                return;
-            }
-
-            // 2. Strictly require 'connexion' parameter
+            // 1. Check for 'connexion' parameter FIRST (Force activation flow)
             const loginParam = searchParams.get('connexion');
-            if (!loginParam) {
-                // Invalid link (e.g. ?tel=... or empty)
+
+            if (loginParam) {
+                // If we have a connexion param, we ignore the current session to force the first login flow
+                // Verification below will handle the validity
+            } else {
+                // Only if NO connexion param, we check for existing session
+                const token = localStorage.getItem('token');
+                if (token) {
+                    try {
+                        const user = JSON.parse(localStorage.getItem('user'));
+                        if (user && user.role) {
+                            if (user.role === 'admin') navigate('/admin');
+                            else if (user.role === 'accueil') navigate('/accueil');
+                            else if (user.role === 'medecin') navigate('/medecin');
+                            else if (user.role === 'patient') navigate('/patient');
+                            return;
+                        }
+                    } catch (e) { }
+                    navigate('/login');
+                    return;
+                }
+
+                // If no token and no param -> invalid access
                 navigate('/login');
                 return;
             }
