@@ -106,6 +106,7 @@ function App() {
           <Route path="/medecin/patients" element={<ProtectedRoute allowedRoles={['medecin']}><DoctorPatients /></ProtectedRoute>} />
           <Route path="/medecin/consultations" element={<ProtectedRoute allowedRoles={['medecin']}><DoctorConsultations /></ProtectedRoute>} />
           <Route path="/medecin/ordonnances" element={<ProtectedRoute allowedRoles={['medecin']}><DoctorOrdonnances /></ProtectedRoute>} />
+          <Route path="/medecin/nouvelle-consultation" element={<ProtectedRoute allowedRoles={['medecin']}><DoctorConsultationForm /></ProtectedRoute>} />
           <Route path="/medecin/resultats" element={<ProtectedRoute allowedRoles={['medecin']}><DoctorResultats /></ProtectedRoute>} />
           <Route path="/medecin/stats" element={<ProtectedRoute allowedRoles={['medecin']}><DoctorStats /></ProtectedRoute>} />
           <Route path="/medecin/profil" element={<ProtectedRoute allowedRoles={['medecin']}><DoctorProfil /></ProtectedRoute>} />

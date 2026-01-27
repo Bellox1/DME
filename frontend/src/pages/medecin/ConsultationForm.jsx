@@ -9,6 +9,10 @@ const ConsultationForm = () => {
     const rdvId = searchParams.get('rdv_id');
     const patientId = searchParams.get('patient_id');
 
+    const canvasRef = React.useRef(null);
+    const [isDrawing, setIsDrawing] = useState(false);
+    const [hasSignature, setHasSignature] = useState(false);
+
     const [formLoading, setFormLoading] = useState(false);
     const [consultationData, setConsultationData] = useState({
         motif: '',
@@ -22,6 +26,55 @@ const ConsultationForm = () => {
     });
 
     const [prescriptions, setPrescriptions] = useState([{ nom_medicament: '', dosage: '', instructions: '' }]);
+    const [successData, setSuccessData] = useState(null);
+
+    // --- Signature Logic ---
+    const startDrawing = (e) => {
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext('2d');
+        const rect = canvas.getBoundingClientRect();
+        const x = (e.clientX || e.touches[0].clientX) - rect.left;
+        const y = (e.clientY || e.touches[0].clientY) - rect.top;
+
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        setIsDrawing(true);
+    };
+
+    const draw = (e) => {
+        if (!isDrawing) return;
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext('2d');
+        const rect = canvas.getBoundingClientRect();
+        const x = (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left;
+        const y = (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top;
+
+        ctx.lineTo(x, y);
+        ctx.stroke();
+        setHasSignature(true);
+    };
+
+    const stopDrawing = () => {
+        setIsDrawing(false);
+    };
+
+    const clearSignature = () => {
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        setHasSignature(false);
+    };
+
+    useEffect(() => {
+        if (canvasRef.current) {
+            const canvas = canvasRef.current;
+            const ctx = canvas.getContext('2d');
+            ctx.strokeStyle = '#2c3e50';
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+        }
+    }, []);
+    // -----------------------
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -44,12 +97,25 @@ const ConsultationForm = () => {
         }
     };
 
+    const handlePrint = () => {
+        if (!successData?.id) return;
+        const url = medicalService.getOrdonnancePdfUrl(successData.id);
+        window.open(url, '_blank');
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setFormLoading(true);
         try {
-            const currentUser = JSON.parse(localStorage.getItem('user'));
+            const userString = localStorage.getItem('user');
+            const currentUser = userString ? JSON.parse(userString) : null;
             const medecinId = currentUser?.id;
+
+            // Capture de la signature
+            let signatureBase64 = null;
+            if (hasSignature) {
+                signatureBase64 = canvasRef.current.toDataURL('image/png');
+            }
 
             // 1. Créer la consultation
             const consultPayload = {
@@ -57,22 +123,24 @@ const ConsultationForm = () => {
                 patient_id: patientId,
                 medecin_id: medecinId,
                 rdv_id: rdvId,
+                signature: signatureBase64,
                 dateH_visite: new Date().toISOString().slice(0, 19).replace('T', ' '),
             };
 
             const response = await medicalService.createConsultation(consultPayload);
-            const consultationId = response.data.id;
+            const newConsultationId = response.data.id;
 
             // 2. Ajouter les prescriptions
             const validPrescriptions = prescriptions.filter(p => p.nom_medicament.trim() !== '');
             if (validPrescriptions.length > 0) {
                 await Promise.all(validPrescriptions.map(p =>
-                    medicalService.addPrescription(consultationId, { ...p, medecin_id: medecinId })
+                    medicalService.addPrescription(newConsultationId, { ...p, medecin_id: medecinId })
                 ));
             }
 
+            setSuccessData({ id: newConsultationId });
             alert('Consultation enregistrée avec succès !');
-            navigate('/medecin'); // Retour au dashboard
+            // On ne navigue plus tout de suite pour laisser le doc imprimer le PDF
 
         } catch (err) {
             console.error('Erreur enregistrement:', err);
@@ -155,15 +223,62 @@ const ConsultationForm = () => {
                             ))}
                         </div>
 
+                        {/* Signature Pad Block */}
+                        <div className="mt-4 p-6 bg-slate-50 dark:bg-slate-900 rounded-[2rem] border-2 border-dashed border-slate-200 dark:border-slate-800 flex flex-col gap-4">
+                            <div className="flex justify-between items-center px-2">
+                                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-sm">draw</span>
+                                    Signature Numérique
+                                </label>
+                                <button type="button" onClick={clearSignature} className="text-[10px] font-bold text-rose-500 uppercase hover:underline">Effacer</button>
+                            </div>
+                            <div className="bg-white dark:bg-slate-800 rounded-2xl overflow-hidden shadow-inner border border-slate-100 dark:border-slate-700">
+                                <canvas
+                                    ref={canvasRef}
+                                    width={400}
+                                    height={120}
+                                    onMouseDown={startDrawing}
+                                    onMouseMove={draw}
+                                    onMouseUp={stopDrawing}
+                                    onMouseOut={stopDrawing}
+                                    onTouchStart={startDrawing}
+                                    onTouchMove={draw}
+                                    onTouchEnd={stopDrawing}
+                                    className="w-full cursor-crosshair"
+                                />
+                            </div>
+                        </div>
+
                         <div className="mt-auto border-t border-slate-100 dark:border-slate-800 pt-6">
-                            <button type="submit" disabled={formLoading} className="w-full h-16 bg-primary text-white rounded-[2rem] font-black uppercase tracking-widest shadow-2xl shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-70">
-                                {formLoading ? 'Enregistrement...' : (
-                                    <>
-                                        Valider la consultation
-                                        <span className="material-symbols-outlined animate-bounce-x">arrow_forward</span>
-                                    </>
-                                )}
-                            </button>
+                            {successData ? (
+                                <div className="flex flex-col gap-4 animate-in slide-in-from-top-2">
+                                    <button
+                                        type="button"
+                                        onClick={handlePrint}
+                                        className="w-full h-16 bg-green-500 text-white rounded-[2rem] font-black uppercase tracking-widest shadow-xl shadow-green-500/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3"
+                                    >
+                                        Imprimer l'Ordonnance
+                                        <span className="material-symbols-outlined">print</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate('/medecin')}
+                                        className="w-full h-12 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-xl font-bold uppercase tracking-widest text-[10px] hover:bg-slate-200 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        Retour au Dashboard
+                                        <span className="material-symbols-outlined text-sm">home</span>
+                                    </button>
+                                </div>
+                            ) : (
+                                <button type="submit" disabled={formLoading} className="w-full h-16 bg-primary text-white rounded-[2rem] font-black uppercase tracking-widest shadow-2xl shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-70">
+                                    {formLoading ? 'Enregistrement...' : (
+                                        <>
+                                            Valider la consultation
+                                            <span className="material-symbols-outlined animate-bounce-x">arrow_forward</span>
+                                        </>
+                                    )}
+                                </button>
+                            )}
                         </div>
                     </div>
                 </form>
