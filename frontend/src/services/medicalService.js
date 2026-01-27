@@ -43,10 +43,43 @@ const medicalService = {
     },
 
     /**
+     * Recherche des patients.
+     */
+    searchPatients: async (query = '') => {
+        const response = await api.get('/patients', { params: { search: query } });
+        return response.data;
+    },
+
+    /**
+     * Récupère toutes les consultations du médecin connecté.
+     */
+    getAllConsultations: async () => {
+        const response = await api.get('/consultations');
+        return response.data;
+    },
+
+    /**
+     * Récupère tous les résultats d'examens.
+     */
+    getResultats: async () => {
+        const response = await api.get('/resultats');
+        return response.data;
+    },
+
+    /**
+     * Récupère les résultats d'un patient spécifique.
+     */
+    getPatientResultats: async (patientId) => {
+        const response = await api.get(`/patients/${patientId}/resultats`);
+        return response.data;
+    },
+
+    /**
      * Génère l'URL du PDF de l'ordonnance.
      */
     getOrdonnancePdfUrl: (consultationId) => {
-        return `http://localhost:8000/api/consultations/${consultationId}/pdf`;
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+        return `${baseUrl}/consultations/${consultationId}/pdf`;
     }
 };
 
