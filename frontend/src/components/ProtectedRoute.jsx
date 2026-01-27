@@ -9,10 +9,22 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
 
     const [showFirstLogin, setShowFirstLogin] = useState(false);
 
+    // Modifié : Redirection vers la page dédiée FirstLogin au lieu de la modale
     useEffect(() => {
-        const isFirstLogin = localStorage.getItem('user-first-login') !== 'false';
+        // La valeur stockée peut être "1", 1, "true", ou true. On normalise.
+        const storedVal = localStorage.getItem('user-first-login');
+        const isFirstLogin = storedVal === '1' || storedVal === 1 || storedVal === 'true' || storedVal === true;
+
         if (userString && token && isFirstLogin) {
-            setShowFirstLogin(true);
+            // On récupère le numéro (tel ou whatsapp) pour construire l'URL
+            // On parse userString ici car 'user' ligne 24 n'est pas accessible dans le useEffect sans dépendance
+            const u = JSON.parse(userString);
+            const login = u.whatsapp || u.tel || u.email; // Fallback
+
+            if (login) {
+                // Redirection forcée vers la page d'activation
+                window.location.href = `/first-login?connexion=${encodeURIComponent(login)}`;
+            }
         }
     }, [userString, token]);
 
@@ -22,10 +34,10 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
     }
 
     const user = JSON.parse(userString);
-    const isFirstLogin = localStorage.getItem('user-first-login') !== 'false';
+    // Supprimé : const isFirstLogin ... (déjà géré par le useEffect)
 
+    // Logique de rôle maintenue
     if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
-        // Role not authorized -> Redirect to their specific dashboard instead of login
         if (user.role === 'admin') return <Navigate to="/admin" replace />;
         if (user.role === 'accueil') return <Navigate to="/accueil" replace />;
         if (user.role === 'medecin') return <Navigate to="/medecin" replace />;
@@ -33,19 +45,9 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
         return <Navigate to="/login" replace />;
     }
 
-    const handleFirstLoginComplete = () => {
-        localStorage.setItem('user-first-login', 'false');
-        setShowFirstLogin(false);
-    };
-
+    // Plus de modale
     return (
         <>
-            {showFirstLogin && (
-                <FirstLoginModal
-                    userPhone={user.tel || ""}
-                    onComplete={handleFirstLoginComplete}
-                />
-            )}
             {children}
         </>
     );

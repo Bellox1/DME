@@ -237,7 +237,7 @@ class PatientController extends Controller
         $identifier = $user->whatsapp ?? $user->tel;
         $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
         $activationLink = rtrim($frontendUrl, '/') . "/first-login?connexion=" . $identifier;
-        $message = "Bienvenue sur DME (Patient). Votre dossier est ouvert. Activez votre compte pour y accéder : $activationLink";
+        $message = "Bienvenue sur DME (Patient).\nVotre dossier est ouvert.\nActivez votre compte pour y accéder :\n$activationLink";
 
         $twilio = new \App\Services\TwilioService();
         
