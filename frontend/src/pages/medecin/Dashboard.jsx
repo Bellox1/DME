@@ -1,15 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import DoctorLayout from '../../components/layouts/DoctorLayout';
-import accueilService from '../../services/accueil/accueilService';
-import patientService from '../../services/patient/patientService';
-// Note: rdvService functionality is largely moved to accueilService or medecinService depending on context. 
-// Assuming medecin dashboard uses queue mostly.
+import medicalService from '../../services/medicalService';
 
 const DoctorDashboard = () => {
     const [userName, setUserName] = useState({ nom: '', prenom: '' });
     const [queue, setQueue] = useState([]);
-    const [patients, setPatients] = useState([]);
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({
         consultations: 0,
@@ -22,40 +18,24 @@ const DoctorDashboard = () => {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                const currentUser = JSON.parse(localStorage.getItem('user'));
-                setUserName({ nom: currentUser?.nom || '', prenom: currentUser?.prenom || '' });
-                const medecinId = currentUser?.id;
+                const userString = localStorage.getItem('user');
+                if (userString) {
+                    const currentUser = JSON.parse(userString);
+                    setUserName({ nom: currentUser?.nom || '', prenom: currentUser?.prenom || '' });
+                }
 
-                if (!medecinId) return;
+                // Récupérer la file d'attente du jour via le nouveau service médical
+                const response = await medicalService.getQueue();
+                const queueData = response.data || [];
 
-                // On filtre les données pour ce médecin spécifique
-                const [queueDataResponse, patientsData] = await Promise.all([
-                    accueilService.getQueue(),
-                    accueilService.getPatients(),
-                    // rdvService.getMedecinRdvs(medecinId) // Service migrated
-                ]);
-                const rdvsData = []; // Placeholder until rdvService is restored
+                setQueue(queueData);
 
-                // On filtre la file d'attente pour ce médecin
-                const rawQueue = Array.isArray(queueDataResponse) ? queueDataResponse : (queueDataResponse.data || []);
-                const queueData = rawQueue.filter(q => q.medecin_id === medecinId);
-
-                setQueue(queueData.slice(0, 5));
-                setPatients(patientsData.data || patientsData);
-
-                // Calculer les stats de demain
-                const tomorrow = new Date();
-                tomorrow.setDate(tomorrow.getDate() + 1);
-                const tomorrowStr = tomorrow.toISOString().split('T')[0];
-
-                const tomorrowRdvs = rdvsData.filter(r => r.dateH_rdv?.startsWith(tomorrowStr));
-
-                // Calculer quelques stats basiques selon les status du backend: 'programmé', 'passé', 'annulé'
+                // Calculer les stats en temps réel selon les status officiels: 'programmé', 'passé'
                 setStats({
                     consultations: queueData.filter(q => q.statut === 'passé').length,
                     waiting: queueData.filter(q => q.statut === 'programmé').length,
-                    urgent: queueData.filter(q => q.type === 'Urgent').length, // Exemple de type
-                    tomorrow: tomorrowRdvs.length
+                    urgent: 0,
+                    tomorrow: 0
                 });
 
             } catch (err) {
@@ -67,16 +47,6 @@ const DoctorDashboard = () => {
 
         fetchData();
     }, []);
-
-    const getPatientName = (patientId) => {
-        const patient = patients.find(p => p.id === parseInt(patientId));
-        return patient ? `${patient.nom} ${patient.prenom}` : `Patient #${patientId}`;
-    };
-
-    const getPatientType = (patientId) => {
-        const patient = patients.find(p => p.id === parseInt(patientId));
-        return patient ? patient.genre : 'Standard';
-    };
 
     return (
         <DoctorLayout>
@@ -175,7 +145,7 @@ const DoctorDashboard = () => {
                                             <div className="flex items-center gap-6 flex-1 min-w-0">
                                                 <div className="relative">
                                                     <div className="size-16 rounded-3xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-700 flex items-center justify-center text-primary font-black text-xl shadow-inner group-hover:scale-105 transition-transform">
-                                                        {getPatientName(row.patient_id).charAt(0)}
+                                                        {row.patient?.utilisateur?.nom?.charAt(0) || 'P'}
                                                     </div>
                                                     <div className="absolute -bottom-1 -right-1 size-6 rounded-full bg-white dark:bg-[#1c2229] flex items-center justify-center shadow-md">
                                                         <span className="material-symbols-outlined text-[14px] text-green-500 font-bold">check_circle</span>
@@ -183,26 +153,30 @@ const DoctorDashboard = () => {
                                                 </div>
                                                 <div className="flex flex-col min-w-0">
                                                     <div className="flex items-center gap-2 mb-1">
-                                                        <span className="text-lg font-black text-titles dark:text-white uppercase tracking-tighter italic truncate">{getPatientName(row.patient_id)}</span>
+                                                        <span className="text-lg font-black text-titles dark:text-white uppercase tracking-tighter italic truncate">
+                                                            {row.patient?.utilisateur?.nom} {row.patient?.utilisateur?.prenom}
+                                                        </span>
                                                         <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase ${row.statut === 'urgent' ? 'bg-rose-100 text-rose-600' : 'bg-primary/10 text-primary'}`}>
-                                                            {row.statut || 'En attente'}
+                                                            {row.statut === 'programmé' ? 'En attente' : row.statut}
                                                         </span>
                                                     </div>
                                                     <div className="flex items-center gap-3">
-                                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">ID #{row.patient_id}</span>
+                                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">PATIENT ID #{row.patient_id}</span>
                                                         <span className="size-1 rounded-full bg-slate-200 dark:bg-slate-700"></span>
-                                                        <span className="text-[10px] font-bold text-slate-500 italic uppercase">{row.type || 'Consultation Standard'}</span>
+                                                        <span className="text-[10px] font-bold text-slate-500 italic uppercase">{row.motif || 'Consultation Standard'}</span>
                                                     </div>
                                                 </div>
                                             </div>
 
                                             <div className="flex items-center gap-4 mt-6 sm:mt-0 w-full sm:w-auto">
                                                 <div className="hidden md:flex flex-col items-end mr-4">
-                                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Arrivée</span>
-                                                    <span className="text-xs font-bold text-titles dark:text-white italic">09:45</span>
+                                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Heure RDV</span>
+                                                    <span className="text-xs font-bold text-titles dark:text-white italic">
+                                                        {new Date(row.dateH_rdv).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                                                    </span>
                                                 </div>
                                                 <Link
-                                                    to={`/medecin/consultations?patient=${row.patient_id}`}
+                                                    to={`/medecin/nouvelle-consultation?rdv_id=${row.id}&patient_id=${row.patient_id}`}
                                                     className="flex-1 sm:flex-none h-14 px-10 bg-primary text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3"
                                                 >
                                                     Consulter
