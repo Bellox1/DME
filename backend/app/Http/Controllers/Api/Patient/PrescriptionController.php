@@ -205,7 +205,7 @@ class PrescriptionController extends Controller
 
         // Trouver la consultation et vérifier l'accès
         $consultation = Consultation::with('patient')->findOrFail($consultationId);
-        
+
         $isOwner = ($consultation->patient->utilisateur_id == $user->id);
         $isParent = \App\Models\Enfant::where('id', $consultation->patient->enfant_id)
             ->where('parent_id', $user->id)
@@ -313,57 +313,5 @@ class PrescriptionController extends Controller
 
         $pdf = Pdf::loadView('pdf.ordonnance', $data);
         return $pdf;
-    }
-
-    /**
-     * Créer une nouvelle ordonnance (pour les médecins).
-     */
-    public function store(Request $request)
-    {
-        $request->validate([
-            'consultation_id' => 'required|exists:consultations,id',
-            'medicaments' => 'required|array',
-            'medicaments.*.nom_medicament' => 'required|string|max:255',
-            'medicaments.*.dosage' => 'required|string|max:100',
-            'medicaments.*.instructions' => 'nullable|string',
-        ]);
-
-        $medecinId = Auth::id();
-        $consultation = Consultation::findOrFail($request->consultation_id);
-
-        // Vérifier que le médecin est autorisé pour cette consultation
-        if ($consultation->medecin_id != $medecinId) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Vous n\'êtes pas autorisé à créer une ordonnance pour cette consultation.'
-            ], 403);
-        }
-
-        $prescriptions = [];
-        $numeroOrdonnance = $this->generateNumeroOrdonnance();
-
-        DB::transaction(function () use ($request, $medecinId, $numeroOrdonnance, &$prescriptions) {
-            foreach ($request->medicaments as $medicament) {
-                $prescription = Prescription::create([
-                    'numero_ordonnance' => $numeroOrdonnance,
-                    'consultation_id' => $request->consultation_id,
-                    'medecin_id' => $medecinId,
-                    'nom_medicament' => $medicament['nom_medicament'],
-                    'dosage' => $medicament['dosage'],
-                    'instructions' => $medicament['instructions'] ?? null,
-                    'statut' => 'ACTIVE',
-                ]);
-                $prescriptions[] = $prescription;
-            }
-        });
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Ordonnance créée avec succès',
-            'data' => [
-                'numero_ordonnance' => $numeroOrdonnance,
-                'prescriptions' => $prescriptions
-            ]
-        ], 201);
     }
 }
