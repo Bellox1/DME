@@ -18,7 +18,7 @@ class MedicalHistoryController extends Controller
         $patient = Patient::findOrFail($patientId);
 
         // Récupérer les consultations avec les prescriptions et le médecin
-        $consultations = Consultation::with(['medecin', 'prescriptions'])
+        $consultations = Consultation::with(['medecin', 'prescriptions', 'patient'])
             ->where('patient_id', $patientId)
             ->orderBy('dateH_visite', 'desc')
             ->get();
@@ -29,6 +29,24 @@ class MedicalHistoryController extends Controller
                 'patient' => $patient, // Basic info
                 'consultations' => $consultations
             ]
+        ]);
+    }
+
+    /**
+     * Récupérer toutes les consultations du médecin connecté
+     */
+    public function getAllForDoctor(Request $request)
+    {
+        $medecinId = $request->user()->id;
+
+        $consultations = Consultation::with(['patient', 'prescriptions'])
+            ->where('medecin_id', $medecinId)
+            ->orderBy('dateH_visite', 'desc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $consultations
         ]);
     }
 }

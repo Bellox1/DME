@@ -88,7 +88,7 @@ class AuthController extends Controller
 
             // 5. Envoi des Notifications (SMS et/ou WhatsApp)
             $twilio = new \App\Services\TwilioService();
-            $message = "Bienvenue sur DME. Cliquez pour activer votre compte : $activationLink";
+            $message = "Bienvenue sur DME.\nCliquez ici pour activer votre compte :\n$activationLink";
             $canaux = [];
             
             if ($whatsapp) {
@@ -293,7 +293,7 @@ class AuthController extends Controller
         $resetLink = rtrim($frontendUrl, '/') . "/reset-password?number=" . $request->login;
 
         $twilio = new \App\Services\TwilioService();
-        $message = "Vous avez demandé la réinitialisation de votre mot de passe DME. Cliquez ici : $resetLink";
+        $message = "Vous avez demandé la réinitialisation de votre mot de passe DME.\nCliquez ici :\n$resetLink";
         
         $sentCount = 0;
         if ($user->whatsapp) {
