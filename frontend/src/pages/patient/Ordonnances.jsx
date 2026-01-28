@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import PatientLayout from '../../components/layouts/PatientLayout';
 import { usePrescriptions } from '../../hooks/usePrescriptions';
-import useSousCompte from '../../hooks/useSousCompte';
 import Loader from '../../components/ui/Loader';
 import Alert from '../../components/ui/Alert';
 import prescriptionService from '../../services/patient/prescriptionService';
@@ -12,29 +11,16 @@ const Ordonnances = () => {
     const [ordonnances, setOrdonnances] = useState([]);
     const [error, setError] = useState('');
 
-    // Utiliser notre hook de sous-compte
-    const {
-        profilActuel,
-        error: errorProfils,
-        getPatientId,
-        getNomProfil,
-        isTitulaire
-    } = useSousCompte();
-
     // Hook existant pour les prescriptions
     const {
         downloadPdf,
         clearError: clearPrescriptionError
     } = usePrescriptions();
 
-    const loadData = useCallback(async () => {
-        if (!profilActuel) return;
-        
+    const loadData = async (patientId = null) => {
         setLoadingData(true);
         setError('');
         try {
-            const patientId = getPatientId();
-            
             // Charger les ordonnances du profil actuel
             const response = await prescriptionService.getOrdonnancesParProfil(patientId);
             console.log('Ordonnances brutes:', response);
@@ -48,24 +34,48 @@ const Ordonnances = () => {
             console.log('Ordonnances groupées:', ordonnancesGroupes);
             
             // S'assurer que c'est bien un tableau
-            const ordonnancesArray = Array.isArray(ordonnancesGroupes) ? ordonnancesGroupes : [];
-            setOrdonnances(ordonnancesArray);
-
-            // Les statistiques sont calculées localement
+            setOrdonnances(Array.isArray(ordonnancesGroupes) ? ordonnancesGroupes : []);
         } catch (err) {
             console.error('Erreur lors du chargement des ordonnances:', err);
-            setError('Erreur lors du chargement des ordonnances');
-            setOrdonnances([]); // S'assurer que c'est un tableau vide en cas d'erreur
+            setError(err.response?.data?.message || 'Impossible de charger les ordonnances');
         } finally {
             setLoadingData(false);
         }
-    }, [profilActuel, getPatientId]);
+    };
 
     useEffect(() => {
-        if (profilActuel) {
-            loadData();
+        // Charger le profil actif au montage
+        const savedProfile = localStorage.getItem('active-patient-profile');
+        const activeId = savedProfile ? JSON.parse(savedProfile).id : null;
+        loadData(activeId);
+
+        // Écouter les changements de profil depuis le Layout
+        const handleProfileChange = (event) => {
+            const newProfile = event.detail;
+            loadData(newProfile.id);
+        };
+
+        window.addEventListener('patientProfileChanged', handleProfileChange);
+        return () => window.removeEventListener('patientProfileChanged', handleProfileChange);
+    }, []);
+
+    const getNomProfil = () => {
+        const savedProfile = localStorage.getItem('active-patient-profile');
+        if (savedProfile) {
+            const profile = JSON.parse(savedProfile);
+            return profile.nom_affichage || 'Moi';
         }
-    }, [profilActuel, loadData]);
+        return 'Moi';
+    };
+
+    const isTitulaire = () => {
+        const savedProfile = localStorage.getItem('active-patient-profile');
+        if (savedProfile) {
+            const profile = JSON.parse(savedProfile);
+            return profile.type === 'Titulaire';
+        }
+        return true;
+    };
 
     const handleDownloadPdf = async (ordonnanceId) => {
         try {
@@ -140,10 +150,10 @@ const Ordonnances = () => {
                     {/* Le sélecteur de profil est masqué */}
                 </div>
 
-                {(error || errorProfils) && (
+                {error && (
                     <Alert
                         type="error"
-                        message={error || errorProfils}
+                        message={error}
                         onClose={() => {
                             setError('');
                             clearPrescriptionError();

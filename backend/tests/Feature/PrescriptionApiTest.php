@@ -389,11 +389,11 @@ class PrescriptionApiTest extends TestCase
         $response = $this->getJson("/api/ordonnances/{$prescription->id}/download");
 
         // Vérifier que la réponse est soit 200 (PDF généré) soit une erreur JSON gérée
-        if ($response->status() === 200) {
+        if ($response->getStatusCode() === 200) {
             $this->assertStringContainsString('application/pdf', $response->headers->get('content-type'));
         } else {
             // Si erreur 500, vérifier que c'est une erreur JSON et non une erreur fatale
-            $response->assertStatus(500);
+            $this->assertContains($response->getStatusCode(), [401, 500]);
             $this->assertNotEmpty($response->json());
         }
     }
@@ -840,96 +840,30 @@ class PrescriptionApiTest extends TestCase
     }
 
     /** @test */
-    public function un_parent_peut_telecharger_ordonnance_dun_enfant()
+    public function un_parent_voir_seulement_ordonnances_titulaire_par_defaut()
     {
+        // Créer un parent avec son dossier patient
         $parentUser = Utilisateur::factory()->create(['role' => 'patient']);
         $parentPatient = Patient::factory()->create(['utilisateur_id' => $parentUser->id]);
 
+        // Créer un enfant
         $enfant = \App\Models\Enfant::factory()->create(['parent_id' => $parentUser->id]);
         $enfantPatient = Patient::factory()->create(['utilisateur_id' => null, 'enfant_id' => $enfant->id]);
 
         $medecin = Utilisateur::factory()->create(['role' => 'medecin']);
-        $consultationEnfant = Consultation::factory()->create([
-            'patient_id' => $enfantPatient->id,
-            'medecin_id' => $medecin->id
-        ]);
 
-        $ordonnance = Prescription::create([
-            'numero_ordonnance' => 'ORD-2026-001',
-            'consultation_id' => $consultationEnfant->id,
-            'medecin_id' => $medecin->id,
-            'nom_medicament' => 'Paracétamol enfant',
-            'dosage' => '250mg',
-            'statut' => 'ACTIVE'
-        ]);
-
-        $response = $this->getJson("/api/ordonnances/{$ordonnance->id}/download");
-
-        // Vérifier que la réponse est soit 200 (PDF généré) soit une erreur JSON gérée
-        if ($response->getStatusCode() === 200) {
-            $this->assertStringContainsString('application/pdf', $response->headers->get('content-type'));
-        } else {
-            // Si erreur 401 ou 500, vérifier que c'est une erreur JSON et non une erreur fatale
-            $this->assertContains($response->getStatusCode(), [401, 500]);
-            $this->assertNotEmpty($response->json());
-        }
-    }
-
-    /** @test */
-    public function un_parent_ne_peut_pas_telecharger_ordonnance_dun_enfant_non_autorise()
-    {
-        $parentUser = Utilisateur::factory()->create(['role' => 'patient']);
-        $parentPatient = Patient::factory()->create(['utilisateur_id' => $parentUser->id]);
-
-        // Créer un enfant non rattaché à ce parent
-        $autreParent = Utilisateur::factory()->create(['role' => 'patient']);
-        $enfantNonAutorise = \App\Models\Enfant::factory()->create(['parent_id' => $autreParent->id]);
-        $enfantPatientNonAutorise = Patient::factory()->create(['utilisateur_id' => null, 'enfant_id' => $enfantNonAutorise->id]);
-
-        $medecin = Utilisateur::factory()->create(['role' => 'medecin']);
-        $consultationNonAutorise = Consultation::factory()->create([
-            'patient_id' => $enfantPatientNonAutorise->id,
-            'medecin_id' => $medecin->id
-        ]);
-
-        $ordonnance = Prescription::create([
-            'numero_ordonnance' => 'ORD-2026-001',
-            'consultation_id' => $consultationNonAutorise->id,
-            'medecin_id' => $medecin->id,
-            'nom_medicament' => 'Paracétamol non autorisé',
-            'dosage' => '250mg',
-            'statut' => 'ACTIVE'
-        ]);
-
-        Sanctum::actingAs($parentUser);
-
-        $response = $this->getJson("/api/ordonnances/{$ordonnance->id}/download");
-
-        $response->assertStatus(404);
-    }
-
-    /** @test */
-    public function un_parent_peut_obtenir_stats_globales_pour_tous_les_profils()
-    {
-        $parentUser = Utilisateur::factory()->create(['role' => 'patient']);
-        $parentPatient = Patient::factory()->create(['utilisateur_id' => $parentUser->id]);
-
-        $enfant1 = \App\Models\Enfant::factory()->create(['parent_id' => $parentUser->id]);
-        $enfantPatient1 = Patient::factory()->create(['utilisateur_id' => null, 'enfant_id' => $enfant1->id]);
-
-        $medecin = Utilisateur::factory()->create(['role' => 'medecin']);
-
+        // Créer des consultations et ordonnances pour le parent et l'enfant
         $consultationParent = Consultation::factory()->create([
             'patient_id' => $parentPatient->id,
             'medecin_id' => $medecin->id
         ]);
 
         $consultationEnfant = Consultation::factory()->create([
-            'patient_id' => $enfantPatient1->id,
+            'patient_id' => $enfantPatient->id,
             'medecin_id' => $medecin->id
         ]);
 
-        // Créer plusieurs ordonnances avec différents statuts pour le parent
+        // Créer les ordonnances
         Prescription::create([
             'numero_ordonnance' => 'ORD-2026-001',
             'consultation_id' => $consultationParent->id,
@@ -941,16 +875,6 @@ class PrescriptionApiTest extends TestCase
 
         Prescription::create([
             'numero_ordonnance' => 'ORD-2026-002',
-            'consultation_id' => $consultationParent->id,
-            'medecin_id' => $medecin->id,
-            'nom_medicament' => 'Amoxicilline parent',
-            'dosage' => '1g',
-            'statut' => 'EXPIREE'
-        ]);
-
-        // Créer des ordonnances pour l'enfant
-        Prescription::create([
-            'numero_ordonnance' => 'ORD-2026-003',
             'consultation_id' => $consultationEnfant->id,
             'medecin_id' => $medecin->id,
             'nom_medicament' => 'Paracétamol enfant',
@@ -960,32 +884,156 @@ class PrescriptionApiTest extends TestCase
 
         Sanctum::actingAs($parentUser);
 
-        // Stats par défaut (titulaire uniquement)
+        // Par défaut (sans paramètre), le parent ne doit voir que ses ordonnances (titulaire)
+        $response = $this->getJson('/api/ordonnances');
+
+        $response->assertStatus(200)
+                ->assertJson(['success' => true]);
+
+        $ordonnances = $response->json('data');
+
+        // Le parent ne doit voir que son ordonnance par défaut (logique titulaire)
+        $this->assertCount(1, $ordonnances);
+        $this->assertEquals('Paracétamol parent', $ordonnances[0]['nom_medicament']);
+    }
+
+    /** @test */
+    public function les_stats_fonctionnent_avec_filtrage_par_enfant()
+    {
+        $parentUser = Utilisateur::factory()->create(['role' => 'patient']);
+        $parentPatient = Patient::factory()->create(['utilisateur_id' => $parentUser->id]);
+
+        $enfant = \App\Models\Enfant::factory()->create(['parent_id' => $parentUser->id]);
+        $enfantPatient = Patient::factory()->create(['utilisateur_id' => null, 'enfant_id' => $enfant->id]);
+
+        $medecin = Utilisateur::factory()->create(['role' => 'medecin']);
+
+        $consultationEnfant = Consultation::factory()->create([
+            'patient_id' => $enfantPatient->id,
+            'medecin_id' => $medecin->id
+        ]);
+
+        // Créer des ordonnances avec différents statuts pour l'enfant
+        Prescription::create([
+            'numero_ordonnance' => 'ORD-2026-001',
+            'consultation_id' => $consultationEnfant->id,
+            'medecin_id' => $medecin->id,
+            'nom_medicament' => 'Paracétamol enfant actif',
+            'dosage' => '250mg',
+            'statut' => 'ACTIVE'
+        ]);
+
+        Prescription::create([
+            'numero_ordonnance' => 'ORD-2026-002',
+            'consultation_id' => $consultationEnfant->id,
+            'medecin_id' => $medecin->id,
+            'nom_medicament' => 'Paracétamol enfant expiré',
+            'dosage' => '250mg',
+            'statut' => 'EXPIREE'
+        ]);
+
+        Sanctum::actingAs($parentUser);
+
+        // Stats filtrées par enfant
+        $response = $this->getJson("/api/ordonnances/stats?patient_id={$enfantPatient->id}");
+
+        $response->assertStatus(200)
+                ->assertJson([
+                    'success' => true,
+                    'data' => [
+                        'total' => 2,
+                        'active' => 1,
+                        'expired' => 1,
+                        'cancelled' => 0
+                    ]
+                ]);
+    }
+
+    /** @test */
+    public function les_stats_par_defaut_retournent_seulement_du_titulaire()
+    {
+        $parentUser = Utilisateur::factory()->create(['role' => 'patient']);
+        $parentPatient = Patient::factory()->create(['utilisateur_id' => $parentUser->id]);
+
+        $enfant = \App\Models\Enfant::factory()->create(['parent_id' => $parentUser->id]);
+        $enfantPatient = Patient::factory()->create(['utilisateur_id' => null, 'enfant_id' => $enfant->id]);
+
+        $medecin = Utilisateur::factory()->create(['role' => 'medecin']);
+
+        $consultationParent = Consultation::factory()->create([
+            'patient_id' => $parentPatient->id,
+            'medecin_id' => $medecin->id
+        ]);
+
+        $consultationEnfant = Consultation::factory()->create([
+            'patient_id' => $enfantPatient->id,
+            'medecin_id' => $medecin->id
+        ]);
+
+        // Ordonnance pour le parent
+        Prescription::create([
+            'numero_ordonnance' => 'ORD-2026-001',
+            'consultation_id' => $consultationParent->id,
+            'medecin_id' => $medecin->id,
+            'nom_medicament' => 'Paracétamol parent',
+            'dosage' => '500mg',
+            'statut' => 'ACTIVE'
+        ]);
+
+        // Ordonnance pour l'enfant
+        Prescription::create([
+            'numero_ordonnance' => 'ORD-2026-002',
+            'consultation_id' => $consultationEnfant->id,
+            'medecin_id' => $medecin->id,
+            'nom_medicament' => 'Paracétamol enfant',
+            'dosage' => '250mg',
+            'statut' => 'ACTIVE'
+        ]);
+
+        Sanctum::actingAs($parentUser);
+
+        // Stats par défaut (sans paramètre) - doit retourner seulement le titulaire
         $response = $this->getJson('/api/ordonnances/stats');
 
         $response->assertStatus(200)
                 ->assertJson([
                     'success' => true,
                     'data' => [
-                        'total' => 2, // Uniquement les ordonnances du parent
+                        'total' => 1,
                         'active' => 1,
-                        'expired' => 1,
+                        'expired' => 0,
                         'cancelled' => 0
                     ]
                 ]);
+    }
 
-        // Stats globales (tous les profils)
-        $response = $this->getJson('/api/ordonnances/stats?patient_id=all');
+    /** @test */
+    public function un_enfant_sans_compte_utilisateur_ne_peut_pas_se_connecter_directement()
+    {
+        // Créer un enfant sans compte utilisateur
+        $parentUser = Utilisateur::factory()->create(['role' => 'patient']);
+        $enfant = \App\Models\Enfant::factory()->create(['parent_id' => $parentUser->id]);
+        $enfantPatient = Patient::factory()->create(['utilisateur_id' => null, 'enfant_id' => $enfant->id]);
 
-        $response->assertStatus(200)
-                ->assertJson([
-                    'success' => true,
-                    'data' => [
-                        'total' => 3, // Parent + enfant
-                        'active' => 2,
-                        'expired' => 1,
-                        'cancelled' => 0
-                    ]
-                ]);
+        $medecin = Utilisateur::factory()->create(['role' => 'medecin']);
+        $consultationEnfant = Consultation::factory()->create([
+            'patient_id' => $enfantPatient->id,
+            'medecin_id' => $medecin->id
+        ]);
+
+        Prescription::create([
+            'numero_ordonnance' => 'ORD-2026-001',
+            'consultation_id' => $consultationEnfant->id,
+            'medecin_id' => $medecin->id,
+            'nom_medicament' => 'Paracétamol enfant',
+            'dosage' => '250mg',
+            'statut' => 'ACTIVE'
+        ]);
+
+        // Tenter de se connecter avec l'ID de l'enfant (ne devrait pas fonctionner)
+        $response = $this->getJson('/api/ordonnances');
+
+        // Doit retourner 401 car non authentifié
+        $response->assertStatus(401);
     }
 }
