@@ -101,12 +101,8 @@ const patientService = {
 
     // Créer une demande de rendez-vous
     async createDemandeRdv(data) {
-        // Ajouter le patient_id si spécifié dans le profil actuel
-        const profilActuel = sousCompteService.getProfilActuel();
-        if (profilActuel && profilActuel.type === 'Enfant') {
-            data = { ...data, patient_id: profilActuel.id };
-        }
-        
+        // Le patient_id est maintenant ajouté directement dans le composant
+        // Plus besoin de vérifier ici pour éviter la double injection
         const response = await api.post('/demande-rdv', data);
         return response.data;
     },
@@ -125,6 +121,25 @@ const patientService = {
         return response.data;
     },
 
+    // --- STATISTIQUES DES DEMANDES ---
+    async getDemandeStats(patientId = null) {
+        const params = sousCompteService.preparerParamsAvecPatientId({}, patientId);
+        const url = sousCompteService.construireUrlAvecPatientId('/demande-rdv/stats', params);
+        try {
+            const response = await api.get(url);
+            return response.data;
+        } catch {
+            // Si l'endpoint n'existe pas, calculer localement
+            const demandes = await this.getMesDemandes(patientId);
+            return {
+                total: demandes.length,
+                en_attente: demandes.filter(d => d.statut === 'en_attente').length,
+                approuvees: demandes.filter(d => d.statut === 'approuvé').length,
+                rejetees: demandes.filter(d => d.statut === 'rejeté').length
+            };
+        }
+    },
+
     // --- UTILITAIRES POUR LES SOUS-COMPTES ---
 
     /**
@@ -138,8 +153,19 @@ const patientService = {
         switch (typeDonnees) {
             case 'demandes':
                 return this.getMesDemandes(patientId);
+            case 'demande-stats':
+                return this.getDemandeStats(patientId);
             case 'rdv':
                 return this.getMesRdv(patientId);
+            case 'ordonnances':
+                // Importer prescriptionService si nécessaire ou appeler directement
+                return import('./prescriptionService').then(module => 
+                    module.default.getMesOrdonnances(patientId)
+                );
+            case 'ordonnance-stats':
+                return import('./prescriptionService').then(module => 
+                    module.default.getOrdonnanceStats(patientId)
+                );
             case 'dashboard':
                 return this.getDashboardStats(patientId);
             case 'activites':
