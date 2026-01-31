@@ -52,4 +52,34 @@ class EnfantController extends Controller
             return response()->json(['error' => 'Erreur lors de l\'enregistrement de l\'enfant: ' . $e->getMessage()], 500);
         }
     }
+
+
+
+  public function update(Request $request, $id) 
+{
+    // On récupère l'enfant
+    $enfant = Enfant::findOrFail($id);
+    
+    // Validation souple mais sécurisée
+    $validated = $request->validate([
+        'nom'            => 'sometimes|string|max:50',
+        'prenom'         => 'sometimes|string|max:50',
+        'sexe'           => 'sometimes|in:Homme,Femme,Masculin,Féminin', // On élargit pour éviter les erreurs de saisie
+        'date_naissance' => 'sometimes|date'
+    ]);
+
+    // Mise à jour
+    $enfant->update($validated);
+
+    // Réponse propre sans données sensibles
+    return response()->json([
+        'status'  => 'success',
+        'message' => 'Dossier enfant mis à jour avec succès',
+        'data'    => [
+            'id'     => $enfant->id,
+            'nom'    => $enfant->nom,
+            'prenom' => $enfant->prenom
+        ]
+    ]);
+}
 }
