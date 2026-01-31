@@ -1,8 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import PatientLayout from '../../components/layouts/PatientLayout';
 import patientService from '../../services/patient/patientService';
-import useSousCompte from '../../hooks/useSousCompte';
-import ProfilSelector from '../../components/SousCompte/ProfilSelector';
 
 const Consultations = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -14,15 +12,6 @@ const Consultations = () => {
     const [activeTab, setActiveTab] = useState('rendez-vous');
     const [loadingData, setLoadingData] = useState(false);
 
-    // Utiliser notre hook de sous-compte
-    const {
-        profilActuel,
-        error: errorProfils,
-        getPatientId,
-        getNomProfil,
-        isTitulaire
-    } = useSousCompte();
-
     const [formData, setFormData] = useState({
         objet: '',
         description: '',
@@ -30,13 +19,9 @@ const Consultations = () => {
         time: ''
     });
 
-    const loadData = useCallback(async () => {
-        if (!profilActuel) return;
-        
+    const loadData = async (patientId = null) => {
         setLoadingData(true);
         try {
-            const patientId = getPatientId();
-            
             // Charger les données du profil actuel
             const rdvData = await patientService.getMesRdv(patientId);
             setConsultations(rdvData || []);
@@ -50,13 +35,41 @@ const Consultations = () => {
         } finally {
             setLoadingData(false);
         }
-    }, [profilActuel, getPatientId]);
+    };
 
     useEffect(() => {
-        if (profilActuel) {
-            loadData();
+        // Charger le profil actif au montage
+        const savedProfile = localStorage.getItem('active-patient-profile');
+        const activeId = savedProfile ? JSON.parse(savedProfile).id : null;
+        loadData(activeId);
+
+        // Écouter les changements de profil depuis le Layout
+        const handleProfileChange = (event) => {
+            const newProfile = event.detail;
+            loadData(newProfile.id);
+        };
+
+        window.addEventListener('patientProfileChanged', handleProfileChange);
+        return () => window.removeEventListener('patientProfileChanged', handleProfileChange);
+    }, []);
+
+    const getNomProfil = () => {
+        const savedProfile = localStorage.getItem('active-patient-profile');
+        if (savedProfile) {
+            const profile = JSON.parse(savedProfile);
+            return profile.nom_affichage || 'Moi';
         }
-    }, [profilActuel, loadData]);
+        return 'Moi';
+    };
+
+    const isTitulaire = () => {
+        const savedProfile = localStorage.getItem('active-patient-profile');
+        if (savedProfile) {
+            const profile = JSON.parse(savedProfile);
+            return profile.type === 'Titulaire';
+        }
+        return true;
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -64,15 +77,27 @@ const Consultations = () => {
         setMessage('');
 
         try {
-            // Le service ajoute automatiquement le patient_id si c'est un enfant
-            await patientService.createDemandeRdv(formData);
+            // Récupérer le profil actuel depuis localStorage
+            const savedProfile = localStorage.getItem('active-patient-profile');
+            let dataToSend = { ...formData };
+            
+            if (savedProfile) {
+                const profile = JSON.parse(savedProfile);
+                // Ajouter patient_id si c'est un enfant
+                if (profile.type === 'Enfant') {
+                    dataToSend = { ...dataToSend, patient_id: profile.id };
+                }
+            }
+            
+            await patientService.createDemandeRdv(dataToSend);
             setMessage('Demande de rendez-vous envoyée avec succès !');
             setMessageType('success');
             setFormData({ objet: '', description: '', date_souhaitee: '', time: '' });
             setIsModalOpen(false);
 
             // Recharger les données du profil actuel
-            await loadData();
+            const activeId = savedProfile ? JSON.parse(savedProfile).id : null;
+            await loadData(activeId);
         } catch (error) {
             setMessage(error.response?.data?.message || 'Erreur lors de l\'envoi de la demande');
             setMessageType('error');
@@ -165,12 +190,7 @@ const Consultations = () => {
                 )}
 
                 {/* Message d'erreur de profils */}
-                {errorProfils && (
-                    <div className="bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 p-4 rounded-xl flex items-center gap-3">
-                        <span className="material-symbols-outlined text-[20px]">error</span>
-                        <span className="font-medium">{errorProfils}</span>
-                    </div>
-                )}
+                {/* Désactivé car plus de gestion d'erreur de profils avec le nouveau système */}
 
                 {/* Indicateur de chargement */}
                 {loadingData && (

@@ -13,11 +13,7 @@ class DemandeRdvController extends Controller
      */
     public function index(Request $request)
     {
-        if (!$request->user()->hasPermission('voir_demandes')) {
-            return response()->json(['message' => 'Accès non autorisé.'], 403);
-        }
-
-        $user = $request->user();
+        $user = Auth::user();
 
         // --- Récupération des dossiers accessibles ---
         $dossierPrincipal = \App\Models\Patient::where('utilisateur_id', $user->id)->first();
@@ -58,22 +54,74 @@ class DemandeRdvController extends Controller
         // Récupérer les patients correspondants pour obtenir les utilisateur_id
         $patients = \App\Models\Patient::whereIn('id', $patientsIds)->get();
 
-        // Pour les demandes, on retourne toutes les demandes du parent, peu importe le profil
-        // car les demandes sont toujours créées par le parent (utilisateur connecté)
-        $utilisateursIds = $patients->pluck('utilisateur_id')->filter();
+        // Filtrer les demandes par patient_id si spécifié
+        if ($requestedPatientId) {
+            if ($requestedPatientId === 'all') {
+                // Vue globale : toutes les demandes du parent et des enfants
+                $demandes = \App\Models\DemandeRdv::where('utilisateur_id', $user->id)
+                    ->where('type', 'rendez-vous')
+                    ->orderBy('date_creation', 'desc')
+                    ->get();
+            } else {
+                // Récupérer le patient pour vérifier l'accès
+                $patient = \App\Models\Patient::find($requestedPatientId);
+                if (!$patient || !$this->userCanAccessPatient($user, $patient, $dossierPrincipal, $dossiersEnfants)) {
+                    return response()->json(['message' => 'Accès non autorisé à ce profil.'], 403);
+                }
 
-        // Si on est sur un profil enfant (utilisateur_id null), utiliser l'utilisateur connecté
-        if ($utilisateursIds->isEmpty() && $requestedPatientId) {
-            $utilisateursIds = collect([$user->id]);
+                // Filtrer les demandes en cherchant le PATIENT_ID dans la description
+                $demandes = \App\Models\DemandeRdv::where('utilisateur_id', $user->id)
+                    ->where('type', 'rendez-vous')
+                    ->where('description', 'LIKE', '%[PATIENT_ID:' . $requestedPatientId . ']%')
+                    ->orderBy('date_creation', 'desc')
+                    ->get();
+            }
+        } else {
+            // Vue par défaut : demandes du titulaire
+            // Récupérer le dossier principal du titulaire
+            $dossierPrincipal = \App\Models\Patient::where('utilisateur_id', $user->id)->first();
+            if ($dossierPrincipal) {
+                $demandes = \App\Models\DemandeRdv::where('utilisateur_id', $user->id)
+                    ->where('type', 'rendez-vous')
+                    ->where(function($query) use ($dossierPrincipal) {
+                        // Inclure les demandes avec PATIENT_ID du titulaire
+                        $query->where('description', 'LIKE', '%[PATIENT_ID:' . $dossierPrincipal->id . ']%')
+                              // Inclure les anciennes demandes sans PATIENT_ID (compatibilité)
+                              ->orWhere('description', 'NOT LIKE', '%[PATIENT_ID:%');
+                    })
+                    ->orderBy('date_creation', 'desc')
+                    ->get();
+            } else {
+                // Si pas de dossier principal, retourner les demandes sans PATIENT_ID
+                $demandes = \App\Models\DemandeRdv::where('utilisateur_id', $user->id)
+                    ->where('type', 'rendez-vous')
+                    ->where('description', 'NOT LIKE', '%[PATIENT_ID:%')
+                    ->orderBy('date_creation', 'desc')
+                    ->get();
+            }
         }
 
-        // Filtrer les demandes de l'utilisateur connecté et de ses enfants
-        $demandes = \App\Models\DemandeRdv::whereIn('utilisateur_id', $utilisateursIds)
-            ->where('type', 'rendez-vous')
-            ->orderBy('date_creation', 'desc')
-            ->get();
-
         return response()->json($demandes);
+    }
+
+    /**
+     * Vérifier si l'utilisateur peut accéder à un patient
+     */
+    private function userCanAccessPatient($user, $patient, $dossierPrincipal, $dossiersEnfants)
+    {
+        // Vérifier si c'est le dossier principal du titulaire
+        if ($dossierPrincipal && $patient->id === $dossierPrincipal->id) {
+            return true;
+        }
+
+        // Vérifier si c'est un des enfants
+        foreach ($dossiersEnfants as $enfant) {
+            if ($patient->id === $enfant->id) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -81,10 +129,6 @@ class DemandeRdvController extends Controller
      */
     public function store(Request $request)
     {
-        if (!$request->user()->hasPermission('creer_demandes')) {
-            return response()->json(['message' => 'Accès non autorisé.'], 403);
-        }
-
         $validated = $request->validate([
             'objet' => 'required|string|max:255',
             'description' => 'required|string',
@@ -138,6 +182,19 @@ class DemandeRdvController extends Controller
         $demande->objet = $validated['objet'];
         $demande->description = $validated['description'] . ($dateTimeSouhaitee ? ' (Date/heure souhaitée: ' . $dateTimeSouhaitee . ')' : '');
         $demande->statut = 'en_attente';
+        $demande->save();
+
+        // Ajouter le PATIENT_ID pour le filtrage
+        if ($patientId) {
+            // Pour un enfant spécifique
+            $demande->description .= ' [PATIENT_ID:' . $patientId . ']';
+        } else {
+            // Pour le titulaire, récupérer son patient_id
+            $dossierPrincipal = \App\Models\Patient::where('utilisateur_id', $user->id)->first();
+            if ($dossierPrincipal) {
+                $demande->description .= ' [PATIENT_ID:' . $dossierPrincipal->id . ']';
+            }
+        }
         $demande->save();
 
         return response()->json(['message' => 'Demande de rendez-vous créée avec succès', 'demande' => $demande], 201);

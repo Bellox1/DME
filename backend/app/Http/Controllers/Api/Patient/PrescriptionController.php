@@ -40,11 +40,7 @@ class PrescriptionController extends Controller
      */
     public function getStats(Request $request)
     {
-        if (!$request->user()->hasPermission('voir_prescriptions')) {
-            return response()->json(['message' => 'Accès non autorisé.'], 403);
-        }
-
-        $user = $request->user();
+        $user = Auth::user();
 
         // --- Récupération des dossiers accessibles ---
         $dossierPrincipal = \App\Models\Patient::where('utilisateur_id', $user->id)->first();
@@ -112,11 +108,7 @@ class PrescriptionController extends Controller
      */
     public function index(Request $request)
     {
-        if (!$request->user()->hasPermission('voir_prescriptions')) {
-            return response()->json(['message' => 'Accès non autorisé.'], 403);
-        }
-
-        $user = $request->user();
+        $user = Auth::user();
 
         // --- Récupération des dossiers accessibles ---
         $dossierPrincipal = \App\Models\Patient::where('utilisateur_id', $user->id)->first();
@@ -178,13 +170,9 @@ class PrescriptionController extends Controller
     /**
      * Afficher une ordonnance spécifique.
      */
-    public function show($id, Request $request)
+    public function show($id)
     {
-        if (!$request->user()->hasPermission('voir_prescriptions')) {
-            return response()->json(['message' => 'Accès non autorisé.'], 403);
-        }
-
-        $user = $request->user();
+        $user = Auth::user();
 
         // --- Récupération des dossiers accessibles ---
         $dossierPrincipal = \App\Models\Patient::where('utilisateur_id', $user->id)->first();
@@ -211,13 +199,9 @@ class PrescriptionController extends Controller
     /**
      * Lister les ordonnances par consultation.
      */
-    public function getByConsultation($consultationId, Request $request)
+    public function getByConsultation($consultationId)
     {
-        if (!$request->user()->hasPermission('voir_prescriptions')) {
-            return response()->json(['message' => 'Accès non autorisé.'], 403);
-        }
-
-        $user = $request->user();
+        $user = Auth::user();
 
         // --- Récupération des dossiers accessibles ---
         $dossierPrincipal = \App\Models\Patient::where('utilisateur_id', $user->id)->first();
@@ -231,7 +215,12 @@ class PrescriptionController extends Controller
         // Trouver la consultation et vérifier l'accès
         $consultation = Consultation::with('patient')->findOrFail($consultationId);
 
-        if (!$allPatientsIds->contains($consultation->patient_id)) {
+        $isOwner = ($consultation->patient->utilisateur_id == $user->id);
+        $isParent = \App\Models\Enfant::where('id', $consultation->patient->enfant_id)
+            ->where('parent_id', $user->id)
+            ->exists();
+
+        if (!$isOwner && !$isParent) {
             return response()->json(['message' => 'Accès non autorisé.'], 403);
         }
 
@@ -250,13 +239,9 @@ class PrescriptionController extends Controller
     /**
      * Télécharger une ordonnance en PDF.
      */
-    public function downloadPdf($id, Request $request)
+    public function downloadPdf($id)
     {
-        if (!$request->user()->hasPermission('voir_prescriptions')) {
-            return response()->json(['message' => 'Accès non autorisé.'], 403);
-        }
-
-        $user = $request->user();
+        $user = Auth::user();
 
         // --- Récupération des dossiers accessibles ---
         $dossierPrincipal = \App\Models\Patient::where('utilisateur_id', $user->id)->first();
@@ -321,57 +306,5 @@ class PrescriptionController extends Controller
 
         $pdf = Pdf::loadView('pdf.ordonnance', $data);
         return $pdf;
-    }
-
-    /**
-     * Créer une nouvelle ordonnance (pour les médecins).
-     */
-    public function store(Request $request)
-    {
-        $request->validate([
-            'consultation_id' => 'required|exists:consultations,id',
-            'medicaments' => 'required|array',
-            'medicaments.*.nom_medicament' => 'required|string|max:255',
-            'medicaments.*.dosage' => 'required|string|max:100',
-            'medicaments.*.instructions' => 'nullable|string',
-        ]);
-
-        $medecinId = Auth::id();
-        $consultation = Consultation::findOrFail($request->consultation_id);
-
-        // Vérifier que le médecin est autorisé pour cette consultation
-        if ($consultation->medecin_id != $medecinId) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Vous n\'êtes pas autorisé à créer une ordonnance pour cette consultation.'
-            ], 403);
-        }
-
-        $prescriptions = [];
-        $numeroOrdonnance = $this->generateNumeroOrdonnance();
-
-        DB::transaction(function () use ($request, $medecinId, $numeroOrdonnance, &$prescriptions) {
-            foreach ($request->medicaments as $medicament) {
-                $prescription = Prescription::create([
-                    'numero_ordonnance' => $numeroOrdonnance,
-                    'consultation_id' => $request->consultation_id,
-                    'medecin_id' => $medecinId,
-                    'nom_medicament' => $medicament['nom_medicament'],
-                    'dosage' => $medicament['dosage'],
-                    'instructions' => $medicament['instructions'] ?? null,
-                    'statut' => 'ACTIVE',
-                ]);
-                $prescriptions[] = $prescription;
-            }
-        });
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Ordonnance créée avec succès',
-            'data' => [
-                'numero_ordonnance' => $numeroOrdonnance,
-                'prescriptions' => $prescriptions
-            ]
-        ], 201);
     }
 }
