@@ -7,3 +7,13 @@ require __DIR__ . '/patient.php';
 require __DIR__ . '/medecin.php';
 require __DIR__ . '/accueil.php';
 require __DIR__ . '/admin.php';
+
+
+
+
+
+
+
+
+
+
