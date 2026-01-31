@@ -18,6 +18,7 @@ import PatientDossier from './pages/patient/Dossier';
 import PatientActivites from './pages/patient/Activites';
 import PatientNotifications from './pages/patient/Notifications';
 import PatientAide from './pages/patient/Aide';
+import EditPatient from './pages/accueil/EditPatient';
 
 // Accueil
 import ReceptionDashboard from './pages/accueil/Dashboard';
@@ -89,7 +90,12 @@ function App() {
           <Route path="/accueil/profil" element={<ProtectedRoute allowedRoles={['accueil']}><ReceptionProfil /></ProtectedRoute>} />
           <Route path="/accueil/notifications" element={<ProtectedRoute allowedRoles={['accueil']}><ReceptionNotifications /></ProtectedRoute>} />
           <Route path="/accueil/aide" element={<ProtectedRoute allowedRoles={['accueil']}><ReceptionAide /></ProtectedRoute>} />
-
+          <Route path="/accueil/patients/edit/:id" element={
+            <ProtectedRoute allowedRoles={['accueil']}>
+              <EditPatient />
+            </ProtectedRoute>
+          }
+          />
           {/* ==================== ADMIN ==================== */}
           <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
           <Route path="/admin/utilisateurs" element={<ProtectedRoute allowedRoles={['admin']}><AdminUtilisateurs /></ProtectedRoute>} />
