@@ -59,6 +59,14 @@ const medicalService = {
     },
 
     /**
+     * Récupère une consultation spécifique par son ID.
+     */
+    getConsultation: async (id) => {
+        const response = await api.get(`/consultations/${id}`);
+        return response.data;
+    },
+
+    /**
      * Récupère tous les résultats d'examens.
      */
     getResultats: async () => {

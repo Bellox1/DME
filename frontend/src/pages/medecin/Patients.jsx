@@ -8,24 +8,30 @@ const ListePatientsMedecin = () => {
     const [patients, setPatients] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [showFilters, setShowFilters] = useState(false);
+    const [activeFilters, setActiveFilters] = useState({
+        sexe: '',
+        type: ''
+    });
 
     useEffect(() => {
         const fetchPatients = async () => {
             try {
                 setLoading(true);
-                const data = await medecinService.searchPatients('');
-                // Data might be paginated { data: [...] } or array [...]
+                const data = await medecinService.searchPatients(search, activeFilters);
                 setPatients(data.data || data);
             } catch (err) {
-                setError('Erreur lors du chargement des patients');
+                const msg = err.response?.data?.message || err.message || 'Erreur inconnue';
+                setError(`Erreur lors du chargement: ${msg}`);
                 console.error(err);
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchPatients();
-    }, []);
+        const timeoutId = setTimeout(fetchPatients, search ? 300 : 0);
+        return () => clearTimeout(timeoutId);
+    }, [search, activeFilters]);
 
     return (
         <DoctorLayout>
@@ -55,10 +61,81 @@ const ListePatientsMedecin = () => {
                                 className="w-full h-14 bg-white dark:bg-[#1c2229] border border-slate-200 dark:border-[#2d363f] rounded-2xl pl-12 pr-6 text-sm font-bold text-titles dark:text-white outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all"
                             />
                         </div>
-                        <button className="h-14 px-8 bg-white dark:bg-[#1c2229] border border-slate-200 dark:border-[#2d363f] text-titles dark:text-white rounded-2xl flex items-center justify-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-sm">
-                            <span className="material-symbols-outlined text-[20px]">filter_list</span>
-                            <span className="text-[11px] font-black uppercase tracking-widest">Filtres</span>
-                        </button>
+                        <div className="relative">
+                            <button
+                                onClick={() => setShowFilters(!showFilters)}
+                                className={`h-14 px-8 rounded-2xl flex items-center justify-center gap-3 transition-all shadow-sm border ${showFilters || Object.values(activeFilters).some(v => v !== '')
+                                    ? 'bg-primary text-white border-primary shadow-primary/20'
+                                    : 'bg-white dark:bg-[#1c2229] border-slate-200 dark:border-[#2d363f] text-titles dark:text-white hover:bg-slate-50'
+                                    }`}
+                            >
+                                <span className={`material-symbols-outlined text-[20px] ${showFilters ? 'rotate-180' : ''} transition-transform`}>filter_list</span>
+                                <span className="text-[11px] font-black uppercase tracking-widest">
+                                    {Object.values(activeFilters).some(v => v !== '') ? 'Filtres Actifs' : 'Filtres'}
+                                </span>
+                            </button>
+
+                            {showFilters && (
+                                <div className="absolute top-full right-0 mt-4 w-72 bg-white dark:bg-[#1c2229] rounded-[2rem] shadow-2xl border border-slate-100 dark:border-[#2d363f] p-6 z-[100] animate-in fade-in slide-in-from-top-4 duration-300">
+                                    <div className="flex flex-col gap-6">
+                                        <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-800 pb-3">
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Options de tri</span>
+                                            <button
+                                                onClick={() => setActiveFilters({ sexe: '', type: '' })}
+                                                className="text-[9px] font-black uppercase text-primary hover:underline"
+                                            >
+                                                Réinitialiser
+                                            </button>
+                                        </div>
+
+                                        <div className="space-y-4">
+                                            <div className="flex flex-col gap-2">
+                                                <label className="text-[9px] font-black uppercase text-slate-400 pl-1 italic">Genre</label>
+                                                <div className="flex gap-2">
+                                                    {['M', 'F'].map(s => (
+                                                        <button
+                                                            key={s}
+                                                            onClick={() => setActiveFilters(prev => ({ ...prev, sexe: prev.sexe === s ? '' : s }))}
+                                                            className={`flex-1 h-10 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${activeFilters.sexe === s
+                                                                ? 'bg-primary/10 border-primary text-primary'
+                                                                : 'bg-slate-50 dark:bg-slate-900 border-transparent text-slate-400'
+                                                                }`}
+                                                        >
+                                                            {s === 'M' ? 'Masculin' : 'Féminin'}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            <div className="flex flex-col gap-2">
+                                                <label className="text-[9px] font-black uppercase text-slate-400 pl-1 italic">Type de dossier</label>
+                                                <div className="flex gap-2">
+                                                    {['adulte', 'enfant'].map(t => (
+                                                        <button
+                                                            key={t}
+                                                            onClick={() => setActiveFilters(prev => ({ ...prev, type: prev.type === t ? '' : t }))}
+                                                            className={`flex-1 h-10 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${activeFilters.type === t
+                                                                ? 'bg-primary/10 border-primary text-primary'
+                                                                : 'bg-slate-50 dark:bg-slate-900 border-transparent text-slate-400'
+                                                                }`}
+                                                        >
+                                                            {t === 'adulte' ? 'Adulte' : 'Pédiatrie'}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <button
+                                            onClick={() => setShowFilters(false)}
+                                            className="w-full h-12 bg-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+                                        >
+                                            Appliquer
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
 
@@ -91,23 +168,19 @@ const ListePatientsMedecin = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
-                                    {patients.filter(p =>
-                                        !search ||
-                                        `${p.nom} ${p.prenom}`.toLowerCase().includes(search.toLowerCase()) ||
-                                        p.id.toString().includes(search)
-                                    ).map((patient) => (
+                                    {patients.map((patient) => (
                                         <tr key={patient.id} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-all duration-500">
                                             <td className="px-8 py-7">
                                                 <div className="flex items-center gap-5">
                                                     <div className="size-14 rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-700 flex items-center justify-center text-primary font-black text-lg shadow-inner group-hover:scale-110 transition-transform">
-                                                        {patient.nom ? patient.nom[0] : 'P'}{patient.prenom ? patient.prenom[0] : ''}
+                                                        {patient.nom_complet ? patient.nom_complet[0] : 'P'}
                                                     </div>
-                                                    <div className="flex flex-col leading-none">
+                                                    <Link to={`/medecin/patient/${patient.id}`} className="flex flex-col leading-none hover:opacity-70 transition-opacity">
                                                         <span className="text-base font-black text-titles dark:text-white uppercase tracking-tighter mb-1 italic">
-                                                            {patient.nom} {patient.prenom}
+                                                            {patient.nom_complet}
                                                         </span>
-                                                        <span className="text-[10px] text-slate-400 font-bold tracking-[0.2em]">DOSSIER #{patient.id}</span>
-                                                    </div>
+                                                        <span className="text-[10px] text-slate-400 font-bold tracking-[0.2em]">DOSSIER #{patient.numero_patient || patient.id}</span>
+                                                    </Link>
                                                 </div>
                                             </td>
                                             <td className="px-8 py-7">

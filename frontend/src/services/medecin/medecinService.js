@@ -57,8 +57,8 @@ const medecinService = {
     },
 
     // Liste des patients (pour recherche)
-    async searchPatients(query) {
-        const response = await api.get('/patients', { params: { search: query } });
+    async searchPatients(query, filters = {}) {
+        const response = await api.get('/patients', { params: { search: query, ...filters } });
         return response.data;
     }
 };
