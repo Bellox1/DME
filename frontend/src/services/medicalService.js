@@ -43,6 +43,14 @@ const medicalService = {
     },
 
     /**
+     * Récupère tous les patients.
+     */
+    getPatients: async () => {
+        const response = await api.get('/patients');
+        return response.data;
+    },
+
+    /**
      * Recherche des patients.
      */
     searchPatients: async (query = '') => {
