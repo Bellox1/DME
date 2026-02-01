@@ -1,7 +1,133 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../components/layouts/AdminLayout';
+import api from '../../services/api';
 
 const AdminStats = () => {
+    const [stats, setStats] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        fetchStats();
+    }, []);
+
+    const fetchStats = async () => {
+        try {
+            setLoading(true);
+            const response = await api.get('/admin/stats');
+            setStats(response.data);
+            setError(null);
+        } catch (err) {
+            console.error('Error fetching stats:', err);
+            setError('Erreur lors du chargement des statistiques');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const formatNumber = (num) => {
+        return new Intl.NumberFormat('fr-FR').format(num || 0);
+    };
+
+    const formatCurrency = (amount) => {
+        return new Intl.NumberFormat('fr-FR').format(amount || 0) + ' FCFA';
+    };
+
+    const formatGrowth = (growth) => {
+        const sign = growth >= 0 ? '+' : '';
+        return `${sign}${growth}%`;
+    };
+
+    if (loading) {
+        return (
+            <AdminLayout>
+                <div className="p-4 md:p-8 max-w-[1600px] mx-auto w-full flex items-center justify-center min-h-[60vh]">
+                    <div className="flex flex-col items-center gap-4">
+                        <div className="size-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                        <p className="text-slate-500 dark:text-slate-400 font-medium">Chargement des statistiques...</p>
+                    </div>
+                </div>
+            </AdminLayout>
+        );
+    }
+
+    if (error) {
+        return (
+            <AdminLayout>
+                <div className="p-4 md:p-8 max-w-[1600px] mx-auto w-full flex items-center justify-center min-h-[60vh]">
+                    <div className="flex flex-col items-center gap-4 text-center">
+                        <span className="material-symbols-outlined text-6xl text-red-500">error</span>
+                        <p className="text-slate-700 dark:text-slate-300 font-bold text-lg">{error}</p>
+                        <button
+                            onClick={fetchStats}
+                            className="px-6 py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary/90 transition-all"
+                        >
+                            Réessayer
+                        </button>
+                    </div>
+                </div>
+            </AdminLayout>
+        );
+    }
+
+    const primaryMetrics = [
+        {
+            label: 'Utilisateurs Totaux',
+            value: formatNumber(stats?.users?.total),
+            change: formatGrowth(stats?.users?.growth),
+            color: 'bg-blue-500',
+            icon: 'groups'
+        },
+        {
+            label: 'Chiffre d\'Affaires',
+            value: formatCurrency(stats?.revenue?.total),
+            change: formatGrowth(stats?.revenue?.growth),
+            color: 'bg-green-500',
+            icon: 'payments'
+        },
+        {
+            label: 'Consultations',
+            value: formatNumber(stats?.consultations?.total),
+            change: formatGrowth(stats?.consultations?.growth),
+            color: 'bg-purple-500',
+            icon: 'stethoscope'
+        },
+        {
+            label: 'Taux d\'Occupation',
+            value: `${stats?.occupancy_rate || 0}%`,
+            change: '+3.2%',
+            color: 'bg-orange-500',
+            icon: 'monitoring'
+        }
+    ];
+
+    const userDistribution = [
+        {
+            role: 'Patients',
+            count: stats?.users?.patients || 0,
+            percentage: stats?.users?.total > 0 ? Math.round((stats?.users?.patients / stats?.users?.total) * 100) : 0,
+            color: 'bg-blue-500'
+        },
+        {
+            role: 'Médecins',
+            count: stats?.users?.medecins || 0,
+            percentage: stats?.users?.total > 0 ? Math.round((stats?.users?.medecins / stats?.users?.total) * 100) : 0,
+            color: 'bg-indigo-500'
+        },
+        {
+            role: 'Accueil',
+            count: stats?.users?.accueil || 0,
+            percentage: stats?.users?.total > 0 ? Math.round((stats?.users?.accueil / stats?.users?.total) * 100) : 0,
+            color: 'bg-amber-500'
+        },
+        {
+            role: 'Admins',
+            count: stats?.users?.admins || 0,
+            percentage: stats?.users?.total > 0 ? Math.round((stats?.users?.admins / stats?.users?.total) * 100) : 0,
+            color: 'bg-rose-500'
+        }
+    ];
+
     return (
         <AdminLayout>
             <div className="p-4 md:p-8 max-w-[1600px] mx-auto w-full flex flex-col gap-8 transition-all duration-[800ms] animate-in fade-in slide-in-from-bottom-4">
@@ -25,19 +151,14 @@ const AdminStats = () => {
 
                 {/* Primary Metrics Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {[
-                        { label: 'Utilisateurs Totaux', value: '2,840', change: '+12%', color: 'bg-blue-500', icon: 'groups' },
-                        { label: 'Chiffre d\'Affaires', value: '1,240,000 FCFA', change: '+8.5%', color: 'bg-green-500', icon: 'payments' },
-                        { label: 'Consultations', value: '456', change: '+15%', color: 'bg-purple-500', icon: 'stethoscope' },
-                        { label: 'Taux d\'Occupation', value: '78%', change: '+3.2%', color: 'bg-orange-500', icon: 'monitoring' }
-                    ].map((stat, i) => (
+                    {primaryMetrics.map((stat, i) => (
                         <div key={i} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2rem] p-6 md:p-8 shadow-sm group hover:shadow-xl hover:shadow-primary/5 transition-all relative overflow-hidden">
                             <div className={`absolute top-0 right-0 w-32 h-32 ${stat.color}/5 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-110 duration-500`}></div>
                             <div className="flex items-center gap-4 mb-4 relative z-10">
                                 <div className={`size-12 rounded-2xl ${stat.color}/10 flex items-center justify-center text-${stat.color.split('-')[1]}-500 group-hover:bg-${stat.color.split('-')[1]}-500 group-hover:text-white transition-all`}>
                                     <span className="material-symbols-outlined">{stat.icon}</span>
                                 </div>
-                                <span className="text-[10px] font-black uppercase text-green-500 tracking-widest">{stat.change}</span>
+                                <span className={`text-[10px] font-black uppercase tracking-widest ${stat.change.startsWith('+') ? 'text-green-500' : 'text-red-500'}`}>{stat.change}</span>
                             </div>
                             <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1 relative z-10">{stat.label}</h4>
                             <span className="text-2xl font-black text-titles dark:text-white italic tracking-tighter relative z-10">{stat.value}</span>
@@ -66,20 +187,20 @@ const AdminStats = () => {
 
                         <div className="overflow-x-auto">
                             <div className="h-64 md:h-80 min-w-[600px] w-full flex items-end justify-between gap-2 md:gap-4 px-4 pb-8">
-                                {[65, 45, 75, 55, 85, 60, 95, 70, 50, 80, 65, 75].map((h, i) => (
+                                {stats?.monthly_activity?.map((month, i) => (
                                     <div key={i} className="flex-1 flex flex-col items-center gap-4 group">
                                         <div className="w-full bg-slate-50 dark:bg-slate-800/50 rounded-t-2xl relative overflow-hidden flex items-end" style={{ height: '100%' }}>
                                             <div
                                                 className="w-full bg-primary/20 group-hover:bg-primary transition-all rounded-t-xl"
-                                                style={{ height: `${h}%` }}
+                                                style={{ height: `${month.percentage || 5}%` }}
                                             >
                                                 <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-titles text-white text-[8px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    {h}%
+                                                    {month.count}
                                                 </div>
                                             </div>
                                         </div>
                                         <span className="text-[10px] font-black text-slate-400 leading-none">
-                                            {['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'][i]}
+                                            {month.month}
                                         </span>
                                     </div>
                                 ))}
@@ -97,12 +218,7 @@ const AdminStats = () => {
                         </h3>
 
                         <div className="space-y-6">
-                            {[
-                                { role: 'Patients', count: 1840, percentage: 65, color: 'bg-blue-500' },
-                                { role: 'Médecins', count: 42, percentage: 15, color: 'bg-indigo-500' },
-                                { role: 'Accueil', count: 18, percentage: 12, color: 'bg-amber-500' },
-                                { role: 'Admins', count: 4, percentage: 8, color: 'bg-rose-500' }
-                            ].map((item, i) => (
+                            {userDistribution.map((item, i) => (
                                 <div key={i} className="space-y-2 group">
                                     <div className="flex justify-between items-end">
                                         <div>
@@ -126,7 +242,11 @@ const AdminStats = () => {
                                 <div className="text-2xl">⚡</div>
                                 <div>
                                     <h4 className="text-xs font-black text-titles dark:text-white uppercase">Insight Clé</h4>
-                                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Le nombre de patients a augmenté de 15% par rapport au mois dernier.</p>
+                                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                                        {stats?.users?.patients > 0
+                                            ? `Le nombre de patients représente ${userDistribution[0].percentage}% des utilisateurs.`
+                                            : 'Aucun patient enregistré pour le moment.'}
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -138,20 +258,24 @@ const AdminStats = () => {
                     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] p-6 md:p-10 shadow-sm flex flex-col">
                         <h3 className="text-lg font-black text-titles dark:text-white mb-6 uppercase italic">Dernières Inscriptions</h3>
                         <div className="space-y-4">
-                            {[1, 2, 3, 4].map((n) => (
-                                <div key={n} className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-transparent hover:border-primary/20 transition-all cursor-pointer group">
-                                    <div className="flex items-center gap-3">
-                                        <div className="size-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
-                                            {String.fromCharCode(64 + n)}
+                            {stats?.recent_users?.length > 0 ? (
+                                stats.recent_users.map((user, n) => (
+                                    <div key={user.id} className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-transparent hover:border-primary/20 transition-all cursor-pointer group">
+                                        <div className="flex items-center gap-3">
+                                            <div className="size-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
+                                                {user.nom?.charAt(0)}{user.prenom?.charAt(0)}
+                                            </div>
+                                            <div>
+                                                <h4 className="text-xs font-bold text-titles dark:text-white group-hover:text-primary transition-colors">{user.nom} {user.prenom}</h4>
+                                                <span className="text-[10px] text-slate-400">{user.time_ago}</span>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <h4 className="text-xs font-bold text-titles dark:text-white group-hover:text-primary transition-colors">Utilisateur #{2450 + n}</h4>
-                                            <span className="text-[10px] text-slate-400">Il y a {n * 15} minutes</span>
-                                        </div>
+                                        <span className="text-[10px] px-2 py-1 rounded-md bg-green-50 dark:bg-green-900/30 text-green-600 font-bold uppercase">{user.role}</span>
                                     </div>
-                                    <span className="text-[10px] px-2 py-1 rounded-md bg-green-50 dark:bg-green-900/30 text-green-600 font-bold uppercase">Succès</span>
-                                </div>
-                            ))}
+                                ))
+                            ) : (
+                                <p className="text-sm text-slate-400 text-center py-8">Aucune inscription récente</p>
+                            )}
                         </div>
                         <button className="w-full mt-6 py-3 text-xs font-black text-primary uppercase tracking-widest hover:bg-primary/5 rounded-xl transition-all">
                             Voir tout l'historique
@@ -193,9 +317,9 @@ const AdminStats = () => {
                         <h3 className="text-lg font-black mb-6 uppercase italic relative z-10">Alertes Critiques</h3>
                         <div className="space-y-4 relative z-10">
                             {[
-                                '3 nouvelles demandes de rôle admin',
-                                '5 erreurs de connexion suspectes',
-                                'Mise à jour système disponible'
+                                `${stats?.rdvs?.programmes || 0} rendez-vous programmés`,
+                                `${stats?.consultations?.unpaid || 0} consultations non payées`,
+                                'Système à jour'
                             ].map((alert, i) => (
                                 <div key={i} className="flex gap-3 items-start bg-white/10 p-3 rounded-2xl border border-white/10 hover:bg-white/20 transition-all cursor-pointer">
                                     <span className="material-symbols-outlined text-sm mt-0.5">warning</span>
@@ -214,4 +338,3 @@ const AdminStats = () => {
 };
 
 export default AdminStats;
-
