@@ -8,6 +8,25 @@ use Illuminate\Http\Request;
 
 class RdvController extends Controller
 {
+    public function index(Request $request)
+    {
+        $query = Rdv::query();
+
+        if ($request->has('medecin_id')) {
+            $query->where('medecin_id', $request->medecin_id);
+        }
+
+        if ($request->has('patient_id')) {
+            $query->where('patient_id', $request->patient_id);
+        }
+
+        if ($request->has('date')) {
+            $query->whereDate('dateH_rdv', $request->date);
+        }
+
+        return response()->json($query->get());
+    }
+
     public function store(Request $request)
     {
         $request->validate([
