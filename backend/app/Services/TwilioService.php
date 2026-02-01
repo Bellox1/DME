@@ -20,7 +20,7 @@ class TwilioService
         $this->fromNumber = env('TWILIO_PHONE_NUMBER');
         // La valeur par défaut de la Sandbox est généralement +14155238886, strictement pour les tests
         // Ou celui fourni par l'utilisateur s'il a un expéditeur WhatsApp activé
-        $this->whatsappFrom = env('TWILIO_WHATSAPP_NUMBER', '+14155238886'); 
+        $this->whatsappFrom = env('TWILIO_WHATSAPP_NUMBER', '+14155238886');
 
         try {
             $this->client = new Client($this->sid, $this->token);

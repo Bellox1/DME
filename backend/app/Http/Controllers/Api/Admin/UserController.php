@@ -13,6 +13,30 @@ use App\Services\TwilioService;
 class UserController extends Controller
 {
     /**
+     * List all users
+     */
+    public function index()
+    {
+        // On récupère tous les utilisateurs triés par date de création décroissante
+        $users = Utilisateur::orderBy('date_creation', 'desc')->get();
+
+        $users->transform(function ($user) {
+            $user->type = $this->calculateType($user);
+            return $user;
+        });
+
+        return response()->json($users);
+    }
+
+    private function calculateType($user)
+    {
+        if ($user->date_naissance) {
+            return $user->date_naissance->age < 18 ? 'Enfant' : 'Adulte';
+        }
+        return 'Adulte'; // Default to Adulte if no birthdate
+    }
+
+    /**
      * Create a new User (Staff: Medecin, Accueil, etc.)
      */
     public function store(Request $request)
@@ -27,7 +51,7 @@ class UserController extends Controller
 
         // 1. Permission Check
         if (!$request->user()->hasPermission('creer_utilisateurs')) { // Assuming 'creer_utilisateurs' is the permission slug
-             return response()->json(['message' => 'Action non autorisée.'], 403);
+            return response()->json(['message' => 'Action non autorisée.'], 403);
         }
 
         // 2. Validation
@@ -91,6 +115,72 @@ class UserController extends Controller
         }
     }
 
+    /**
+     * Update an existing user
+     */
+    public function update(Request $request, $id)
+    {
+        $user = Utilisateur::find($id);
+        if (!$user) {
+            return response()->json(['message' => 'Utilisateur non trouvé.'], 404);
+        }
+
+        // Permission check
+        if ($request->user()->role !== 'admin' && !$request->user()->hasPermission('modifier_utilisateurs')) {
+            return response()->json(['message' => 'Action non autorisée.'], 403);
+        }
+
+        $request->validate([
+            'nom' => 'required|string|max:50',
+            'prenom' => 'required|string|max:50',
+            'tel' => 'nullable|string|unique:utilisateurs,tel,' . $id,
+            'whatsapp' => 'nullable|string|unique:utilisateurs,whatsapp,' . $id,
+            'role' => 'required|string',
+            'sexe' => 'required|in:Homme,Femme',
+            'ville' => 'nullable|string',
+        ]);
+
+        try {
+            $user->update([
+                'nom' => $request->nom,
+                'prenom' => $request->prenom,
+                'tel' => $request->tel,
+                'whatsapp' => $request->whatsapp,
+                'role' => $request->role,
+                'sexe' => $request->sexe,
+                'ville' => $request->ville,
+                'date_modification' => now()
+            ]);
+
+            return response()->json(['message' => 'Utilisateur mis à jour avec succès.', 'user' => $user]);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Erreur lors de la mise à jour: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Delete a user
+     */
+    public function destroy(Request $request, $id)
+    {
+        $user = Utilisateur::find($id);
+        if (!$user) {
+            return response()->json(['message' => 'Utilisateur non trouvé.'], 404);
+        }
+
+        // Prevent self-deletion if necessary, or just check role
+        if ($request->user()->role !== 'admin' && !$request->user()->hasPermission('supprimer_utilisateurs')) {
+            return response()->json(['message' => 'Action non autorisée.'], 403);
+        }
+
+        try {
+            $user->delete();
+            return response()->json(['message' => 'Utilisateur supprimé avec succès.']);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Erreur lors de la suppression: ' . $e->getMessage()], 500);
+        }
+    }
+
     private function sendActivationNotification($user)
     {
         $identifier = $user->whatsapp ?? $user->tel;
@@ -99,11 +189,11 @@ class UserController extends Controller
         $message = "Bonjour $user->prenom, votre compte staff ($user->role) sur DME a été créé. Activez-le ici : $activationLink";
 
         $twilio = new TwilioService();
-        
+
         if ($user->whatsapp) {
             $twilio->sendWhatsApp($user->whatsapp, $message);
         }
-        
+
         if ($user->tel) {
             $twilio->sendSMS($user->tel, $message);
         }

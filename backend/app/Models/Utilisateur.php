@@ -30,7 +30,8 @@ class Utilisateur extends Authenticatable
         'sexe',
         'role',
         'refresh_token',
-        'date_naissance'
+        'date_naissance',
+        'photo'
     ];
 
     protected $hidden = [
@@ -63,20 +64,27 @@ class Utilisateur extends Authenticatable
      */
     public function hasPermission(string $permissionName): bool
     {
+        // Admin bypass
+        if ($this->role === 'admin') {
+            return true;
+        }
+
         // Admin has all permissions usually, but let's stick to DB logic
         // 1. Get Role ID from the name stored in 'role' column
         $roleId = \Illuminate\Support\Facades\DB::table('roles')
             ->where('nom', $this->role)
             ->value('id');
 
-        if (!$roleId) return false;
+        if (!$roleId)
+            return false;
 
         // 2. Get Permission ID
         $permId = \Illuminate\Support\Facades\DB::table('permissions')
             ->where('nom', $permissionName)
             ->value('id');
 
-        if (!$permId) return false;
+        if (!$permId)
+            return false;
 
         // 3. Check existance in role_permissions
         return \Illuminate\Support\Facades\DB::table('role_permissions')

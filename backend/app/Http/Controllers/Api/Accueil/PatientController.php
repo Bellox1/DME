@@ -21,12 +21,12 @@ class PatientController extends Controller
 
         if ($request->has('search')) {
             $search = $request->search;
-            $query->whereHas('utilisateur', function($q) use ($search) {
+            $query->whereHas('utilisateur', function ($q) use ($search) {
                 $q->where('nom', 'like', "%{$search}%")
-                  ->orWhere('prenom', 'like', "%{$search}%");
-            })->orWhereHas('enfant', function($q) use ($search) {
+                    ->orWhere('prenom', 'like', "%{$search}%");
+            })->orWhereHas('enfant', function ($q) use ($search) {
                 $q->where('nom', 'like', "%{$search}%")
-                  ->orWhere('prenom', 'like', "%{$search}%");
+                    ->orWhere('prenom', 'like', "%{$search}%");
             })->orWhere('numero_patient', 'like', "%{$search}%");
         }
 
@@ -81,12 +81,14 @@ class PatientController extends Controller
             }
 
             // TRACABILITÉ : On inclut le numéro de patient pour l'audit
-            Tracabilite::create([
-                'utilisateur_id' => $userConnecte->id,
-                'action' => 'création',
-                'nom_table' => 'patients',
-                'nouvelle_valeur' => "Création de dossier ($typeCreation) - Numéro: {$patient->numero_patient}"
-            ]);
+            // TRACABILITÉ : On inclut le numéro de patient pour l'audit
+            \App\Services\TraceService::record(
+                'création',
+                'patients',
+                "Création de dossier ($typeCreation) - Numéro: {$patient->numero_patient}",
+                null,
+                'success'
+            );
 
             return response()->json([
                 'status' => 'success',
@@ -131,11 +133,11 @@ class PatientController extends Controller
             })
         ]);
     }
-    
+
     /**
      * Création d'un NOUVEAU patient par l'accueil (Création de compte + Dossier)
      */
-   public function store(Request $request)
+    public function store(Request $request)
     {
         // On formate les numéros avant la validation pour vérifier l'unicité réelle
         if ($request->has('tel')) {
@@ -148,7 +150,7 @@ class PatientController extends Controller
         \Illuminate\Support\Facades\Log::info("Requête création patient reçue", $request->all());
         // 1. Permission Check
         if (!$request->user()->hasPermission('creer_patients')) {
-             return response()->json(['message' => 'Action non autorisée.'], 403);
+            return response()->json(['message' => 'Action non autorisée.'], 403);
         }
 
         // 2. Validation
@@ -185,7 +187,7 @@ class PatientController extends Controller
                     'prenom' => $request->prenom,
                     'tel' => $request->tel,
                     'whatsapp' => $request->whatsapp,
-                    'mot_de_passe' => \Illuminate\Support\Facades\Hash::make('password'), 
+                    'mot_de_passe' => \Illuminate\Support\Facades\Hash::make('password'),
                     'role' => 'patient',
                     'sexe' => $request->sexe,
                     'date_naissance' => $request->date_naissance,
@@ -213,12 +215,13 @@ class PatientController extends Controller
                 $this->sendActivationNotification($user);
 
                 // E. Traceability
-                Tracabilite::create([
-                    'utilisateur_id' => $request->user()->id,
-                    'action' => 'création',
-                    'nom_table' => 'patients', // et utilisateurs
-                    'nouvelle_valeur' => "Création Patient + Compte User ID: {$user->id}"
-                ]);
+                \App\Services\TraceService::record(
+                    'création',
+                    'patients',
+                    "Création Patient + Compte User ID: {$user->id}",
+                    null,
+                    'success'
+                );
 
                 return response()->json([
                     'message' => 'Patient et compte utilisateur créés avec succès. Notification envoyée.',
@@ -240,14 +243,14 @@ class PatientController extends Controller
         $message = "Bienvenue sur DME (Patient). Votre dossier est ouvert. Activez votre compte pour y accéder : $activationLink";
 
         $twilio = new \App\Services\TwilioService();
-        
+
         if ($user->whatsapp) {
             $twilio->sendWhatsApp($user->whatsapp, $message);
         }
-        
+
         if ($user->tel) {
             $twilio->sendSMS($user->tel, $message);
         }
     }
-    
+
 }
