@@ -225,7 +225,7 @@ const ListePatientsMedecin = () => {
                                                         <span className="material-symbols-outlined text-[24px]">history</span>
                                                     </Link>
                                                     <Link
-                                                        to={`/medecin/consultations?new=true&patient=${patient.id}`}
+                                                        to={`/medecin/nouvelle-consultation?patient_id=${patient.id}`}
                                                         className="size-12 rounded-2xl bg-primary text-white flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-xl shadow-primary/20"
                                                         title="Nouvelle Consultation"
                                                     >
