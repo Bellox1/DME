@@ -69,6 +69,12 @@ const medecinService = {
     async searchPatients(query, filters = {}) {
         const response = await api.get('/patients', { params: { search: query, ...filters } });
         return response.data;
+    },
+
+    // Récupérer les statistiques du médecin
+    async getStats() {
+        const response = await api.get('/stats');
+        return response.data;
     }
 };
 

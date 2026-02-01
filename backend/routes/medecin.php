@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\Medecin\PrescriptionController;
 use App\Http\Controllers\Api\Medecin\MedicalHistoryController;
 use App\Http\Controllers\Api\Medecin\OrdonnanceController;
 use App\Http\Controllers\Api\Medecin\ResultatController;
+use App\Http\Controllers\Api\Medecin\StatsController;
 
 // Routes protégées par authentification Sanctum
 Route::middleware('auth:sanctum')->group(function () {
@@ -28,4 +29,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Résultats d'examens
     Route::get('/resultats', [ResultatController::class, 'index']);
     Route::get('/patients/{id}/resultats', [ResultatController::class, 'getByPatient']);
+
+    // Statistiques
+    Route::get('/stats', [StatsController::class, 'index']);
 });
