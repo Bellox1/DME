@@ -7,9 +7,14 @@ use App\Http\Controllers\Api\Medecin\MedicalHistoryController;
 use App\Http\Controllers\Api\Medecin\OrdonnanceController;
 use App\Http\Controllers\Api\Medecin\ResultatController;
 use App\Http\Controllers\Api\Medecin\StatsController;
+use App\Http\Controllers\Api\Medecin\ProfileController;
 
 // Routes protégées par authentification Sanctum
 Route::middleware('auth:sanctum')->group(function () {
+    // Profil management
+    Route::post('/profile/update', [ProfileController::class, 'update']);
+    Route::post('/profile/password', [ProfileController::class, 'updatePassword']);
+    Route::post('/profile/photo', [ProfileController::class, 'updatePhoto']);
     // Consultations (Medical actions)
     Route::post('/consultations', [ConsultationController::class, 'store']);
     Route::get('/consultations/{id}', [ConsultationController::class, 'show']);
