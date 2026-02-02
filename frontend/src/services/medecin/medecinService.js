@@ -75,6 +75,26 @@ const medecinService = {
     async getStats() {
         const response = await api.get('/stats');
         return response.data;
+    },
+
+    // --- PROFIL ---
+    async updateProfile(data) {
+        const response = await api.post('/profile/update', data);
+        return response.data;
+    },
+
+    async updatePassword(data) {
+        const response = await api.post('/profile/password', data);
+        return response.data;
+    },
+
+    async updatePhoto(formData) {
+        const response = await api.post('/profile/photo', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        });
+        return response.data;
     }
 };
 
