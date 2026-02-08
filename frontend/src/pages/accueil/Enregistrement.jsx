@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState} from 'react';
 import { useNavigate } from 'react-router-dom';
 import ReceptionLayout from '../../components/layouts/ReceptionLayout';
 import api from '../../services/api';

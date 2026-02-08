@@ -179,12 +179,12 @@ const accueilService = {
         }
     },
 
-  // Changer le statut d'un RDV (QueueController@updateStatus)
+    // Changer le statut d'un RDV (QueueController@updateStatus)
     async updateRdvStatus(id, newStatus) {
         try {
             // Respecte strictement l'enum: programmé, passé, annulé
-            const response = await api.patch(`/rdvs/${id}/status`, { 
-                statut: newStatus 
+            const response = await api.patch(`/rdvs/${id}/status`, {
+                statut: newStatus
             });
             return response.data;
         } catch (error) {
@@ -194,31 +194,31 @@ const accueilService = {
     },
 
     // Créer un nouveau RDV (RdvController@store)
-    async createRdv(payload) { 
+    async createRdv(payload) {
         try {
             const response = await api.post('/rdvs', payload);
             return response.data;
         } catch (error) {
             console.error("Erreur création RDV:", error.response?.data);
-            throw error; 
+            throw error;
         }
     },
 
-   // Valider une demande pour qu'elle apparaisse dans le planning
-async validerDemande(id) {
-    try {
-        // On passe le statut à 'programmé' (seul statut valide pour un RDV actif)
-        const response = await api.patch(`/rdvs/${id}/status`, { 
-            statut: 'programmé' 
-        });
-        return response.data;
-    } catch (error) {
-        console.error("Erreur validation RDV:", error);
-        throw error;
-    }
-},
+    // Valider une demande pour qu'elle apparaisse dans le planning
+    async validerDemande(id) {
+        try {
+            // On passe le statut à 'programmé' (seul statut valide pour un RDV actif)
+            const response = await api.patch(`/rdvs/${id}/status`, {
+                statut: 'programmé'
+            });
+            return response.data;
+        } catch (error) {
+            console.error("Erreur validation RDV:", error);
+            throw error;
+        }
+    },
 
-// Récupérer les RDV pour le planning (QueueController)
+    // Récupérer les RDV pour le planning (QueueController)
     async getPlanning(date = null) {
         try {
             const params = date ? { date } : {};
@@ -248,10 +248,20 @@ async validerDemande(id) {
             console.error("Erreur lors de la récupération des médecins", error);
             return [];
         }
+    },
+
+
+
+    // --- STATISTIQUES (La partie que tu gères actuellement) ---
+    async getGlobalStats() {
+        try {
+            const response = await api.get('/stats/globales');
+            return response.data;
+        } catch (error) {
+            console.error("Erreur récupération stats:", error);
+            throw error;
+        }
     }
-
-
-
 };
 
 export default accueilService;

@@ -51,7 +51,7 @@ const ReceptionLayout = ({ children }) => {
             title: 'Gestion Soins',
             items: [
                 { path: '/accueil/rdv', icon: 'event_available', label: 'Rendez-vous' },
-                { path: '/accueil/urgence', icon: 'emergency', label: 'Urgence / Direct' },
+                // { path: '/accueil/urgence', icon: 'emergency', label: 'Urgence / Direct' },
             ]
         },
         {
