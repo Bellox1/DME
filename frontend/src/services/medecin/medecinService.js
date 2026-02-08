@@ -56,9 +56,44 @@ const medecinService = {
         return response.data;
     },
 
+    // --- AGENDA ---
+    // Récupérer les RDV du médecin connecté
+    async getAgenda(medecinId, date = null) {
+        const params = { medecin_id: medecinId };
+        if (date) params.date = date; // Format attendu: YYYY-MM-DD
+        const response = await api.get('/rdvs', { params });
+        return response.data;
+    },
+
     // Liste des patients (pour recherche)
-    async searchPatients(query) {
-        const response = await api.get('/patients', { params: { search: query } });
+    async searchPatients(query, filters = {}) {
+        const response = await api.get('/patients', { params: { search: query, ...filters } });
+        return response.data;
+    },
+
+    // Récupérer les statistiques du médecin
+    async getStats() {
+        const response = await api.get('/stats');
+        return response.data;
+    },
+
+    // --- PROFIL ---
+    async updateProfile(data) {
+        const response = await api.post('/profile/update', data);
+        return response.data;
+    },
+
+    async updatePassword(data) {
+        const response = await api.post('/profile/password', data);
+        return response.data;
+    },
+
+    async updatePhoto(formData) {
+        const response = await api.post('/profile/photo', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        });
         return response.data;
     }
 };

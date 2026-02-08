@@ -21,7 +21,7 @@ class Utilisateur extends Authenticatable
 
     protected $fillable = [
         'nom', 'prenom', 'tel', 'whatsapp', 'mot_de_passe', 
-        'ville', 'sexe', 'role', 'refresh_token', 'date_naissance'
+        'ville', 'sexe', 'role', 'refresh_token', 'date_naissance', 'photo'
     ];
 
     protected $hidden = [

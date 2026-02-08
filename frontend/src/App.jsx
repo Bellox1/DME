@@ -54,6 +54,8 @@ import DoctorStats from './pages/medecin/Stats';
 import DoctorProfil from './pages/medecin/Profil';
 import DoctorNotifications from './pages/medecin/Notifications';
 import DoctorAide from './pages/medecin/Aide';
+import DoctorPatientDossier from './pages/medecin/DossierPatient';
+import DoctorConsultationDetail from './pages/medecin/ConsultationDetail';
 
 function App() {
   return (
@@ -112,6 +114,7 @@ function App() {
           <Route path="/medecin/agenda" element={<ProtectedRoute allowedRoles={['medecin']}><DoctorAgenda /></ProtectedRoute>} />
           <Route path="/medecin/patients" element={<ProtectedRoute allowedRoles={['medecin']}><DoctorPatients /></ProtectedRoute>} />
           <Route path="/medecin/consultations" element={<ProtectedRoute allowedRoles={['medecin']}><DoctorConsultations /></ProtectedRoute>} />
+
           <Route path="/medecin/ordonnances" element={<ProtectedRoute allowedRoles={['medecin']}><DoctorOrdonnances /></ProtectedRoute>} />
           <Route path="/medecin/nouvelle-consultation" element={<ProtectedRoute allowedRoles={['medecin']}><DoctorConsultationForm /></ProtectedRoute>} />
           <Route path="/medecin/resultats" element={<ProtectedRoute allowedRoles={['medecin']}><DoctorResultats /></ProtectedRoute>} />
@@ -119,6 +122,8 @@ function App() {
           <Route path="/medecin/profil" element={<ProtectedRoute allowedRoles={['medecin']}><DoctorProfil /></ProtectedRoute>} />
           <Route path="/medecin/notifications" element={<ProtectedRoute allowedRoles={['medecin']}><DoctorNotifications /></ProtectedRoute>} />
           <Route path="/medecin/aide-medecin" element={<ProtectedRoute allowedRoles={['medecin']}><DoctorAide /></ProtectedRoute>} />
+          <Route path="/medecin/patient/:patientId" element={<ProtectedRoute allowedRoles={['medecin']}><DoctorPatientDossier /></ProtectedRoute>} />
+          <Route path="/medecin/consultations/:id" element={<ProtectedRoute allowedRoles={['medecin']}><DoctorConsultationDetail /></ProtectedRoute>} />
 
           {/* ==================== REDIRECTIONS ==================== */}
           <Route path="/" element={<Navigate to="/login" replace />} />

@@ -75,18 +75,47 @@ class PatientController extends Controller
     {
         $query = Patient::with(['utilisateur', 'enfant']);
 
-        if ($request->has('search') && !empty($request->search)) {
+        if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->whereHas('utilisateur', function ($sub) use ($search) {
-                    $sub->where('nom', 'like', "%{$search}%")
-                        ->orWhere('prenom', 'like', "%{$search}%");
-                })
-                    ->orWhereHas('enfant', function ($sub) use ($search) {
-                        $sub->where('nom', 'like', "%{$search}%")
-                            ->orWhere('prenom', 'like', "%{$search}%");
-                    })
-                    ->orWhere('id', 'like', "%{$search}%");
+            $query->where(function($q) use ($search) {
+                $q->whereHas('utilisateur', function($sq) use ($search) {
+                    $sq->where(DB::raw("CONCAT(nom, ' ', prenom)"), 'like', "%{$search}%")
+                      ->orWhere(DB::raw("CONCAT(prenom, ' ', nom)"), 'like', "%{$search}%");
+                })->orWhereHas('enfant', function($sq) use ($search) {
+                    $sq->where(DB::raw("CONCAT(nom, ' ', prenom)"), 'like', "%{$search}%")
+                      ->orWhere(DB::raw("CONCAT(prenom, ' ', nom)"), 'like', "%{$search}%");
+                })->orWhere('numero_patient', 'like', "%{$search}%");
+            });
+        }
+
+        // Filtres Cliniques Optionnels
+        if ($request->filled('sexe')) {
+            $sexeInput = $request->sexe;
+            
+            // Mapping frontend (M/F) -> Backend (Homme/Femme)
+            $sexe = $sexeInput;
+            if ($sexeInput === 'M') $sexe = 'Homme';
+            if ($sexeInput === 'F') $sexe = 'Femme';
+
+            $query->where(function($q) use ($sexe) {
+                $q->whereHas('utilisateur', fn($sq) => $sq->where('sexe', $sexe))
+                  ->orWhereHas('enfant', fn($sq) => $sq->where('sexe', $sexe));
+            });
+        }
+
+        if ($request->filled('type')) {
+            if ($request->type === 'adulte') $query->whereNotNull('utilisateur_id');
+            if ($request->type === 'enfant') $query->whereNotNull('enfant_id');
+        }
+
+        if ($request->filled('groupe_sanguin')) {
+            $query->where('groupe_sanguin', $request->groupe_sanguin);
+        }
+
+        // Filtre de sécurité STRICT pour les médecins
+        if (auth()->check() && auth()->user()->role === 'medecin') {
+            $query->whereHas('consultations', function($q) {
+                $q->where('medecin_id', auth()->id());
             });
         }
 
