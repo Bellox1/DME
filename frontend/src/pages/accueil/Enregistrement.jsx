@@ -29,7 +29,7 @@ const EnregistrementPatient = () => {
         adresse: '',
         date_naissance: '',
         groupe_sanguin: '',
-        ville: '', // Added ville
+        ville: '', 
 
         // Tuteur link (if dependant)
         tuteur_tel_recherche: '',
@@ -51,21 +51,7 @@ const EnregistrementPatient = () => {
             setError(null);
 
             if (patientType === 'autonome') {
-                // Use the new /patients endpoint which handles User + Patient creation and notifications
-                // const payload = {
-                //     nom: formData.nom,
-                //     prenom: formData.prenom,
-                //     tel: formData.tel,
-                //     whatsapp: formData.whatsapp,
-                //     sexe: formData.sexe,
-                //     date_naissance: formData.date_naissance || null,
-                //     ville: formData.adresse, // Mapping adresse to ville if needed, or separate
-                //     adresse: formData.adresse,
-                //     groupe_sanguin: formData.groupe_sanguin,
-                //     taille: formData.taille,
-                //     poids: formData.poids
-                // };
-
+                
 
                 // Dans handleSubmit (patient autonome)
                 const payload = {
@@ -116,75 +102,7 @@ const EnregistrementPatient = () => {
     const nextStep = () => setStep(s => Math.min(4, s + 1));
     const prevStep = () => setStep(s => Math.max(1, s - 1));
 
-    // const handleCheckTuteur = async () => {
-    //     if (!formData.tuteur_tel_recherche) return;
-
-    //     try {
-    //         setLoading(true);
-    //         setError(null);
-    //         const patients = await patientService.getAllPatients();
-    //         const tuteur = patients.find(p => p.tel === formData.tuteur_tel_recherche && p.type === 'Adulte');
-
-    //         if (tuteur) {
-    //             setFormData(prev => ({
-    //                 ...prev,
-    //                 tuteur_id: tuteur.id,
-    //                 tuteur_nom_complet: `${tuteur.nom} ${tuteur.prenom}`
-    //             }));
-    //         } else {
-    //             setError('Aucun tuteur trouvé avec ce numéro de téléphone.');
-    //         }
-    //     } catch (err) {
-    //         setError('Erreur lors de la recherche du tuteur.');
-    //     } finally {
-    //         setLoading(false);
-    //     }
-    // };
-
-
-    // const handleCheckTuteur = async () => {
-    //     // 1. On vérifie qu'il y a quelque chose à chercher
-    //     if (!formData.tuteur_tel_recherche || formData.tuteur_tel_recherche.length < 3) {
-    //         setError('Veuillez saisir au moins 3 caractères.');
-    //         return;
-    //     }
-
-    //     try {
-    //         setLoading(true);
-    //         setError(null);
-
-    //         // 2. On appelle ton API (on utilise l'endpoint dédié de ton PatientController)
-    //         // Note: remplace "/recherche-tuteur" par ton URL de route exacte
-    //         const response = await api.get(`/recherche-tuteur?q=${formData.tuteur_tel_recherche}`);
-
-    //         // 3. On vérifie si le serveur a trouvé quelqu'un
-    //         if (response.data && response.data.length > 0) {
-    //             const tuteur = response.data[0]; // On prend le premier tuteur trouvé
-
-    //             setFormData(prev => ({
-    //                 ...prev,
-    //                 tuteur_id: tuteur.id,
-    //                 tuteur_nom_complet: `${tuteur.nom.toUpperCase()} ${tuteur.prenom}`,
-    //                 // ASTUCE : On pré-remplit le nom pour l'étape suivante (Identité)
-    //                 nom: tuteur.nom
-    //             }));
-    //         } else {
-    //             setError('Aucun tuteur trouvé. Vérifiez le numéro ou créez un compte adulte.');
-    //             // On reset l'ID pour que l'interface repasse en mode "pointillés"
-    //             setFormData(prev => ({ ...prev, tuteur_id: null }));
-    //         }
-    //     } catch (err) {
-    //         setError('Erreur de connexion au serveur.');
-    //         console.error(err);
-    //     } finally {
-    //         setLoading(false);
-    //     }
-    // };
-
-
-
-    // Importe axios en haut du fichier si besoin : import axios from 'axios';
-
+    
     const handleCheckTuteur = async () => {
     if (!formData.tuteur_tel_recherche) return;
     setLoading(true);

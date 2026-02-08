@@ -32,9 +32,22 @@ Route::middleware('auth:sanctum')->group(function () {
 // Validation des demandes de RDV
 Route::middleware('auth:sanctum')->patch('/demande-rdv/{id}/valider', [DemandeRdvController::class, 'valider']);
 
-// RDVs Management (Access to RdvController for listing/managing if needed, though mostly Queue/Demande based currently)
-// Add specific routes if RdvController has specific reception methods not covered
 
+// RDVs Management
+Route::middleware('auth:sanctum')->group(function () {
+    // Récupération globale ou par filtre patient/médecin
+    Route::get('/rdvs', [RdvController::class, 'index']);
+    Route::post('/rdvs', [RdvController::class, 'store']); 
 
+    // --- Gestion de la File d'Attente / Planning (QueueController) ---
+    // Liste filtrée par date pour l'affichage du planning
+    Route::get('/rdvs/planning', [QueueController::class, 'index']); 
+    // Changement de statut (programmé, annulé, passé)
+    Route::patch('/rdvs/{id}/status', [QueueController::class, 'updateStatus']);
+});
 
-
+Route::middleware('auth:sanctum')->get('/medecins', function () {
+    // On récupère uniquement les colonnes qui existent réellement dans ta migration
+    return \App\Models\Utilisateur::where('role', 'medecin')
+        ->get(['id', 'nom', 'prenom', 'ville']);
+});
