@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ReceptionLayout from '../../components/layouts/ReceptionLayout';
 import api from '../../services/api';
-import axios from 'axios';
+// import axios from 'axios';
 
 const EnregistrementPatient = () => {
     const navigate = useNavigate();
@@ -260,22 +260,7 @@ const EnregistrementPatient = () => {
                                     </h3>
                                     <div className="space-y-6">
                                         <div className="flex flex-col sm:flex-row gap-4">
-                                            {/* <div className="flex-1 space-y-2">
-                                                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-1">Téléphone du tuteur</label>
-                                                <div className="relative">
-                                                    <span className="absolute left-5 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-400">call</span>
-                                                    <input name="tuteur_tel_recherche" value={formData.tuteur_tel_recherche} onChange={handleInputChange} type="tel" placeholder="Rechercher..." className="w-full h-14 bg-slate-50 dark:bg-slate-900/50 border-2 border-transparent focus:border-primary/20 rounded-2xl pl-12 pr-5 text-sm font-bold text-titles dark:text-white transition-all outline-none" />
-                                                </div>
-                                            </div>
-                                            <button
-                                                onClick={handleCheckTuteur}
-                                                disabled={loading}
-                                                className="h-14 px-8 bg-primary/10 text-primary rounded-2xl font-black text-xs uppercase tracking-widest sm:mt-6 hover:bg-primary hover:text-white transition-all disabled:opacity-50"
-                                            >
-                                                {loading ? 'Vérification...' : 'Vérifier'}
-                                            </button> */}
-
-                                            {/* ... à l'intérieur de ton step === 2, dans la partie "else" (Enfant) ... */}
+                                           
 
                                             <div className="flex-1 space-y-2">
                                                 <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-1">
