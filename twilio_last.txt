@@ -1,0 +1,50 @@
+﻿
+backend\storage\logs\larav
+el.log:1848:#0 C:/Users/PC
+/DME/backend/app/Http/Cont
+rollers/Api/Admin/UserCont
+roller.php(101): App/Servi
+ces/TwilioService->__const
+ruct()
+backend\storage\logs\larav
+el.log:1894:[2026-01-25 
+17:16:53] local.INFO: 
+Tentative d'envoi 
+WhatsApp Twilio de 
+whatsapp:+14155238886 
+vers : 
+whatsapp:+2290158067394  
+backend\storage\logs\larav
+el.log:1895:[2026-01-25 
+17:16:54] local.INFO: 
+WhatsApp Twilio envoyé 
+avec succès. SID : SM5e7cc
+c5520a7a717d6eb7cf52221346
+e | Vers : 
+whatsapp:+2290158067394  
+backend\storage\logs\larav
+el.log:1896:[2026-01-25 
+17:16:54] local.INFO: 
+Tentative d'envoi SMS 
+Twilio vers : 
++2290158067394  
+backend\storage\logs\larav
+el.log:1897:[2026-01-25 
+17:16:56] local.ERROR: 
+Erreur SMS Twilio vers 
++2290158067394 : [HTTP 
+400] Unable to create 
+record: The number 
++229015806XXXX is 
+unverified. Trial 
+accounts cannot send 
+messages to unverified 
+numbers; verify 
++229015806XXXX at twilio.c
+om/user/account/phone-numb
+ers/verified, or purchase 
+a Twilio number to send 
+messages to unverified 
+numbers  
+
+

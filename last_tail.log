@@ -1,0 +1,20 @@
+﻿#30 C:/Users/PC/DME/backend/vendor/laravel/framework/src/Illuminate/Http/Middleware/HandleCors.php(61): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+#31 C:/Users/PC/DME/backend/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate/Http/Middleware/HandleCors->handle(Object(Illuminate/Http/Request), Object(Closure))
+#32 C:/Users/PC/DME/backend/vendor/laravel/framework/src/Illuminate/Http/Middleware/TrustProxies.php(58): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+#33 C:/Users/PC/DME/backend/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate/Http/Middleware/TrustProxies->handle(Object(Illuminate/Http/Request), Object(Closure))
+#34 C:/Users/PC/DME/backend/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/InvokeDeferredCallbacks.php(22): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+#35 C:/Users/PC/DME/backend/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate/Foundation/Http/Middleware/InvokeDeferredCallbacks->handle(Object(Illuminate/Http/Request), Object(Closure))
+#36 C:/Users/PC/DME/backend/vendor/laravel/framework/src/Illuminate/Http/Middleware/ValidatePathEncoding.php(26): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+#37 C:/Users/PC/DME/backend/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate/Http/Middleware/ValidatePathEncoding->handle(Object(Illuminate/Http/Request), Object(Closure))
+#38 C:/Users/PC/DME/backend/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(137): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+#39 C:/Users/PC/DME/backend/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(175): Illuminate/Pipeline/Pipeline->then(Object(Closure))
+#40 C:/Users/PC/DME/backend/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(144): Illuminate/Foundation/Http/Kernel->sendRequestThroughRouter(Object(Illuminate/Http/Request))
+#41 C:/Users/PC/DME/backend/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1220): Illuminate/Foundation/Http/Kernel->handle(Object(Illuminate/Http/Request))
+#42 C:/Users/PC/DME/backend/public/index.php(20): Illuminate/Foundation/Application->handleRequest(Object(Illuminate/Http/Request))
+#43 C:/Users/PC/DME/backend/vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php(23): require_once('C://Users//PC//DME...')
+#44 {main}
+"} 
+[2026-01-25 17:16:53] local.INFO: Tentative d'envoi WhatsApp Twilio de whatsapp:+14155238886 vers : whatsapp:+2290158067394  
+[2026-01-25 17:16:54] local.INFO: WhatsApp Twilio envoyÃ© avec succÃ¨s. SID : SM5e7ccc5520a7a717d6eb7cf52221346e | Vers : whatsapp:+2290158067394  
+[2026-01-25 17:16:54] local.INFO: Tentative d'envoi SMS Twilio vers : +2290158067394  
+[2026-01-25 17:16:56] local.ERROR: Erreur SMS Twilio vers +2290158067394 : [HTTP 400] Unable to create record: The number +229015806XXXX is unverified. Trial accounts cannot send messages to unverified numbers; verify +229015806XXXX at twilio.com/user/account/phone-numbers/verified, or purchase a Twilio number to send messages to unverified numbers  

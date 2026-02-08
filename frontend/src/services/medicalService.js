@@ -43,6 +43,14 @@ const medicalService = {
     },
 
     /**
+     * Récupère tous les patients.
+     */
+    getPatients: async () => {
+        const response = await api.get('/patients');
+        return response.data;
+    },
+
+    /**
      * Recherche des patients.
      */
     searchPatients: async (query = '') => {
@@ -55,6 +63,14 @@ const medicalService = {
      */
     getAllConsultations: async () => {
         const response = await api.get('/consultations');
+        return response.data;
+    },
+
+    /**
+     * Récupère une consultation spécifique par son ID.
+     */
+    getConsultation: async (id) => {
+        const response = await api.get(`/consultations/${id}`);
         return response.data;
     },
 

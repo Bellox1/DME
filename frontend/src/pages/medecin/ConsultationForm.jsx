@@ -27,6 +27,28 @@ const ConsultationForm = () => {
 
     const [prescriptions, setPrescriptions] = useState([{ nom_medicament: '', dosage: '', instructions: '' }]);
     const [successData, setSuccessData] = useState(null);
+    const [patients, setPatients] = useState([]);
+    const [loadingPatients, setLoadingPatients] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+
+    // Load patients if no patient_id is provided
+    useEffect(() => {
+        if (!patientId) {
+            const fetchPatients = async () => {
+                try {
+                    setLoadingPatients(true);
+                    const response = await medicalService.getPatients();
+                    setPatients(response.data || response || []);
+                } catch (error) {
+                    console.error('Erreur chargement patients:', error);
+                }
+                finally {
+                    setLoadingPatients(false);
+                }
+            };
+            fetchPatients();
+        }
+    }, [patientId]);
 
     // --- Signature Logic ---
     const startDrawing = (e) => {
@@ -149,6 +171,75 @@ const ConsultationForm = () => {
             setFormLoading(false);
         }
     };
+
+    // Filter patients based on search
+    const filteredPatients = patients.filter(p => {
+        const searchLower = searchQuery.toLowerCase();
+        const fullName = `${p.nom} ${p.prenom}`.toLowerCase();
+        return fullName.includes(searchLower) || p.id.toString().includes(searchQuery);
+    });
+
+    // If no patient selected, show patient selection screen
+    if (!patientId) {
+        return (
+            <DoctorLayout>
+                <div className="p-4 md:p-8 max-w-5xl mx-auto w-full flex flex-col gap-8 transition-all animate-in fade-in">
+                    <div className="flex flex-col gap-2">
+                        <h1 className="text-3xl font-black text-titles dark:text-white italic uppercase tracking-tighter">
+                            Sélectionner un Patient
+                        </h1>
+                        <p className="text-slate-500 font-medium italic">Choisissez le patient à consulter</p>
+                    </div>
+
+                    <div className="bg-white dark:bg-[#1c2229] p-6 rounded-[2.5rem] border border-slate-200 dark:border-[#2d363f] shadow-sm">
+                        <div className="mb-6">
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="Rechercher un patient par nom..."
+                                className="w-full h-14 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl px-5 text-sm font-bold text-titles dark:text-white outline-none ring-2 ring-transparent focus:ring-primary/20 transition-all"
+                            />
+                        </div>
+
+                        {loadingPatients ? (
+                            <div className="py-20 text-center">
+                                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto"></div>
+                            </div>
+                        ) : filteredPatients.length === 0 ? (
+                            <div className="py-20 text-center text-slate-400 font-bold italic">
+                                Aucun patient trouvé
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 gap-4 max-h-[500px] overflow-y-auto pr-2">
+                                {filteredPatients.map((patient) => (
+                                    <button
+                                        key={patient.id}
+                                        onClick={() => navigate(`/medecin/nouvelle-consultation?patient_id=${patient.id}`)}
+                                        className="p-6 bg-slate-50 dark:bg-slate-900 rounded-2xl hover:bg-primary/10 hover:border-primary/20 border-2 border-transparent transition-all text-left group"
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <h3 className="text-lg font-black text-titles dark:text-white uppercase tracking-tight">
+                                                    {patient.nom} {patient.prenom}
+                                                </h3>
+                                                <p className="text-sm text-slate-400 font-medium">
+                                                    ID: #{patient.id} • {patient.sexe} • {patient.date_naissance ? new Date().getFullYear() - new Date(patient.date_naissance).getFullYear() : '?'} ans
+                                                </p>
+                                            </div>
+                                            <span className="material-symbols-outlined text-primary opacity-0 group-hover:opacity-100 transition-all">
+                                                arrow_forward
+                                            </span>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </DoctorLayout>
+        );
+    }
 
     return (
         <DoctorLayout>
