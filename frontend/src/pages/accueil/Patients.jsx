@@ -230,13 +230,13 @@ const ListePatients = () => {
 
                                                     <td className="px-8 py-6 text-right">
                                                         <div className="flex justify-end gap-2">
-                                                            <Link
+                                                            {/* <Link
                                                                 to={`/accueil/patients/${patient.id}`}
                                                                 className="p-2 hover:bg-primary/10 text-slate-400 hover:text-primary rounded-lg transition-all"
                                                                 title="Voir le dossier"
                                                             >
                                                                 <span className="material-symbols-outlined text-[20px]">visibility</span>
-                                                            </Link>
+                                                            </Link> */}
                                                             <button
                                                                 onClick={() => handleEdit(patient.id)}
                                                                 className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-slate-400 hover:text-blue-500 rounded-lg transition-all"
@@ -263,7 +263,7 @@ const ListePatients = () => {
                 )}
 
                 {/* Section Statistiques */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {/* <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     <div className="p-6 rounded-[2rem] bg-white dark:bg-[#1c2229] border border-slate-200 dark:border-[#2d363f] shadow-sm flex items-center gap-4">
                         <div className="size-12 rounded-2xl bg-blue-50 dark:bg-blue-900/10 text-blue-600 flex items-center justify-center">
                             <span className="material-symbols-outlined">group</span>
@@ -309,7 +309,8 @@ const ListePatients = () => {
                             <span className="text-[10px] font-black uppercase text-white/70 tracking-widest leading-none">Dossiers Vérifiés</span>
                         </div>
                     </div>
-                </div>
+                </div> */}
+
             </div>
         </ReceptionLayout>
     );

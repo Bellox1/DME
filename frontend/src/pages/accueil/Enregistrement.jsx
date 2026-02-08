@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ReceptionLayout from '../../components/layouts/ReceptionLayout';
 import api from '../../services/api';
-import axios from 'axios';
+// import axios from 'axios';
 
 const EnregistrementPatient = () => {
     const navigate = useNavigate();
@@ -29,7 +29,7 @@ const EnregistrementPatient = () => {
         adresse: '',
         date_naissance: '',
         groupe_sanguin: '',
-        ville: '', // Added ville
+        ville: '', 
 
         // Tuteur link (if dependant)
         tuteur_tel_recherche: '',
@@ -51,21 +51,7 @@ const EnregistrementPatient = () => {
             setError(null);
 
             if (patientType === 'autonome') {
-                // Use the new /patients endpoint which handles User + Patient creation and notifications
-                // const payload = {
-                //     nom: formData.nom,
-                //     prenom: formData.prenom,
-                //     tel: formData.tel,
-                //     whatsapp: formData.whatsapp,
-                //     sexe: formData.sexe,
-                //     date_naissance: formData.date_naissance || null,
-                //     ville: formData.adresse, // Mapping adresse to ville if needed, or separate
-                //     adresse: formData.adresse,
-                //     groupe_sanguin: formData.groupe_sanguin,
-                //     taille: formData.taille,
-                //     poids: formData.poids
-                // };
-
+                
 
                 // Dans handleSubmit (patient autonome)
                 const payload = {
@@ -116,75 +102,7 @@ const EnregistrementPatient = () => {
     const nextStep = () => setStep(s => Math.min(4, s + 1));
     const prevStep = () => setStep(s => Math.max(1, s - 1));
 
-    // const handleCheckTuteur = async () => {
-    //     if (!formData.tuteur_tel_recherche) return;
-
-    //     try {
-    //         setLoading(true);
-    //         setError(null);
-    //         const patients = await patientService.getAllPatients();
-    //         const tuteur = patients.find(p => p.tel === formData.tuteur_tel_recherche && p.type === 'Adulte');
-
-    //         if (tuteur) {
-    //             setFormData(prev => ({
-    //                 ...prev,
-    //                 tuteur_id: tuteur.id,
-    //                 tuteur_nom_complet: `${tuteur.nom} ${tuteur.prenom}`
-    //             }));
-    //         } else {
-    //             setError('Aucun tuteur trouvé avec ce numéro de téléphone.');
-    //         }
-    //     } catch (err) {
-    //         setError('Erreur lors de la recherche du tuteur.');
-    //     } finally {
-    //         setLoading(false);
-    //     }
-    // };
-
-
-    // const handleCheckTuteur = async () => {
-    //     // 1. On vérifie qu'il y a quelque chose à chercher
-    //     if (!formData.tuteur_tel_recherche || formData.tuteur_tel_recherche.length < 3) {
-    //         setError('Veuillez saisir au moins 3 caractères.');
-    //         return;
-    //     }
-
-    //     try {
-    //         setLoading(true);
-    //         setError(null);
-
-    //         // 2. On appelle ton API (on utilise l'endpoint dédié de ton PatientController)
-    //         // Note: remplace "/recherche-tuteur" par ton URL de route exacte
-    //         const response = await api.get(`/recherche-tuteur?q=${formData.tuteur_tel_recherche}`);
-
-    //         // 3. On vérifie si le serveur a trouvé quelqu'un
-    //         if (response.data && response.data.length > 0) {
-    //             const tuteur = response.data[0]; // On prend le premier tuteur trouvé
-
-    //             setFormData(prev => ({
-    //                 ...prev,
-    //                 tuteur_id: tuteur.id,
-    //                 tuteur_nom_complet: `${tuteur.nom.toUpperCase()} ${tuteur.prenom}`,
-    //                 // ASTUCE : On pré-remplit le nom pour l'étape suivante (Identité)
-    //                 nom: tuteur.nom
-    //             }));
-    //         } else {
-    //             setError('Aucun tuteur trouvé. Vérifiez le numéro ou créez un compte adulte.');
-    //             // On reset l'ID pour que l'interface repasse en mode "pointillés"
-    //             setFormData(prev => ({ ...prev, tuteur_id: null }));
-    //         }
-    //     } catch (err) {
-    //         setError('Erreur de connexion au serveur.');
-    //         console.error(err);
-    //     } finally {
-    //         setLoading(false);
-    //     }
-    // };
-
-
-
-    // Importe axios en haut du fichier si besoin : import axios from 'axios';
-
+    
     const handleCheckTuteur = async () => {
     if (!formData.tuteur_tel_recherche) return;
     setLoading(true);
@@ -342,22 +260,7 @@ const EnregistrementPatient = () => {
                                     </h3>
                                     <div className="space-y-6">
                                         <div className="flex flex-col sm:flex-row gap-4">
-                                            {/* <div className="flex-1 space-y-2">
-                                                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-1">Téléphone du tuteur</label>
-                                                <div className="relative">
-                                                    <span className="absolute left-5 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-400">call</span>
-                                                    <input name="tuteur_tel_recherche" value={formData.tuteur_tel_recherche} onChange={handleInputChange} type="tel" placeholder="Rechercher..." className="w-full h-14 bg-slate-50 dark:bg-slate-900/50 border-2 border-transparent focus:border-primary/20 rounded-2xl pl-12 pr-5 text-sm font-bold text-titles dark:text-white transition-all outline-none" />
-                                                </div>
-                                            </div>
-                                            <button
-                                                onClick={handleCheckTuteur}
-                                                disabled={loading}
-                                                className="h-14 px-8 bg-primary/10 text-primary rounded-2xl font-black text-xs uppercase tracking-widest sm:mt-6 hover:bg-primary hover:text-white transition-all disabled:opacity-50"
-                                            >
-                                                {loading ? 'Vérification...' : 'Vérifier'}
-                                            </button> */}
-
-                                            {/* ... à l'intérieur de ton step === 2, dans la partie "else" (Enfant) ... */}
+                                           
 
                                             <div className="flex-1 space-y-2">
                                                 <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-1">
