@@ -9,7 +9,7 @@ use App\Models\Connexion;
 use App\Models\Patient;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-
+use App\Services\TwilioService;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -90,13 +90,13 @@ class AuthController extends Controller
             $twilio = new \App\Services\TwilioService();
             $message = "Bienvenue sur DME.\nCliquez ici pour activer votre compte :\n$activationLink";
             $canaux = [];
-            
+
             if ($whatsapp) {
                 if ($twilio->sendWhatsApp($whatsapp, $message)) {
                     $canaux[] = 'WhatsApp';
                 }
             }
-            
+
             if ($tel) {
                 if ($twilio->sendSMS($tel, $message)) {
                     $canaux[] = 'SMS';
@@ -142,7 +142,7 @@ class AuthController extends Controller
 
         $connexion = Connexion::firstOrCreate(
             ['utilisateur_id' => $user->id],
-            ['premiere_connexion' => false] // Default to false if missing, unless explicitly set to true in register
+            ['premiere_connexion' => false] 
         );
 
         // Generate Sanctum Token
@@ -152,7 +152,7 @@ class AuthController extends Controller
             'message' => 'Connexion réussie',
             'token' => $token,
             'user' => $user,
-            'premiere_connexion' => (bool)$connexion->premiere_connexion
+            'premiere_connexion' => (bool) $connexion->premiere_connexion
         ]);
     }
 
@@ -162,7 +162,7 @@ class AuthController extends Controller
     public function updatePassword(Request $request)
     {
         Log::info("Update Password Request", $request->all());
-        
+
         $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
             'login' => 'nullable|string',
             'nouveau_mot_de_passe' => 'required|min:8|confirmed',
@@ -196,7 +196,7 @@ class AuthController extends Controller
         // Chargement explicite de la connexion
         $connexion = Connexion::where('utilisateur_id', $user->id)->first();
         Log::info("Connexion chargée manuellement : " . json_encode($connexion));
-        
+
         // Sécurité : si non authentifié, n'autoriser que si c'est la première connexion
         if (!$request->user()) {
             if (!$connexion) {
@@ -206,10 +206,10 @@ class AuthController extends Controller
 
             $isFirst = $connexion->premiere_connexion == 1 || $connexion->premiere_connexion === true;
             Log::info("Valeur première connexion : " . $connexion->premiere_connexion . " (estPremiere : " . ($isFirst ? 'oui' : 'non') . ")");
-            
+
             if (!$isFirst) {
-                 Log::warning("Première connexion déjà effectuée pour l'utilisateur " . $user->id);
-                 return response()->json(['message' => 'Ce compte a déjà été activé. Veuillez vous connecter.'], 403);
+                Log::warning("Première connexion déjà effectuée pour l'utilisateur " . $user->id);
+                return response()->json(['message' => 'Ce compte a déjà été activé. Veuillez vous connecter.'], 403);
             }
         }
 
@@ -241,7 +241,7 @@ class AuthController extends Controller
     public function checkActivation(Request $request)
     {
         $request->validate(['login' => 'required']);
-        
+
         $loginStandard = \App\Helpers\PhoneHelper::formatGeneric($request->login);
 
         $user = Utilisateur::where('tel', $loginStandard)
@@ -256,7 +256,7 @@ class AuthController extends Controller
         }
 
         $connexion = Connexion::where('utilisateur_id', $user->id)->first();
-        
+
         if ($connexion) {
             $isFirst = $connexion->premiere_connexion == 1 || $connexion->premiere_connexion === true;
             if (!$isFirst) {
@@ -264,8 +264,8 @@ class AuthController extends Controller
                 return response()->json(['status' => 'activated']);
             }
         } else {
-             Log::error("Enregistrement de connexion manquant pour l'utilisateur ID: " . $user->id);
-             return response()->json(['status' => 'not_found']);
+            Log::error("Enregistrement de connexion manquant pour l'utilisateur ID: " . $user->id);
+            return response()->json(['status' => 'not_found']);
         }
 
         Log::info("Compte prêt pour activation : $loginStandard");
@@ -294,13 +294,15 @@ class AuthController extends Controller
 
         $twilio = new \App\Services\TwilioService();
         $message = "Vous avez demandé la réinitialisation de votre mot de passe DME.\nCliquez ici :\n$resetLink";
-        
+
         $sentCount = 0;
         if ($user->whatsapp) {
-            if ($twilio->sendWhatsApp($user->whatsapp, $message)) $sentCount++;
+            if ($twilio->sendWhatsApp($user->whatsapp, $message))
+                $sentCount++;
         }
         if ($user->tel) {
-            if ($twilio->sendSMS($user->tel, $message)) $sentCount++;
+            if ($twilio->sendSMS($user->tel, $message))
+                $sentCount++;
         }
 
         if ($sentCount > 0) {
@@ -336,5 +338,39 @@ class AuthController extends Controller
         }
 
         return response()->json(['message' => 'Mot de passe réinitialisé avec succès.']);
+    }
+
+
+    public function resendActivation(Request $request)
+    {
+        try {
+            // Validation simple
+            $request->validate(['utilisateur_id' => 'required']);
+
+            $user = \App\Models\Utilisateur::findOrFail($request->utilisateur_id);
+
+            // TEST : Si on arrive ici, l'utilisateur existe
+            // On prépare le service
+            $twilio = new \App\Services\TwilioService();
+
+            $login = $user->whatsapp ?? $user->tel;
+            $message = "Lien d'activation DME : " . env('FRONTEND_URL') . "/first-login?connexion=" . $login;
+
+            // On tente l'envoi
+            if ($user->whatsapp) {
+                $twilio->sendWhatsApp($user->whatsapp, $message);
+            } else {
+                $twilio->sendSMS($user->tel, $message);
+            }
+
+            return response()->json(['success' => true, 'message' => 'Lien envoyé']);
+        } catch (\Exception $e) {
+            // CETTE LIGNE VA T'AFFICHER LE VRAI PROBLÈME DANS LA CONSOLE
+            return response()->json([
+                'message' => 'Erreur détectée : ' . $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ], 500);
+        }
     }
 }

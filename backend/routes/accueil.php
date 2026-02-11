@@ -8,6 +8,9 @@ use App\Http\Controllers\Api\Accueil\RdvController;
 use App\Http\Controllers\Api\Patient\DemandeRdvController;
 use App\Http\Controllers\Api\Medecin\ConsultationController;
 use App\Http\Controllers\Api\Patient\EnfantController;
+use App\Http\Controllers\Api\Auth\AuthController;
+
+
 
 // Files d'attente
 Route::middleware('auth:sanctum')->group(function () {
@@ -19,7 +22,7 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/patients', [PatientController::class, 'index']);
     Route::post('/patients', [PatientController::class, 'store']);
-
+    Route::post('/auth/resend-activation', [AuthController::class, 'resendActivation']);
     Route::get('/patients/{id}', [PatientController::class, 'show']);
     Route::put('/patients/{id}', [PatientController::class, 'update']);
     Route::get('/recherche-tuteur', [PatientController::class, 'rechercherTuteur']);
@@ -55,3 +58,8 @@ Route::middleware('auth:sanctum')->get('/medecins', function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/stats/globales', [StatistiqueController::class, 'getGlobalStats']);
 });
+
+
+
+
+
