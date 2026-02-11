@@ -97,6 +97,7 @@ const accueilService = {
                 const info = p.utilisateur || p.enfant || {};
                 return {
                     id: p.id,
+                    utilisateur_id: p.utilisateur_id, 
                     nom: info.nom || 'N/A',
                     prenom: info.prenom || '',
                     tel: info.tel || 'Pas de numéro',
@@ -261,7 +262,22 @@ const accueilService = {
             console.error("Erreur récupération stats:", error);
             throw error;
         }
+    },
+
+
+    async resendActivation(userId) {
+        try {
+            // On envoie un objet avec la clé 'utilisateur_id'
+            const response = await api.post('/auth/resend-activation', {
+                utilisateur_id: userId
+            });
+            return response.data;
+        } catch (error) {
+            throw error.response?.data?.message || "Erreur lors du renvoi";
+        }
     }
+
+
 };
 
 export default accueilService;
