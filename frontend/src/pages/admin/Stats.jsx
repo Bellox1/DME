@@ -191,17 +191,23 @@ const AdminStats = () => {
                                     <div key={i} className="flex-1 flex flex-col items-center gap-4 group">
                                         <div className="w-full bg-slate-50 dark:bg-slate-800/50 rounded-t-2xl relative overflow-hidden flex items-end" style={{ height: '100%' }}>
                                             <div
-                                                className="w-full bg-primary/20 group-hover:bg-primary transition-all rounded-t-xl"
-                                                style={{ height: `${month.percentage || 5}%` }}
+                                                className="w-full bg-primary/40 group-hover:bg-primary border-t border-x border-primary/20 transition-all duration-500 rounded-t-xl relative shadow-sm"
+                                                style={{ height: `${month.percentage}%`, minHeight: month.count > 0 ? '4px' : '0' }}
                                             >
-                                                <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-titles text-white text-[8px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    {month.count}
+                                                {/* Tooltip on hover */}
+                                                <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-titles text-white text-[10px] font-black px-2 py-1.5 rounded-xl opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100 whitespace-nowrap z-20 shadow-2xl border border-white/10">
+                                                    {month.count} actes
                                                 </div>
                                             </div>
                                         </div>
-                                        <span className="text-[10px] font-black text-slate-400 leading-none">
-                                            {month.month}
-                                        </span>
+                                        <div className="flex flex-col items-center gap-1">
+                                            <span className="text-[10px] font-black text-primary leading-none">
+                                                {month.count}
+                                            </span>
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase leading-none">
+                                                {month.month}
+                                            </span>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
