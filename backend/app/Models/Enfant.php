@@ -35,4 +35,9 @@ class Enfant extends Model
 
     const CREATED_AT = 'date_creation';
     const UPDATED_AT = 'date_modification';
+
+    protected static function newFactory()
+    {
+        return \Database\Factories\EnfantFactory::new();
+    }
 }

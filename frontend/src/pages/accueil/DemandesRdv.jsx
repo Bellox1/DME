@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ReceptionLayout from '../../components/layouts/ReceptionLayout';
-import accueilService from '../../services/accueil/accueilService';
+ import accueilService from '../../services/accueil/accueilService';
 import patientService from '../../services/patient/patientService';
 
 const DemandesRdv = () => {
@@ -22,7 +22,7 @@ const DemandesRdv = () => {
             try {
                 setLoading(true);
                 const [demandesData, patientsData] = await Promise.all([
-                    demandeRdvService.getAllDemandes(),
+                    accueilService.getAllDemandes(),
                     patientService.getAllPatients()
                 ]);
                 setDemandes(demandesData);
@@ -43,11 +43,11 @@ const DemandesRdv = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            await demandeRdvService.createDemande(formData);
+            await accueilService.createDemande(formData);
             setShowForm(false);
             setFormData({ patient_id: '', type: '', motif: '' });
             // Recharger les demandes
-            const demandesData = await demandeRdvService.getAllDemandes();
+            const demandesData = await accueilService.getAllDemandes();
             setDemandes(demandesData);
         } catch (err) {
             setError('Erreur lors de la création de la demande');
@@ -57,9 +57,9 @@ const DemandesRdv = () => {
 
     const handleValider = async (id) => {
         try {
-            await demandeRdvService.validerDemande(id);
+            await accueilService.validerDemande(id);
             // Recharger les demandes
-            const demandesData = await demandeRdvService.getAllDemandes();
+            const demandesData = await accueilService.getAllDemandes();
             setDemandes(demandesData);
         } catch (err) {
             setError('Erreur lors de la validation de la demande');

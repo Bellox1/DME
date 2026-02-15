@@ -22,7 +22,6 @@ class PatientScenarioSeeder extends Seeder
      */
     public function run(): void
     {
-        // On récupère quelques médecins existants ou on en crée
         $medecins = Utilisateur::where('role', 'medecin')->get();
         if ($medecins->isEmpty()) {
             for ($i = 1; $i <= 3; $i++) {
@@ -39,130 +38,80 @@ class PatientScenarioSeeder extends Seeder
 
         $faker = \Faker\Factory::create('fr_FR');
 
-        // ====================================================================================
-        // SCENARIO 1: Patient AUTONOME (Lui-même, sans enfants)
-        // Login: +22997000001
-        // ====================================================================================
+        // ===================================
+        // SCENARIO 1: Solo
+        // ===================================
         $autonomeUser = Utilisateur::create([
-            'nom' => 'AUTONOME',
-            'prenom' => 'Solo',
-            'tel' => '+22997000001',
-            'whatsapp' => '+22997000001',
-            'mot_de_passe' => Hash::make('password'),
-            'sexe' => 'Homme',
-            'role' => 'patient',
-            'date_naissance' => '1995-05-15',
-            'ville' => 'Cotonou'
+            'nom' => 'AUTONOME', 'prenom' => 'Solo', 'tel' => '+22997000001', 'whatsapp' => '+22997000001',
+            'mot_de_passe' => Hash::make('password'), 'sexe' => 'Homme', 'role' => 'patient', 'date_naissance' => '1995-05-15', 'ville' => 'Cotonou'
         ]);
         Connexion::create(['utilisateur_id' => $autonomeUser->id, 'premiere_connexion' => false]);
-
         $autonomePatient = Patient::create([
-            'utilisateur_id' => $autonomeUser->id,
-            'taille' => 175,
-            'poids' => 70,
-            'adresse' => 'Quartier Haie Vive',
-            'groupe_sanguin' => 'O+'
+            'utilisateur_id' => $autonomeUser->id, 'taille' => 175, 'poids' => 70, 'adresse' => 'Quartier Haie Vive', 'groupe_sanguin' => 'O+'
         ]);
-        // Données liées (5 items de chaque)
         $this->createMedicalData($autonomePatient, $medecins, false, 5);
+        $this->createDemandes($autonomeUser->id, 5);
 
-
-        // ====================================================================================
-        // SCENARIO 2: TUTEUR (Utilisateur "Patient" MAIS sans dossier personnel, gère un enfant)
-        // Login: +22997000002
-        // ====================================================================================
+        // ===================================
+        // SCENARIO 2: Maman (Tuteur)
+        // ===================================
         $tuteurUser = Utilisateur::create([
-            'nom' => 'TUTEUR',
-            'prenom' => 'Maman',
-            'tel' => '+22997000002',
-            'mot_de_passe' => Hash::make('password'),
-            'sexe' => 'Femme',
-            'role' => 'patient', // Rôle technique "patient" pour accéder à l'app, mais pas de dossier médical
-            'date_naissance' => '1988-08-20',
-            'ville' => 'Calavi'
+            'nom' => 'TUTEUR', 'prenom' => 'Maman', 'tel' => '+22997000002', 'mot_de_passe' => Hash::make('password'),
+            'sexe' => 'Femme', 'role' => 'patient', 'date_naissance' => '1988-08-20', 'ville' => 'Calavi'
         ]);
         Connexion::create(['utilisateur_id' => $tuteurUser->id, 'premiere_connexion' => false]);
-
-        // PAS de Patient::create(['utilisateur_id' => ...]) pour le tuteur lui-même !
-
-        // Création de l'enfant
         $enfantTuteur = Enfant::create([
-            'parent_id' => $tuteurUser->id,
-            'nom' => 'TUTEUR',
-            'prenom' => 'Enfant',
-            'sexe' => 'Homme',
-            'date_naissance' => '2020-01-10'
+            'parent_id' => $tuteurUser->id, 'nom' => 'TUTEUR', 'prenom' => 'Enfant', 'sexe' => 'Homme', 'date_naissance' => '2020-01-10'
         ]);
-
-        // Dossier médical de l'enfant
         $enfantTuteurPatient = Patient::create([
-            'enfant_id' => $enfantTuteur->id,
-            'taille' => 100,
-            'poids' => 18,
-            'adresse' => 'Même adresse que tuteur',
-            'groupe_sanguin' => 'A+'
+            'enfant_id' => $enfantTuteur->id, 'taille' => 100, 'poids' => 18, 'adresse' => 'Même adresse', 'groupe_sanguin' => 'A+'
         ]);
         $this->createMedicalData($enfantTuteurPatient, $medecins, true, 5);
+        $this->createDemandes($tuteurUser->id, 5);
 
-
-        // ====================================================================================
-        // SCENARIO 3: FAMILLE (A son dossier + gère des enfants)
-        // Login: +22997000003
-        // ====================================================================================
+        // ===================================
+        // SCENARIO 3: Papa (Famille)
+        // ===================================
         $familleUser = Utilisateur::create([
-            'nom' => 'FAMILLE',
-            'prenom' => 'Papa',
-            'tel' => '+22997000003',
-            'mot_de_passe' => Hash::make('password'),
-            'sexe' => 'Homme',
-            'role' => 'patient',
-            'date_naissance' => '1980-12-01',
-            'ville' => 'Porto-Novo'
+            'nom' => 'FAMILLE', 'prenom' => 'Papa', 'tel' => '+22997000003', 'mot_de_passe' => Hash::make('password'),
+            'sexe' => 'Homme', 'role' => 'patient', 'date_naissance' => '1980-12-01', 'ville' => 'Porto-Novo'
         ]);
         Connexion::create(['utilisateur_id' => $familleUser->id, 'premiere_connexion' => false]);
-
-        // 3a. Dossier du Papa
+        
         $famillePatient = Patient::create([
-            'utilisateur_id' => $familleUser->id,
-            'taille' => 185,
-            'poids' => 90,
-            'adresse' => 'Maison Famille',
-            'groupe_sanguin' => 'B-'
+            'utilisateur_id' => $familleUser->id, 'taille' => 185, 'poids' => 90, 'adresse' => 'Maison Famille', 'groupe_sanguin' => 'B-'
         ]);
         $this->createMedicalData($famillePatient, $medecins, false, 5);
 
-        // 3b. Enfant 1
         $enfantFamille1 = Enfant::create([
-            'parent_id' => $familleUser->id,
-            'nom' => 'FAMILLE',
-            'prenom' => 'Fille Aînée',
-            'sexe' => 'Femme',
-            'date_naissance' => '2015-06-15'
+            'parent_id' => $familleUser->id, 'nom' => 'FAMILLE', 'prenom' => 'Fille Ainee', 'sexe' => 'Femme', 'date_naissance' => '2015-06-15'
         ]);
-        $enfantPatient1 = Patient::create([
-            'enfant_id' => $enfantFamille1->id,
-            'groupe_sanguin' => 'B-'
-        ]);
+        $enfantPatient1 = Patient::create(['enfant_id' => $enfantFamille1->id, 'groupe_sanguin' => 'B-']);
         $this->createMedicalData($enfantPatient1, $medecins, true, 5);
 
-        // 3c. Enfant 2
         $enfantFamille2 = Enfant::create([
-            'parent_id' => $familleUser->id,
-            'nom' => 'FAMILLE',
-            'prenom' => 'Garçon Cadet',
-            'sexe' => 'Homme',
-            'date_naissance' => '2019-02-20'
+            'parent_id' => $familleUser->id, 'nom' => 'FAMILLE', 'prenom' => 'Garcon Cadet', 'sexe' => 'Homme', 'date_naissance' => '2019-02-20'
         ]);
-        $enfantPatient2 = Patient::create([
-            'enfant_id' => $enfantFamille2->id,
-            'groupe_sanguin' => 'B-'
-        ]);
+        $enfantPatient2 = Patient::create(['enfant_id' => $enfantFamille2->id, 'groupe_sanguin' => 'B-']);
         $this->createMedicalData($enfantPatient2, $medecins, true, 5);
+        $this->createDemandes($familleUser->id, 5);
     }
 
-    /**
-     * Helper pour générer des données médicales riches
-     */
+    private function createDemandes($userId, $count) {
+        $typesDemande = ['rendez-vous', 'modification_profil', 'autre'];
+        $statutsDemande = ['en_attente', 'approuvé', 'rejeté'];
+        for ($j = 0; $j < $count; $j++) {
+            Demande::create([
+                'utilisateur_id' => $userId,
+                'type' => $typesDemande[rand(0, 2)],
+                'objet' => 'Demande sujet n°' . ($j+1),
+                'description' => 'Description de la demande',
+                'statut' => $statutsDemande[rand(0, 2)],
+                'date_creation' => Carbon::now()->subDays(rand(1, 60))
+            ]);
+        }
+    }
+
     private function createMedicalData($patient, $medecins, $isPediatrie = false, $count = 5)
     {
         $faker = \Faker\Factory::create('fr_FR');
@@ -170,15 +119,10 @@ class PatientScenarioSeeder extends Seeder
             ? ['Fièvre persistante', 'Vaccination', 'Douleur ventre', 'Toux sèche', 'Otite', 'Varicelle', 'Rhume', 'Contrôle croissance'] 
             : ['Hypertension', 'Contrôle routine', 'Douleur dorsale', 'Migraine', 'Paludisme', 'Diabète', 'Stress', 'Bilan sanguin'];
 
-        // 1. RDVs (Passés et Futurs) - On en crée autant que demandé ($count)
         for ($i = 0; $i < $count; $i++) {
-            // Mix date passée et future
-            $isPast = $i < ($count / 2); // Moitié passé, moitié futur
+            $isPast = $i < ($count / 2);
             $date = $isPast ? Carbon::now()->subDays(rand(2, 60)) : Carbon::now()->addDays(rand(2, 30));
-            $statut = $isPast 
-                ? ($i % 3 == 0 ? 'annulé' : 'passé') // Quelques annulés dans le passé
-                : 'programmé';
-
+            $statut = $isPast ? ($i % 3 == 0 ? 'annulé' : 'passé') : 'programmé';
             Rdv::create([
                 'dateH_rdv' => $date->setHour(rand(8, 17))->setMinute(0),
                 'statut' => $statut,
@@ -188,64 +132,20 @@ class PatientScenarioSeeder extends Seeder
             ]);
         }
 
-        // 2. Consultations & Prescriptions (Uniquement dans le passé)
         for ($i = 0; $i < $count; $i++) {
             $medecin = $medecins->random();
-            $date = Carbon::now()->subDays(rand(5, 300)); // Réparti sur la dernière année
-
+            $date = Carbon::now()->subDays(rand(5, 300));
             $consult = Consultation::create([
-                'patient_id' => $patient->id,
-                'medecin_id' => $medecin->id,
-                'dateH_visite' => $date,
-                'motif' => $motifs[rand(0, count($motifs)-1)],
-                'antecedents' => $i == 0 ? ($isPediatrie ? 'Né à terme, RAS' : 'Diabète familial') : null,
-                'allergies' => $i == 0 ? ($isPediatrie ? 'Aucune connue' : 'Pénicilline') : null,
-                'diagnostic' => 'Diagnostic n°' . ($i+1) . ' : ' . $faker->sentence(3),
-                'observations_medecin' => $faker->paragraph(2),
-                'traitement' => 'Repos et médicaments prescrits',
-                'duree_traitement' => rand(3, 10) . ' jours',
-                'prix' => rand(2000, 15000),
-                'paye' => rand(0, 10) > 1 // 90% payés
+                'patient_id' => $patient->id, 'medecin_id' => $medecin->id, 'dateH_visite' => $date,
+                'motif' => $motifs[rand(0, count($motifs)-1)], 'diagnostic' => 'Diagnostic n°' . ($i+1),
+                'observations_medecin' => 'RAS', 'traitement' => 'Repos', 'duree_traitement' => rand(3, 10) . ' jours',
+                'prix' => rand(2000, 15000), 'paye' => true
             ]);
-
-            // Prescriptions pour cette consultation (1 à 3 médicaments)
-            $nbMeds = rand(1, 4);
-            $medicamentsList = $isPediatrie 
-                ? ['Sirop Doliprane', 'Amoxicilline Sirop', 'Vitamines', 'Sérum Phy', 'Crème apaisante']
-                : ['Paracétamol 1g', 'Amoxicilline 500mg', 'Ibuprofène', 'Spasfon', 'Vitamine C', 'Oméprazole'];
             
-            for ($k = 0; $k < $nbMeds; $k++) {
-                Prescription::create([
-                    'consultation_id' => $consult->id,
-                    'medecin_id' => $medecin->id,
-                    'nom_medicament' => $medicamentsList[rand(0, count($medicamentsList)-1)],
-                    'dosage' => rand(1, 3) . ' fois par jour',
-                    'instructions' => $faker->sentence(4)
-                ]);
-            }
-        }
-
-        // 3. Demandes diverses (5 demandes variées)
-        $typesDemande = ['rendez-vous', 'modification_profil', 'autre'];
-        $statutsDemande = ['en_attente', 'approuvé', 'rejeté'];
-        
-        // On doit trouver l'ID utilisateur propriétaire du dossier (soit le patient lui-même, soit le parent si c'est un enfant)
-        $userId = $patient->utilisateur_id;
-        if (!$userId && $patient->enfant_id) {
-            $userId = Enfant::find($patient->enfant_id)->parent_id;
-        }
-
-        if ($userId) {
-            for ($j = 0; $j < $count; $j++) {
-                Demande::create([
-                    'utilisateur_id' => $userId,
-                    'type' => $typesDemande[rand(0, 2)],
-                    'objet' => 'Demande sujet n°' . ($j+1),
-                    'description' => $faker->paragraph(1),
-                    'statut' => $statutsDemande[rand(0, 2)],
-                    'date_creation' => Carbon::now()->subDays(rand(1, 60))
-                ]);
-            }
+            Prescription::create([
+                'consultation_id' => $consult->id, 'medecin_id' => $medecin->id,
+                'nom_medicament' => 'Médicament Test', 'dosage' => '1 fois par jour', 'instructions' => 'Prendre le matin'
+            ]);
         }
     }
 }

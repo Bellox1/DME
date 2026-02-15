@@ -15,9 +15,10 @@ import PatientProfil from './pages/patient/Profil';
 import PatientConsultations from './pages/patient/Consultations';
 import PatientOrdonnances from './pages/patient/Ordonnances';
 import PatientDossier from './pages/patient/Dossier';
-import PatientResultats from './pages/patient/Resultats';
+import PatientActivites from './pages/patient/Activites';
 import PatientNotifications from './pages/patient/Notifications';
 import PatientAide from './pages/patient/Aide';
+import EditPatient from './pages/accueil/EditPatient';
 
 // Accueil
 import ReceptionDashboard from './pages/accueil/Dashboard';
@@ -46,12 +47,15 @@ import DoctorDashboard from './pages/medecin/Dashboard';
 import DoctorAgenda from './pages/medecin/Agenda';
 import DoctorPatients from './pages/medecin/Patients';
 import DoctorConsultations from './pages/medecin/Consultations';
+import DoctorConsultationForm from './pages/medecin/ConsultationForm';
 import DoctorOrdonnances from './pages/medecin/Ordonnances';
 import DoctorResultats from './pages/medecin/Resultats';
 import DoctorStats from './pages/medecin/Stats';
 import DoctorProfil from './pages/medecin/Profil';
 import DoctorNotifications from './pages/medecin/Notifications';
 import DoctorAide from './pages/medecin/Aide';
+import DoctorPatientDossier from './pages/medecin/DossierPatient';
+import DoctorConsultationDetail from './pages/medecin/ConsultationDetail';
 
 function App() {
   return (
@@ -71,7 +75,8 @@ function App() {
           <Route path="/patient/consultations" element={<ProtectedRoute allowedRoles={['patient']}><PatientConsultations /></ProtectedRoute>} />
           <Route path="/patient/ordonnances" element={<ProtectedRoute allowedRoles={['patient']}><PatientOrdonnances /></ProtectedRoute>} />
           <Route path="/patient/dossier" element={<ProtectedRoute allowedRoles={['patient']}><PatientDossier /></ProtectedRoute>} />
-          <Route path="/patient/resultats" element={<ProtectedRoute allowedRoles={['patient']}><PatientResultats /></ProtectedRoute>} />
+          <Route path="/patient/dossier/:patientId" element={<ProtectedRoute allowedRoles={['patient']}><PatientDossier /></ProtectedRoute>} />
+          <Route path="/patient/activites" element={<ProtectedRoute allowedRoles={['patient']}><PatientActivites /></ProtectedRoute>} />
           <Route path="/patient/notifications" element={<ProtectedRoute allowedRoles={['patient']}><PatientNotifications /></ProtectedRoute>} />
           <Route path="/patient/aide-patient" element={<ProtectedRoute allowedRoles={['patient']}><PatientAide /></ProtectedRoute>} />
           <Route path="/patient/securite" element={<ProtectedRoute allowedRoles={['patient']}><PatientProfil /></ProtectedRoute>} />
@@ -87,7 +92,12 @@ function App() {
           <Route path="/accueil/profil" element={<ProtectedRoute allowedRoles={['accueil']}><ReceptionProfil /></ProtectedRoute>} />
           <Route path="/accueil/notifications" element={<ProtectedRoute allowedRoles={['accueil']}><ReceptionNotifications /></ProtectedRoute>} />
           <Route path="/accueil/aide" element={<ProtectedRoute allowedRoles={['accueil']}><ReceptionAide /></ProtectedRoute>} />
-
+          <Route path="/accueil/patients/edit/:id" element={
+            <ProtectedRoute allowedRoles={['accueil']}>
+              <EditPatient />
+            </ProtectedRoute>
+          }
+          />
           {/* ==================== ADMIN ==================== */}
           <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
           <Route path="/admin/utilisateurs" element={<ProtectedRoute allowedRoles={['admin']}><AdminUtilisateurs /></ProtectedRoute>} />
@@ -104,12 +114,16 @@ function App() {
           <Route path="/medecin/agenda" element={<ProtectedRoute allowedRoles={['medecin']}><DoctorAgenda /></ProtectedRoute>} />
           <Route path="/medecin/patients" element={<ProtectedRoute allowedRoles={['medecin']}><DoctorPatients /></ProtectedRoute>} />
           <Route path="/medecin/consultations" element={<ProtectedRoute allowedRoles={['medecin']}><DoctorConsultations /></ProtectedRoute>} />
+
           <Route path="/medecin/ordonnances" element={<ProtectedRoute allowedRoles={['medecin']}><DoctorOrdonnances /></ProtectedRoute>} />
+          <Route path="/medecin/nouvelle-consultation" element={<ProtectedRoute allowedRoles={['medecin']}><DoctorConsultationForm /></ProtectedRoute>} />
           <Route path="/medecin/resultats" element={<ProtectedRoute allowedRoles={['medecin']}><DoctorResultats /></ProtectedRoute>} />
           <Route path="/medecin/stats" element={<ProtectedRoute allowedRoles={['medecin']}><DoctorStats /></ProtectedRoute>} />
           <Route path="/medecin/profil" element={<ProtectedRoute allowedRoles={['medecin']}><DoctorProfil /></ProtectedRoute>} />
           <Route path="/medecin/notifications" element={<ProtectedRoute allowedRoles={['medecin']}><DoctorNotifications /></ProtectedRoute>} />
           <Route path="/medecin/aide-medecin" element={<ProtectedRoute allowedRoles={['medecin']}><DoctorAide /></ProtectedRoute>} />
+          <Route path="/medecin/patient/:patientId" element={<ProtectedRoute allowedRoles={['medecin']}><DoctorPatientDossier /></ProtectedRoute>} />
+          <Route path="/medecin/consultations/:id" element={<ProtectedRoute allowedRoles={['medecin']}><DoctorConsultationDetail /></ProtectedRoute>} />
 
           {/* ==================== REDIRECTIONS ==================== */}
           <Route path="/" element={<Navigate to="/login" replace />} />

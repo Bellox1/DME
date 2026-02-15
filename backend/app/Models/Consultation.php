@@ -22,6 +22,7 @@ class Consultation extends Model
         'observations_medecin',
         'traitement',
         'duree_traitement',
+        'signature',
     ];
 
     protected $casts = [

@@ -60,7 +60,7 @@ const PatientAide = () => {
                             Comprendre le Système DME
                         </div>
                         <h1 className="text-4xl md:text-5xl font-black text-titles dark:text-white tracking-tight leading-[1.1]">
-                            Maîtrisez votre <br /> <span className="text-primary">Espace Santé Numérique</span>
+                            Maîtrisez votre <br /> Espace <span className="text-secondary">Santé Numérique</span>
                         </h1>
                         <p className="text-slate-500 dark:text-slate-400 font-medium text-lg">
                             Tout savoir sur le fonctionnement du Dossier Médical et votre parcours de soin.

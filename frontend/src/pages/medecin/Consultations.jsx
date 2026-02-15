@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import DoctorLayout from '../../components/layouts/DoctorLayout';
-import medecinService from '../../services/medecin/medecinService';
-import patientService from '../../services/patient/patientService';
+import medicalService from '../../services/medicalService';
 
 const ConsultationsMedecin = () => {
     const [consultations, setConsultations] = useState([]);
-    const [patients, setPatients] = useState([]);
     const [loading, setLoading] = useState(true);
     const location = useLocation();
 
@@ -25,26 +23,17 @@ const ConsultationsMedecin = () => {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                const patientsData = await patientService.getAllPatients();
-                setPatients(patientsData);
-
-                const currentUser = JSON.parse(localStorage.getItem('user'));
-                const medecinId = currentUser?.id;
 
                 if (patientIdFilter) {
-                    // Si on filtre par patient, on charge tout son historique (car un médecin doit voir le passé du patient)
-                    const data = await consultationService.getPatientConsultations(patientIdFilter);
-                    setConsultations(data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)));
+                    // Charger l'historique complet du patient
+                    const historyResponse = await medicalService.getPatientHistory(patientIdFilter);
+                    const consultationsData = historyResponse.data?.consultations || [];
+                    setConsultations(consultationsData.sort((a, b) => new Date(b.dateH_visite) - new Date(a.dateH_visite)));
                 } else {
-                    // Sinon on charge les consultations faites par CE médecin sur tous ses patients
-                    const allConsultationsPromises = patientsData.map(p =>
-                        consultationService.getPatientConsultations(p.id).catch(() => [])
-                    );
-                    const results = await Promise.all(allConsultationsPromises);
-                    const flattened = results.flat()
-                        .filter(c => c.medecin_id === medecinId)
-                        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-                    setConsultations(flattened);
+                    // Charger toutes les consultations du médecin en une seule requête
+                    const response = await medicalService.getAllConsultations();
+                    const consultationsData = response.data || [];
+                    setConsultations(consultationsData.sort((a, b) => new Date(b.dateH_visite) - new Date(a.dateH_visite)));
                 }
             } catch (err) {
                 console.error('Erreur chargement consultations:', err);
@@ -83,8 +72,7 @@ const ConsultationsMedecin = () => {
     };
 
     const getPatientName = (patientId) => {
-        const patient = patients.find(p => p.id === parseInt(patientId));
-        return patient ? `${patient.nom} ${patient.prenom}` : `Patient #${patientId}`;
+        return `Patient #${patientId}`;
     };
 
     return (
@@ -109,22 +97,6 @@ const ConsultationsMedecin = () => {
                                 </button>
                             </div>
                             <form onSubmit={handleCreateConsultation} className="p-8 md:p-10 space-y-6">
-                                {!patientIdFilter && (
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-2">Sélectionner le Patient</label>
-                                        <select
-                                            value={selectedPatientId}
-                                            onChange={e => setSelectedPatientId(e.target.value)}
-                                            className="w-full h-14 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl px-5 text-sm font-bold text-titles dark:text-white outline-none ring-2 ring-transparent focus:ring-primary/20 transition-all appearance-none cursor-pointer"
-                                            required
-                                        >
-                                            <option value="">-- Choisir un patient --</option>
-                                            {patients.map(p => (
-                                                <option key={p.id} value={p.id}>{p.nom} {p.prenom} (ID: {p.id})</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                )}
                                 <div className="grid grid-cols-3 gap-4">
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-2">Poids (kg)</label>
@@ -167,16 +139,13 @@ const ConsultationsMedecin = () => {
                         </h1>
                         <p className="text-base text-slate-500 dark:text-slate-400 font-medium italic">Accédez à l'intégralité des dossiers et comptes rendus cliniques.</p>
                     </div>
-                    <button
-                        onClick={() => {
-                            setShowNewModal(true);
-                            if (!patientIdFilter) setSelectedPatientId('');
-                        }}
+                    <Link
+                        to="/medecin/nouvelle-consultation"
                         className="w-full md:w-auto h-14 px-10 bg-primary text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-2xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3"
                     >
                         <span className="material-symbols-outlined text-[20px]">add_circle</span>
                         Nouvelle Consultation
-                    </button>
+                    </Link>
                 </div>
 
                 {loading ? (
@@ -206,53 +175,85 @@ const ConsultationsMedecin = () => {
 
                                 {/* Date / Status Column */}
                                 <div className="flex flex-col items-center justify-center min-w-[120px] p-6 bg-slate-50 dark:bg-slate-900 rounded-[2.5rem] group-hover:bg-primary group-hover:text-white transition-all duration-500">
-                                    <span className="text-[10px] font-black uppercase tracking-widest opacity-50 mb-1">{new Date(c.created_at).toLocaleDateString('fr-FR', { weekday: 'short' })}</span>
-                                    <span className="text-3xl font-black italic tracking-tighter tabular-nums mb-1">{new Date(c.created_at).getDate()}</span>
-                                    <span className="text-[10px] font-black uppercase tracking-widest opacity-60">{new Date(c.created_at).toLocaleDateString('fr-FR', { month: 'short' })}</span>
+                                    <span className="text-[10px] font-black uppercase tracking-widest opacity-50 mb-1">{new Date(c.dateH_visite).toLocaleDateString('fr-FR', { weekday: 'short' })}</span>
+                                    <span className="text-3xl font-black italic tracking-tighter tabular-nums mb-1">{new Date(c.dateH_visite).getDate()}</span>
+                                    <span className="text-[10px] font-black uppercase tracking-widest opacity-60">{new Date(c.dateH_visite).toLocaleDateString('fr-FR', { month: 'short' })}</span>
                                 </div>
 
                                 {/* Main Info */}
                                 <div className="flex-1 space-y-4">
                                     <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                                         <h4 className="text-xl md:text-2xl font-black text-titles dark:text-white uppercase tracking-tighter italic flex items-center gap-3">
-                                            {getPatientName(c.patient_id)}
+                                            {c.patient?.nom_complet || getPatientName(c.patient_id)}
                                             <span className="size-1.5 rounded-full bg-primary/30"></span>
                                             <span className="text-xs font-bold text-slate-400 tracking-normal non-italic">ID #{c.patient_id}</span>
                                         </h4>
                                         <span className="px-4 py-1.5 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-xl text-[9px] font-black uppercase tracking-widest w-fit border border-indigo-100 dark:border-indigo-500/20">
-                                            {c.type || 'Suivi Clinique'}
+                                            Consultation Médicale
                                         </span>
                                     </div>
 
                                     <div className="relative pl-6 py-2 border-l-4 border-slate-100 dark:border-slate-800 group-hover:border-primary/20 transition-all">
                                         <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest block mb-2">Diagnostic & Observations</span>
                                         <p className="text-sm md:text-base font-bold text-titles dark:text-white italic leading-relaxed opacity-80 group-hover:opacity-100">
-                                            "{c.motif || c.diagnostic || 'Compte rendu en cours de finalisation par le médecin...'}"
+                                            "{c.diagnostic || c.motif || 'Compte rendu en cours de finalisation par le médecin...'}"
                                         </p>
                                     </div>
 
                                     <div className="flex items-center gap-6 text-slate-400">
                                         <div className="flex items-center gap-2">
                                             <span className="material-symbols-outlined text-[18px]">schedule</span>
-                                            <span className="text-[10px] font-black uppercase tracking-widest italic">{new Date(c.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
+                                            <span className="text-[10px] font-black uppercase tracking-widest italic">{new Date(c.dateH_visite).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <span className="material-symbols-outlined text-[18px]">medical_information</span>
-                                            <span className="text-[10px] font-black uppercase tracking-widest italic">Dr. {c.medecin_nom || 'Intervenant'}</span>
+                                            <span className="text-[10px] font-black uppercase tracking-widest italic">Dr. {c.medecin?.nom || 'Intervenant'}</span>
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* Actions Column */}
                                 <div className="flex md:flex-col gap-3 w-full md:w-auto mt-4 md:mt-0">
-                                    <button className="flex-1 md:size-14 rounded-2xl bg-primary text-white flex items-center justify-center hover:scale-110 active:scale-90 transition-all shadow-xl shadow-primary/20 group/btn">
+                                    <Link
+                                        to={`/medecin/consultations/${c.id}`}
+                                        className="flex-1 md:size-14 rounded-2xl bg-primary text-white flex items-center justify-center hover:scale-110 active:scale-90 transition-all shadow-xl shadow-primary/20 group/btn"
+                                        title="Voir les détails"
+                                    >
                                         <span className="material-symbols-outlined text-[24px]">visibility</span>
-                                    </button>
-                                    <button className="flex-1 md:size-14 rounded-2xl bg-white dark:bg-slate-800 text-slate-400 border border-slate-100 dark:border-slate-700 flex items-center justify-center hover:text-primary hover:border-primary/50 transition-all shadow-sm">
+                                    </Link>
+                                    <button
+                                        onClick={async () => {
+                                            try {
+                                                const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+                                                const response = await fetch(`http://localhost:8000/api/consultations/${c.id}/pdf`, {
+                                                    headers: {
+                                                        'Authorization': `Bearer ${token}`,
+                                                        'Accept': 'application/pdf'
+                                                    }
+                                                });
+
+                                                if (response.ok) {
+                                                    const blob = await response.blob();
+                                                    const url = window.URL.createObjectURL(blob);
+                                                    const a = document.createElement('a');
+                                                    a.href = url;
+                                                    a.download = `ordonnance_${c.id}.pdf`;
+                                                    document.body.appendChild(a);
+                                                    a.click();
+                                                    window.URL.revokeObjectURL(url);
+                                                    document.body.removeChild(a);
+                                                } else {
+                                                    alert('Erreur lors du téléchargement du PDF');
+                                                }
+                                            } catch (error) {
+                                                console.error('Erreur:', error);
+                                                alert('Erreur lors du téléchargement du PDF');
+                                            }
+                                        }}
+                                        className="flex-1 md:size-14 rounded-2xl bg-white dark:bg-slate-800 text-slate-400 border border-slate-100 dark:border-slate-700 flex items-center justify-center hover:text-primary hover:border-primary/50 transition-all shadow-sm"
+                                        title="Télécharger l'ordonnance PDF"
+                                    >
                                         <span className="material-symbols-outlined text-[24px]">description</span>
-                                    </button>
-                                    <button className="flex-1 md:size-14 rounded-2xl bg-white dark:bg-slate-800 text-slate-400 border border-slate-100 dark:border-slate-700 flex items-center justify-center hover:text-rose-500 hover:border-rose-500/50 transition-all shadow-sm">
-                                        <span className="material-symbols-outlined text-[24px]">share</span>
                                     </button>
                                 </div>
                             </div>
