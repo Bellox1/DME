@@ -18,7 +18,7 @@ const AdminProfil = () => {
 
     const fetchProfile = async () => {
         try {
-            const response = await api.get('/profile');
+            const response = await api.get('/admin/profile');
             setUser(response.data);
             if (response.data.photo) {
                 // Get base URL from api instance to avoid hardcoding localhost
@@ -41,30 +41,30 @@ const AdminProfil = () => {
         e.preventDefault();
         setSaving(true);
         const data = new FormData(e.target);
-        // Add photo if selected
-        if (fileInputRef.current?.files[0]) {
-            data.append('photo', fileInputRef.current.files[0]);
-        }
-        // FormData handles fields automatically, but we need to ensure structure matches.
-        // Actually api.put with FormData might default to multipart/form-data but Put often fails with FormData in PHP/Laravel.
-        // Laravel doesn't parse body on PUT with FormData easily. We should spoof POST + _method=PUT.
-        data.append('_method', 'PUT');
-
-        // We need to add fields manually if FormData(e.target) doesn't catch them or to rename
-        // However inputs named 'nom' etc. are fine.
         data.append('ville', 'Cotonou');
 
         try {
-            // Use POST with _method=PUT for file upload support
-            const response = await api.post('/profile', data, {
+            // Update profile info
+            const response = await api.post('/admin/profile/update', data, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
+
+            // Upload photo separately if selected
+            if (fileInputRef.current?.files[0]) {
+                const photoData = new FormData();
+                photoData.append('photo', fileInputRef.current.files[0]);
+                await api.post('/admin/profile/photo', photoData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+            }
+
             setUser(response.data.user);
             localStorage.setItem('user', JSON.stringify(response.data.user));
             alert('Profil mis à jour avec succès !');
         } catch (error) {
             console.error("Erreur mise à jour", error);
-            alert('Erreur lors de la mise à jour.');
+            const msg = error.response?.data?.message || 'Erreur lors de la mise à jour.';
+            alert(msg);
         } finally {
             setSaving(false);
         }
