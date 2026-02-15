@@ -1,12 +1,17 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import AdminLayout from '../../components/layouts/AdminLayout';
+import api from '../../services/api';
 
 const AdminDashboard = () => {
     const [user] = useState(() => {
         const saved = localStorage.getItem('user');
         return saved ? JSON.parse(saved) : { nom: 'Admin', prenom: '' };
     });
+
+    const [recentActivities, setRecentActivities] = useState([]);
+    const [pendingTasks, setPendingTasks] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     const quickActions = [
         { title: 'Ajouter un utilisateur', icon: 'person_add', description: 'Enregistrer un nouveau compte.', path: '/admin/inscription' },
@@ -15,20 +20,62 @@ const AdminDashboard = () => {
         { title: 'Voir les logs', icon: 'bar_chart', description: 'Activité du système.', path: '/admin/logs' },
     ];
 
+    useEffect(() => {
+        fetchDashboardData();
+    }, []);
 
-    const recentActivities = [
-        { time: '09:00', user: 'Dr. Martin Durand', action: 'Inscription médecin', status: 'Validé' },
-        { time: '09:45', user: 'Sophie Laurent', action: 'Inscription accueil', status: 'En attente' },
-        { time: '10:30', user: 'Jean Dupont', action: 'Inscription patient', status: 'Validé' },
-        { time: '11:15', user: 'Marie Dubois', action: 'Modification rôle', status: 'Validé' },
-        { time: '14:00', user: 'Pierre Martin', action: 'Inscription médecin', status: 'En attente' },
-    ];
+    const fetchDashboardData = async () => {
+        try {
+            setLoading(true);
+            const [logsRes, statsRes] = await Promise.all([
+                api.get('/admin/logs'),
+                api.get('/admin/stats')
+            ]);
 
-    const pendingTasks = [
-        { task: 'Validations en attente', count: 3 },
-        { task: 'Révisions de permissions', count: 5 },
-        { task: 'Logs à vérifier', count: 12 },
-    ];
+            // Recent activities from logs (5 latest)
+            const logs = (logsRes.data || []).slice(0, 5).map(log => {
+                const timeStr = log.time
+                    ? new Date(log.time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+                    : '-';
+                return {
+                    time: timeStr,
+                    user: log.user || 'Système',
+                    action: log.action || '-',
+                    status: 'Effectué'
+                };
+            });
+            setRecentActivities(logs);
+
+            // Pending tasks from real stats
+            const stats = statsRes.data || {};
+            const tasks = [];
+
+            const rdvsProgrammes = stats.rdvs?.programmes || 0;
+            if (rdvsProgrammes > 0) {
+                tasks.push({ task: 'Rendez-vous programmés', count: rdvsProgrammes });
+            }
+
+            const unpaidConsultations = stats.consultations?.unpaid || 0;
+            if (unpaidConsultations > 0) {
+                tasks.push({ task: 'Consultations non payées', count: unpaidConsultations });
+            }
+
+            const rdvsAnnules = stats.rdvs?.annules || 0;
+            if (rdvsAnnules > 0) {
+                tasks.push({ task: 'Rendez-vous annulés', count: rdvsAnnules });
+            }
+
+            if (tasks.length === 0) {
+                tasks.push({ task: 'Aucune tâche en attente', count: 0 });
+            }
+
+            setPendingTasks(tasks);
+        } catch (error) {
+            console.error('Erreur chargement dashboard:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <AdminLayout>
@@ -89,7 +136,7 @@ const AdminDashboard = () => {
                                 <span className="material-symbols-outlined text-primary">history</span>
                                 <h3 className="text-xl font-bold tracking-tight text-titles dark:text-white">Activités récentes</h3>
                             </div>
-                            <button className="text-primary text-xs font-bold hover:bg-primary/5 px-4 py-2 rounded-lg transition-colors border border-primary/20">Voir tout</button>
+                            <Link to="/admin/logs" className="text-primary text-xs font-bold hover:bg-primary/5 px-4 py-2 rounded-lg transition-colors border border-primary/20">Voir tout</Link>
                         </div>
                         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
                             <div className="overflow-x-auto">
@@ -100,28 +147,36 @@ const AdminDashboard = () => {
                                             <th className="px-6 py-4 text-slate-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest">Utilisateur</th>
                                             <th className="px-6 py-4 text-slate-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest">Action</th>
                                             <th className="px-6 py-4 text-slate-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest">Statut</th>
-                                            <th className="px-6 py-4 text-slate-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest text-right">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                                        {recentActivities.map((activity, i) => (
-                                            <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors group">
-                                                <td className="px-6 py-4 text-sm font-bold text-titles dark:text-white">{activity.time}</td>
-                                                <td className="px-6 py-4 text-sm font-semibold text-titles dark:text-white">{activity.user}</td>
-                                                <td className="px-6 py-4 text-sm text-slate-500 dark:text-slate-400">{activity.action}</td>
-                                                <td className="px-6 py-4">
-                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold ${activity.status === 'Validé'
-                                                        ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'
-                                                        : 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300'
-                                                        }`}>
-                                                        {activity.status}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4 text-right">
-                                                    <button className="bg-primary text-white text-[10px] font-bold px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-all shadow-sm">Détails</button>
+                                        {loading ? (
+                                            <tr>
+                                                <td colSpan="4" className="px-6 py-8 text-center text-slate-400 text-sm">
+                                                    <div className="flex items-center justify-center gap-2">
+                                                        <div className="size-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                                        Chargement...
+                                                    </div>
                                                 </td>
                                             </tr>
-                                        ))}
+                                        ) : recentActivities.length > 0 ? (
+                                            recentActivities.map((activity, i) => (
+                                                <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors group">
+                                                    <td className="px-6 py-4 text-sm font-bold text-titles dark:text-white">{activity.time}</td>
+                                                    <td className="px-6 py-4 text-sm font-semibold text-titles dark:text-white">{activity.user}</td>
+                                                    <td className="px-6 py-4 text-sm text-slate-500 dark:text-slate-400">{activity.action}</td>
+                                                    <td className="px-6 py-4">
+                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300">
+                                                            {activity.status}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan="4" className="px-6 py-8 text-center text-slate-400 text-sm">Aucune activité récente</td>
+                                            </tr>
+                                        )}
                                     </tbody>
                                 </table>
                             </div>
