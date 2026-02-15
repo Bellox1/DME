@@ -45,20 +45,29 @@ class StatsController extends Controller
         $rdvsPasses = $rdvsByStatus['passé'] ?? 0;
 
         // 4. Activité mensuelle (12 derniers mois)
-        $monthlyActivity = [];
+        $monthlyActivityData = [];
+        $maxCount = 0;
         for ($i = 11; $i >= 0; $i--) {
             $month = now()->subMonths($i);
             $count = Consultation::whereYear('date_creation', $month->year)
                 ->whereMonth('date_creation', $month->month)
                 ->count();
 
-            $monthlyActivity[] = [
-                'month' => $month->format('M'),
+            if ($count > $maxCount)
+                $maxCount = $count;
+
+            $monthlyActivityData[] = [
+                'month' => $month->translatedFormat('M'),
                 'year' => $month->year,
                 'count' => $count,
-                'percentage' => $totalConsultations > 0 ? round(($count / $totalConsultations) * 100, 1) : 0
             ];
         }
+
+        // Add percentages relative to maxCount for better visualization scaling
+        $monthlyActivity = array_map(function ($item) use ($maxCount) {
+            $item['percentage'] = $maxCount > 0 ? round(($item['count'] / $maxCount) * 100, 1) : 0;
+            return $item;
+        }, $monthlyActivityData);
 
         // 5. Dernières inscriptions (5 derniers utilisateurs)
         $recentUsers = Utilisateur::orderBy('date_creation', 'desc')
