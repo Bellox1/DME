@@ -4,6 +4,14 @@ use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\Api\Admin\UserController;
 use App\Http\Controllers\Api\Admin\StatsController;
+use App\Http\Controllers\Api\Medecin\ProfileController;
+
+// Admin Profile routes
+Route::middleware('auth:sanctum')->get('/admin/profile', function (\Illuminate\Http\Request $request) {
+    return response()->json($request->user());
+});
+Route::middleware('auth:sanctum')->post('/admin/profile/update', [ProfileController::class, 'update']);
+Route::middleware('auth:sanctum')->post('/admin/profile/photo', [ProfileController::class, 'updatePhoto']);
 
 Route::middleware('auth:sanctum')->post('/admin/users', [UserController::class, 'store']);
 Route::middleware('auth:sanctum')->get('/admin/users', [UserController::class, 'index']);
