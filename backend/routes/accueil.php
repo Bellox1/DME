@@ -31,9 +31,20 @@ Route::middleware('auth:sanctum')->group(function () {
 
 });
 
-// Validation des demandes de RDV
-Route::middleware('auth:sanctum')->patch('/demande-rdv/{id}/valider', [DemandeRdvController::class, 'valider']);
+// Gestion des demandes de RDV (Patient)
+Route::middleware('auth:sanctum')->group(function () {
+    // Liste des demandes (GET /api/demande-rdv)
+    Route::get('/demande-rdv', [DemandeRdvController::class, 'index']);
 
+    // Création d'une demande (POST /api/demande-rdv)
+    Route::post('/demande-rdv', [DemandeRdvController::class, 'store']);
+
+    // Validation (déjà présente chez toi, on la regroupe ici)
+    Route::patch('/demande-rdv/{id}/valider', [DemandeRdvController::class, 'valider']);
+
+    // Dans routes/api.php
+    Route::patch('demande-rdv/{id}/status', [DemandeRdvController::class, 'updateStatus']);
+});
 
 // RDVs Management
 Route::middleware('auth:sanctum')->group(function () {

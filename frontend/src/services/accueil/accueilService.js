@@ -97,7 +97,7 @@ const accueilService = {
                 const info = p.utilisateur || p.enfant || {};
                 return {
                     id: p.id,
-                    utilisateur_id: p.utilisateur_id, 
+                    utilisateur_id: p.utilisateur_id,
                     nom: info.nom || 'N/A',
                     prenom: info.prenom || '',
                     tel: info.tel || 'Pas de numéro',
@@ -168,10 +168,9 @@ const accueilService = {
 
 
     // PARTIE RENDEZ-VOUS 
-    // Récupérer toutes les demandes (Flux de droite et liste)
+    // Récupérer tous les rdvs creer par le personnel (Flux de droite et liste)
     async getAllDemandes() {
         try {
-            // Ton contrôleur Laravel utilise l'URL '/rdvs'
             const response = await api.get('/rdvs');
             return response.data.data || response.data || [];
         } catch (error) {
@@ -194,7 +193,7 @@ const accueilService = {
         }
     },
 
-    // Créer un nouveau RDV (RdvController@store)
+    // Créer un nouveau RDV par le personnel (RdvController@store)
     async createRdv(payload) {
         try {
             const response = await api.post('/rdvs', payload);
@@ -218,6 +217,9 @@ const accueilService = {
             throw error;
         }
     },
+
+
+
 
     // Récupérer les RDV pour le planning (QueueController)
     async getPlanning(date = null) {
@@ -275,8 +277,89 @@ const accueilService = {
         } catch (error) {
             throw error.response?.data?.message || "Erreur lors du renvoi";
         }
-    }
+    },
 
+
+
+
+    // RECUPERATION DES DEMANDES
+    async getAllDemandesPatients() {
+        try {
+            const response = await api.get('/demande-rdv');
+            const data = response.data || [];
+
+            return data.map(demande => {
+                // Extraction de l'ID patient caché dans la description
+                const match = demande.description?.match(/\[PATIENT_ID:(\d+)\]/);
+                return {
+                    ...demande,
+                    // IMPORTANT: On harmonise pour le composant
+                    patient_id: match ? match[1] : demande.utilisateur_id,
+                    clean_description: demande.description?.replace(/\[PATIENT_ID:\d+\]/, '').trim()
+                };
+            });
+        } catch (error) {
+            console.error("Erreur récupération demandes:", error);
+            return [];
+        }
+    },
+
+
+    // Pour créer une demande depuis l'accueil pour un patient précis
+    // async createDemandeRdv(data) {
+    //     try {
+    //         const response = await api.post('/demande-rdv', data);
+    //         return response.data;
+    //     } catch (error) {
+    //         console.error("Erreur création demande:", error);
+    //         throw error;
+    //     }
+    // },
+
+    // CREATION
+    async createDemandeRdv(data) {
+        try {
+            // On s'assure d'inclure le tag PATIENT_ID si nécessaire
+            const payload = {
+                ...data,
+                description: `${data.description} [PATIENT_ID:${data.patient_id}]`
+            };
+            const response = await api.post('/demande-rdv', payload);
+            return response.data;
+        } catch (error) {
+            console.error("Erreur création demande:", error);
+            throw error;
+        }
+    },
+
+
+    // APPROUVER (Passer de 'en_attente' à 'approuvé')
+    async approuverDemandePatient(id) {
+        try {
+            // Ici on tape sur /demande-rdv
+            const response = await api.patch(`/demande-rdv/${id}/status`, {
+                statut: 'approuvé'
+            });
+            return response.data;
+        } catch (error) {
+            console.error("Erreur validation Demande Patient:", error.response?.data);
+            throw error;
+        }
+    },
+
+    // REJETER (Passer de 'en_attente' à 'rejeter' ou 'annulé')
+   async rejeterDemande(id, motif) {
+    try {
+        const response = await api.patch(`/demande-rdv/${id}/status`, {
+            statut: 'rejeté',
+            motif_rejet: motif || "Non spécifié" // On envoie toujours un motif pour satisfaire la validation PHP
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Erreur rejet Demande:", error.response?.data);
+        throw error;
+    }
+},
 
 };
 
