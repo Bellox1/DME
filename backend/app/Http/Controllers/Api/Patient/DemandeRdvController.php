@@ -15,14 +15,23 @@ class DemandeRdvController extends Controller
     {
         $user = Auth::user();
 
+        // --- Si l'utilisateur est de l'accueil, il voit TOUT ---
+        if ($user->role === 'accueil' || $user->role === 'admin') {
+            // On récupère tout, en chargeant la relation patient si elle existe
+            $demandes = \App\Models\DemandeRdv::orderBy('date_creation', 'desc')->get();
+            return response()->json($demandes);
+        }
+
         // --- Récupération des dossiers accessibles ---
         $dossierPrincipal = \App\Models\Patient::where('utilisateur_id', $user->id)->first();
         $enfantsIds = \App\Models\Enfant::where('parent_id', $user->id)->pluck('id');
         $dossiersEnfants = \App\Models\Patient::whereIn('enfant_id', $enfantsIds)->get();
 
         $allPatientsIds = collect([]);
-        if ($dossierPrincipal) $allPatientsIds->push($dossierPrincipal->id);
-        foreach ($dossiersEnfants as $d) $allPatientsIds->push($d->id);
+        if ($dossierPrincipal)
+            $allPatientsIds->push($dossierPrincipal->id);
+        foreach ($dossiersEnfants as $d)
+            $allPatientsIds->push($d->id);
 
         // --- Filtrage par Patient Spécifique (Optionnel) ---
         $requestedPatientId = $request->query('patient_id');
@@ -83,11 +92,11 @@ class DemandeRdvController extends Controller
             if ($dossierPrincipal) {
                 $demandes = \App\Models\DemandeRdv::where('utilisateur_id', $user->id)
                     ->where('type', 'rendez-vous')
-                    ->where(function($query) use ($dossierPrincipal) {
+                    ->where(function ($query) use ($dossierPrincipal) {
                         // Inclure les demandes avec PATIENT_ID du titulaire
                         $query->where('description', 'LIKE', '%[PATIENT_ID:' . $dossierPrincipal->id . ']%')
-                              // Inclure les anciennes demandes sans PATIENT_ID (compatibilité)
-                              ->orWhere('description', 'NOT LIKE', '%[PATIENT_ID:%');
+                            // Inclure les anciennes demandes sans PATIENT_ID (compatibilité)
+                            ->orWhere('description', 'NOT LIKE', '%[PATIENT_ID:%');
                     })
                     ->orderBy('date_creation', 'desc')
                     ->get();
@@ -100,6 +109,14 @@ class DemandeRdvController extends Controller
                     ->get();
             }
         }
+
+        $demandes->transform(function ($demande) {
+            // On cherche [PATIENT_ID:X] dans la description
+            if (preg_match('/\[PATIENT_ID:(\d+)\]/', $demande->description, $matches)) {
+                $demande->patient_id = $matches[1]; // On crée dynamiquement la propriété
+            }
+            return $demande;
+        });
 
         return response()->json($demandes);
     }
@@ -127,106 +144,106 @@ class DemandeRdvController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'objet' => 'required|string|max:255',
-            'description' => 'required|string',
-            'date_souhaitee' => 'nullable|date',
-            'time' => 'nullable|string',
-            'patient_id' => 'nullable|exists:patients,id',
-        ]);
 
-        $user = $request->user();
 
-        // --- Validation du patient_id si fourni ---
-        $patientId = $validated['patient_id'] ?? null;
-        if ($patientId) {
-            // Récupérer les dossiers accessibles
-            $dossierPrincipal = \App\Models\Patient::where('utilisateur_id', $user->id)->first();
-            $enfantsIds = \App\Models\Enfant::where('parent_id', $user->id)->pluck('id');
-            $dossiersEnfants = \App\Models\Patient::whereIn('enfant_id', $enfantsIds)->get();
+public function store(Request $request)
+{
+    $validated = $request->validate([
+        'objet' => 'required|string|max:255',
+        'description' => 'required|string',
+        'date_souhaitee' => 'nullable|date',
+        'time' => 'nullable|string',
+        'patient_id' => 'required|exists:patients,id', // Requis pour identifier le patient
+    ]);
 
-            $allPatientsIds = collect([]);
-            if ($dossierPrincipal) $allPatientsIds->push($dossierPrincipal->id);
-            foreach ($dossiersEnfants as $d) $allPatientsIds->push($d->id);
+    $user = $request->user();
+    $patientId = $validated['patient_id'];
+    $patient = \App\Models\Patient::findOrFail($patientId);
 
-            if (!$allPatientsIds->contains($patientId)) {
-                return response()->json(['message' => 'Accès non autorisé à ce profil.'], 403);
-            }
+    // --- LOGIQUE D'AUTORISATION ---
+    if ($user->role === 'accueil' || $user->role === 'admin') {
+        // L'accueil peut créer pour n'importe qui. 
+        // On lie la demande à l'utilisateur propriétaire du dossier patient.
+        $utilisateurId = $patient->utilisateur_id ?? $user->id;
+    } else {
+        // Logique Restreinte pour les Patients (Ton code original)
+        $dossierPrincipal = \App\Models\Patient::where('utilisateur_id', $user->id)->first();
+        $enfantsIds = \App\Models\Enfant::where('parent_id', $user->id)->pluck('id');
+        $dossiersEnfants = \App\Models\Patient::whereIn('enfant_id', $enfantsIds)->get();
 
-            // Récupérer le patient pour obtenir l'utilisateur_id correspondant
-            $patient = \App\Models\Patient::find($patientId);
-            if ($patient && $patient->utilisateur_id) {
-                $utilisateurId = $patient->utilisateur_id;
-            } else {
-                // Pour les enfants (utilisateur_id null), utiliser l'utilisateur connecté (le parent)
-                $utilisateurId = $user->id;
-            }
-        } else {
-            // Par défaut, utiliser l'utilisateur connecté
-            $utilisateurId = $user->id;
+        $allPatientsIds = collect([]);
+        if ($dossierPrincipal) $allPatientsIds->push($dossierPrincipal->id);
+        foreach ($dossiersEnfants as $d) $allPatientsIds->push($d->id);
+
+        if (!$allPatientsIds->contains($patientId)) {
+            return response()->json(['message' => 'Accès non autorisé à ce profil.'], 403);
         }
-
-        $dateTimeSouhaitee = null;
-        if (isset($validated['date_souhaitee']) && $validated['date_souhaitee']) {
-            $dateTimeSouhaitee = $validated['date_souhaitee'];
-            if (isset($validated['time']) && $validated['time']) {
-                $dateTimeSouhaitee .= ' ' . $validated['time'];
-            }
-        }
-
-        $demande = new \App\Models\DemandeRdv();
-        $demande->utilisateur_id = $utilisateurId;
-        $demande->type = 'rendez-vous';
-        $demande->objet = $validated['objet'];
-        $demande->description = $validated['description'] . ($dateTimeSouhaitee ? ' (Date/heure souhaitée: ' . $dateTimeSouhaitee . ')' : '');
-        $demande->statut = 'en_attente';
-        $demande->save();
-
-        // Ajouter le PATIENT_ID pour le filtrage
-        if ($patientId) {
-            // Pour un enfant spécifique
-            $demande->description .= ' [PATIENT_ID:' . $patientId . ']';
-        } else {
-            // Pour le titulaire, récupérer son patient_id
-            $dossierPrincipal = \App\Models\Patient::where('utilisateur_id', $user->id)->first();
-            if ($dossierPrincipal) {
-                $demande->description .= ' [PATIENT_ID:' . $dossierPrincipal->id . ']';
-            }
-        }
-        $demande->save();
-
-        return response()->json(['message' => 'Demande de rendez-vous créée avec succès', 'demande' => $demande], 201);
+        $utilisateurId = $patient->utilisateur_id ?? $user->id;
     }
 
-    /**
-     * Valider une demande de rendez-vous (Accueil)
-     */
+    // --- GESTION DE LA DATE ---
+    $dateTimeSouhaitee = $validated['date_souhaitee'] ?? null;
+    if ($dateTimeSouhaitee && !empty($validated['time'])) {
+        $dateTimeSouhaitee .= ' ' . $validated['time'];
+    }
+
+    // --- CRÉATION DE LA DEMANDE ---
+    $demande = new \App\Models\DemandeRdv();
+    $demande->utilisateur_id = $utilisateurId;
+    $demande->type = 'rendez-vous';
+    $demande->objet = $validated['objet'];
+    
+    // On ajoute une note si c'est l'accueil qui a saisi
+    $noteAccueil = ($user->role === 'accueil') ? "[Saisi par l'accueil] " : "";
+    $desc = $noteAccueil . $validated['description'];
+    if ($dateTimeSouhaitee) $desc .= ' (Date/heure souhaitée: ' . $dateTimeSouhaitee . ')';
+    
+    // Tag technique indispensable pour ton filtrage actuel
+    $desc .= ' [PATIENT_ID:' . $patientId . ']';
+
+    $demande->description = $desc;
+    $demande->statut = 'en_attente';
+    $demande->save();
+
+    return response()->json([
+        'message' => 'Demande créée avec succès',
+        'demande' => $demande
+    ], 201);
+}
+
+
+
+
+
+    // /**
+    //  * Valider une demande de rendez-vous (Accueil)
+    //  */
+
+
     public function valider(Request $request, $id)
     {
         $demande = \App\Models\DemandeRdv::findOrFail($id);
-        if ($demande->statut !== 'en_attente') {
-            return response()->json(['error' => 'Demande déjà traitée'], 400);
+
+        // Extraire le vrai patient_id depuis la description tagguée
+        $realPatientId = null;
+        if (preg_match('/\[PATIENT_ID:(\d+)\]/', $demande->description, $matches)) {
+            $realPatientId = $matches[1];
         }
+
         $demande->statut = 'approuvé';
         $demande->save();
 
-        // Conversion en RDV réel
         $rdv = new \App\Models\Rdv();
-        $rdv->patient_id = $demande->utilisateur_id; // Adapter selon votre logique patient/utilisateur
+        // Utilise le patient_id extrait, sinon repli sur le dossier du titulaire
+        $rdv->patient_id = $realPatientId ?? \App\Models\Patient::where('utilisateur_id', $demande->utilisateur_id)->value('id');
         $rdv->motif = $demande->objet;
-        $rdv->dateH_rdv = now(); // À adapter si une date spécifique est prévue
+        $rdv->dateH_rdv = now();
         $rdv->statut = 'programmé';
-        $rdv->medecin_id = null; // À renseigner selon le workflow
         $rdv->save();
 
-        return response()->json([
-            'message' => 'Demande approuvée et RDV créé',
-            'demande' => $demande,
-            'rdv' => $rdv
-        ]);
+        return response()->json(['message' => 'RDV créé', 'rdv' => $rdv]);
     }
+
 
     /**
      * Rejeter une demande de rendez-vous (Accueil)
@@ -260,11 +277,63 @@ class DemandeRdvController extends Controller
     }
 
     /**
-     * Update the specified resource in storage.
+     * Met à jour le statut d'une demande (Route générique utilisée par le frontend)
      */
-    public function update(Request $request, string $id)
+    public function updateStatus(Request $request, $id)
     {
-        //
+        $request->validate([
+            'statut' => 'required|in:approuvé,rejeté,en_attente,annulé',
+            'motif_rejet' => 'required_if:statut,rejeté|string|nullable'
+        ]);
+
+        $demande = \App\Models\DemandeRdv::findOrFail($id);
+        $nouveauStatut = $request->statut;
+
+        // --- LOGIQUE D'APPROBATION ---
+        if ($nouveauStatut === 'approuvé') {
+            // On réutilise ton extraction de PATIENT_ID
+            $realPatientId = null;
+            if (preg_match('/\[PATIENT_ID:(\d+)\]/', $demande->description, $matches)) {
+                $realPatientId = $matches[1];
+            }
+
+            $demande->statut = 'approuvé';
+            $demande->save();
+
+            // Création du RDV réel dans le planning
+            $rdv = new \App\Models\Rdv();
+            $rdv->patient_id = $realPatientId ?? \App\Models\Patient::where('utilisateur_id', $demande->utilisateur_id)->value('id');
+            $rdv->motif = $demande->objet;
+            $rdv->dateH_rdv = now(); // Idéalement, extraire la date souhaitée de la description ici
+            $rdv->statut = 'programmé';
+            $rdv->save();
+
+            return response()->json([
+                'message' => 'Demande approuvée et rendez-vous créé.',
+                'demande' => $demande,
+                'rdv' => $rdv
+            ]);
+        }
+
+        // --- LOGIQUE DE REJET ---
+        if ($nouveauStatut === 'rejeté') {
+            $demande->statut = 'rejeté';
+            if ($request->motif_rejet) {
+                $demande->description .= ' [REJETÉ: ' . $request->motif_rejet . ']';
+            }
+            $demande->save();
+
+            return response()->json([
+                'message' => 'Demande rejetée avec succès.',
+                'demande' => $demande
+            ]);
+        }
+
+        // Mise à jour simple pour les autres cas
+        $demande->statut = $nouveauStatut;
+        $demande->save();
+
+        return response()->json(['message' => 'Statut mis à jour.', 'demande' => $demande]);
     }
 
     /**
