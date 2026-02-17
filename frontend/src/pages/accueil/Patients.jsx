@@ -14,23 +14,51 @@ const ListePatients = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [resendingId, setResendingId] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const perPage = 20; // Nombre de patients par page
 
-  useEffect(() => {
-    const fetchPatients = async () => {
+ useEffect(() => {
+    const fetchData = async () => {
       try {
         setLoading(true);
-        const data = await accueilService.getPatients();
-        setPatients(Array.isArray(data) ? data : []);
+        const response = await accueilService.getPatients({
+          page: currentPage,
+          per_page: perPage,
+          search: search,
+          type: filterType === "Adulte" ? "Autonome" : filterType,
+        });
+
+        // Adaptation selon la structure de ta réponse Laravel
+        setPatients(response.items || []);
+        setTotalItems(response.totalReel || 0);
+        setTotalPages(Math.ceil((response.totalReel || 0) / perPage));
+        setError(null);
       } catch (err) {
-        console.error("Erreur lors du chargement:", err);
-        setError("Erreur lors du chargement des patients");
+        console.error("Erreur de chargement:", err);
+        setError("Impossible de charger les patients");
       } finally {
         setLoading(false);
       }
     };
-    fetchPatients();
-  }, []);
+    fetchData();
+  }, [currentPage, search, filterType]); 
 
+  // Reset de la page quand on filtre ou recherche
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, filterType]);
+
+  const stats = useMemo(() => {
+    return {
+      total: totalItems, // Utilise la valeur réelle du backend
+      autonomes: patients.filter((p) => p.type === "Autonome").length, // Note: Ceci ne comptera que sur la page actuelle
+      enfants: patients.filter((p) => p.type === "Enfant").length,
+    };
+  }, [patients, totalItems]);
+
+ 
   // 1. Logique de filtrage et tri mémorisée pour la performance
   const filteredAndSortedPatients = useMemo(() => {
     return patients
@@ -62,42 +90,9 @@ const ListePatients = () => {
       });
   }, [patients, search, filterType, sortBy, sortOrder]);
 
-  // 2. Calcul des statistiques sur la liste COMPLETE des patients (indépendant du filtre actuel)
-  const stats = useMemo(() => {
-    return {
-      total: patients.length,
-      autonomes: patients.filter((p) => (p.type || "").includes("Autonome"))
-        .length,
-      enfants: patients.filter((p) => (p.type || "").includes("Enfant")).length,
-      verifies: patients.length > 0 ? "100%" : "0%",
-    };
-  }, [patients]);
-
   const handleEdit = (id) => {
     navigate(`/accueil/patients/edit/${id}`);
   };
-
-  //   const handleResend = async (patient) => {
-  //     const userId = patient.utilisateur_id || patient.id;
-
-  //     if (!userId) {
-  //       alert("ID introuvable");
-  //       return;
-  //     }
-
-  //     try {
-  //       // On active le chargement SEULEMENT pour cet ID
-  //       setResendingId(userId);
-
-  //       await accueilService.resendActivation(userId);
-  //       alert("Lien d'activation renvoyé avec succès !");
-  //     } catch (err) {
-  //       alert(err || "Erreur lors du renvoi");
-  //     } finally {
-  //       // On désactive le chargement
-  //       setResendingId(null);
-  //     }
-  //   };
 
   const handleResend = async (patient) => {
     const userId = patient.utilisateur_id || patient.id;
@@ -307,6 +302,13 @@ const ListePatients = () => {
                                   ).toLocaleDateString("fr-FR")
                                 : "Nouveau"}
                             </span>
+
+                            {/* <span>
+  {patient.derniere_visite && !isNaN(Date.parse(patient.derniere_visite))
+    ? new Date(patient.derniere_visite).toLocaleDateString("fr-FR")
+    : "Nouveau"}
+</span> */}
+
                             <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">
                               Dernier RDV
                             </span>
@@ -376,6 +378,63 @@ const ListePatients = () => {
                   )}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {/* CONTRÔLES DE PAGINATION */}
+        {!loading && !error && totalItems > perPage && (
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 px-8 py-6 bg-slate-50/50 dark:bg-slate-800/20 border-t border-slate-100 dark:border-slate-800">
+            <div className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
+              Affichage de {(currentPage - 1) * perPage + 1} à{" "}
+              {Math.min(currentPage * perPage, totalItems)} sur {totalItems}{" "}
+              patients
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="size-10 rounded-xl bg-white dark:bg-[#1c2229] border border-slate-200 dark:border-[#2d363f] flex items-center justify-center text-slate-400 hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm"
+              >
+                <span className="material-symbols-outlined text-[20px]">
+                  chevron_left
+                </span>
+              </button>
+
+              <div className="flex items-center gap-1">
+                {[...Array(Math.min(5, totalPages))].map((_, i) => {
+                  // Logique simple pour afficher quelques numéros de page
+                  let pageNum = currentPage <= 3 ? i + 1 : currentPage - 2 + i;
+                  if (pageNum > totalPages) return null;
+
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={`size-10 rounded-xl text-[11px] font-black transition-all ${
+                        currentPage === pageNum
+                          ? "bg-primary text-white shadow-lg shadow-primary/20"
+                          : "bg-white dark:bg-[#1c2229] text-slate-400 border border-slate-200 dark:border-[#2d363f] hover:border-primary/50"
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={() =>
+                  setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                }
+                disabled={currentPage === totalPages}
+                className="size-10 rounded-xl bg-white dark:bg-[#1c2229] border border-slate-200 dark:border-[#2d363f] flex items-center justify-center text-slate-400 hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm"
+              >
+                <span className="material-symbols-outlined text-[20px]">
+                  chevron_right
+                </span>
+              </button>
             </div>
           </div>
         )}
