@@ -57,13 +57,19 @@ const DemandesRdv = () => {
 
   const getPatientName = (patientId) => {
     if (!patientId) return "Inconnu";
-    if (!patients || !Array.isArray(patients)) return `Patient #${patientId}`;
 
-    // Comparaison en string pour éviter les bugs de type (1 vs "1")
-    const patient = patients.find((p) => String(p.id) === String(patientId));
-    return patient
-      ? `${patient.nom} ${patient.prenom}`
-      : `Patient #${patientId}`;
+    // On s'assure que patients est un tableau
+    const listePatients = Array.isArray(patients) ? patients : [];
+
+    const patient = listePatients.find(
+      (p) => String(p.id) === String(patientId),
+    );
+
+    if (patient) {
+      return `${patient.nom} ${patient.prenom}`.toUpperCase();
+    }
+
+    return `ID: ${patientId} (Non trouvé)`;
   };
 
   const getStatutBadge = (statut) => {
