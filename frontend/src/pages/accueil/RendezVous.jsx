@@ -39,14 +39,19 @@ const GestionRDV = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const getPatientName = (id) => {
-    // On vérifie si l'id existe pour éviter de chercher inutilement
-    if (!id) return "Patient inconnu";
+  const getPatientName = (patientId) => {
+  if (!patientId) return "🚫 Sans ID";
+  const patient = patients.find((p) => String(p.id) === String(patientId));
 
-    // Utilisation de == pour comparer sans se soucier du type (string vs number)
-    const patient = patients.find((p) => p.id == id);
-    return patient ? `${patient.nom} ${patient.prenom}` : "Patient inconnu";
-  };
+  if (!patient) {
+    return (
+      <span className="text-red-500 font-bold">
+        Inconnu (#{patientId})
+      </span>
+    );
+  }
+  return `${patient.nom} ${patient.prenom}`;
+};
 
   const getDoctorName = (id) => {
     const doctor = doctors.find((d) => d.id === parseInt(id));
@@ -69,7 +74,9 @@ const GestionRDV = () => {
       ]);
 
       const patientsData =
-        results[0].status === "fulfilled" ? results[0].value : [];
+        results[0].status === "fulfilled"
+          ? results[0].value.items || results[0].value
+          : [];
       const planningData =
         results[1].status === "fulfilled" ? results[1].value : [];
       const medecinsData =
@@ -178,12 +185,12 @@ const GestionRDV = () => {
     })
     .map((item) => {
       // Détermination dynamique des styles selon le statut
-      let statusColor = "bg-emerald-100 text-emerald-700"; // Par défaut : Programmé (Vert)
+      let statusColor = "bg-sky-100 text-sky-700"; // Programmé : Bleu (indique une action future)
 
       if (item.statut === "passé") {
-        statusColor = "bg-slate-100 text-slate-600"; // Passé (Gris)
+        statusColor = "bg-emerald-100 text-emerald-700"; // Passé : Vert (indique un succès/terminé)
       } else if (item.statut === "annulé") {
-        statusColor = "bg-rose-100 text-rose-600"; // Annulé (Rouge)
+        statusColor = "bg-rose-100 text-rose-600"; // Annulé : Rouge (indique un arrêt)
       }
 
       // Formatage de l'heure (HH:mm)
@@ -303,11 +310,23 @@ const GestionRDV = () => {
                       onChange={(e) =>
                         handleStatusChange(item.id, e.target.value)
                       }
-                      className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase cursor-pointer outline-none ${item.color}`}
+                      className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase cursor-pointer outline-none transition-all border-none ${item.color}`}
                     >
-                      <option value="programmé">Programmé</option>
-                      <option value="passé">Passé</option>
-                      <option value="annulé">Annulé</option>
+                      <option
+                        value="programmé"
+                        className="bg-white text-sky-700"
+                      >
+                        Programmé
+                      </option>
+                      <option
+                        value="passé"
+                        className="bg-white text-emerald-700"
+                      >
+                        Passé
+                      </option>
+                      <option value="annulé" className="bg-white text-rose-600">
+                        Annulé
+                      </option>
                     </select>
                   </div>
                 ))
@@ -338,7 +357,7 @@ const GestionRDV = () => {
                   onClick={() => setSidebarFilter("passé")}
                   className={`flex-1 py-2 text-[9px] font-black uppercase rounded-lg transition-all ${
                     sidebarFilter === "passé"
-                      ? "bg-white text-slate-700 shadow-md"
+                      ? "bg-white text-emerald-600 shadow-md" // Changé de slate à emerald
                       : "text-slate-400"
                   }`}
                 >

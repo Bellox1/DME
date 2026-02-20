@@ -9,8 +9,7 @@ use App\Http\Controllers\Api\Patient\DemandeRdvController;
 use App\Http\Controllers\Api\Medecin\ConsultationController;
 use App\Http\Controllers\Api\Patient\EnfantController;
 use App\Http\Controllers\Api\Auth\AuthController;
-
-
+use App\Http\Controllers\Api\Accueil\NotificationController;
 
 // Files d'attente
 Route::middleware('auth:sanctum')->group(function () {
@@ -57,6 +56,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/rdvs/planning', [QueueController::class, 'index']);
     // Changement de statut (programmé, annulé, passé)
     Route::patch('/rdvs/{id}/status', [QueueController::class, 'updateStatus']);
+
+    Route::post('/accueil/notifications/{id}/mark-as-read', [NotificationController::class, 'markAsRead']);
+    Route::get('/accueil/notifications', [App\Http\Controllers\Api\Accueil\NotificationController::class, 'index']);
 });
 
 Route::middleware('auth:sanctum')->get('/medecins', function () {
@@ -68,7 +70,9 @@ Route::middleware('auth:sanctum')->get('/medecins', function () {
 // statistiques
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/stats/globales', [StatistiqueController::class, 'getGlobalStats']);
+
 });
+
 
 
 

@@ -228,15 +228,13 @@ const ReceptionDashboard = () => {
   const [queue, setQueue] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // 1. Récupération des données synchronisée avec accueilService.js
+  // 1. Récupération des données
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      
-      // On utilise les noms de fonctions EXACTS de ton fichier service
       const [patientsRes, planningRes] = await Promise.all([
         accueilService.getPatients().catch(() => []),
-        accueilService.getPlanning().catch(() => []), // Utilise getPlanning à la place de getQueue
+        accueilService.getPlanning().catch(() => []),
       ]);
 
       setPatients(Array.isArray(patientsRes) ? patientsRes : []);
@@ -250,23 +248,32 @@ const ReceptionDashboard = () => {
 
   useEffect(() => {
     fetchData();
-    // Rafraîchissement automatique toutes les minutes
     const interval = setInterval(fetchData, 60000);
     return () => clearInterval(interval);
   }, [fetchData]);
 
-  // 2. Recherche d'info patient pour la file d'attente
-  const getPatientInfo = useCallback((patientId) => {
-    return patients.find((p) => String(p.id) === String(patientId)) || {};
-  }, [patients]);
+  // 2. Recherche d'info patient
+  const getPatientInfo = useCallback(
+    (patientId) => {
+      return patients.find((p) => String(p.id) === String(patientId)) || {};
+    },
+    [patients],
+  );
 
-  // 3. Tes Statistiques (Calculées sur les données mappées de ton service)
+  // 3. Définition de la liste à afficher (Logique manquante précédemment)
+  const displayList = useMemo(() => {
+    // Si la file d'attente existe, on affiche les 5 premiers
+    // Sinon, on affiche les 5 derniers patients inscrits
+    return queue.length > 0 ? queue.slice(0, 5) : patients.slice(-5).reverse();
+  }, [queue, patients]);
+
+  // 4. Statistiques
   const stats = useMemo(() => {
     const safePatients = patients || [];
-    
-    // Ton service mappe déjà le type en 'Enfant' ou 'Autonome'
-    const countEnfants = safePatients.filter(p => p.type === 'Enfant').length;
-    const countAdultes = safePatients.filter(p => p.type === 'Autonome').length;
+    const countEnfants = safePatients.filter((p) => p.type === "Enfant").length;
+    const countAdultes = safePatients.filter(
+      (p) => p.type === "Autonome",
+    ).length;
 
     return [
       {
@@ -303,8 +310,7 @@ const ReceptionDashboard = () => {
   return (
     <ReceptionLayout>
       <div className="p-4 md:p-8 max-w-[1600px] mx-auto w-full flex flex-col gap-8 transition-all duration-[800ms]">
-        
-        {/* Header Original */}
+        {/* Header */}
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl md:text-3xl font-black text-titles dark:text-white tracking-tight leading-none italic uppercase">
             Tableau de Bord Accueil
@@ -314,51 +320,177 @@ const ReceptionDashboard = () => {
           </p>
         </div>
 
-        {/* Grille des Stats - Gros Blocs Centrés */}
+        {/* Grille des Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {stats.map((stat, i) => (
-            <div key={i} className="bg-white dark:bg-[#1c2229] p-8 rounded-[2.5rem] border border-slate-200 dark:border-[#2d363f] shadow-sm flex flex-col items-center text-center group hover:shadow-xl transition-all">
-              <div className={`size-16 rounded-2xl ${stat.color} text-white flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
-                <span className="material-symbols-outlined text-3xl">{stat.icon}</span>
+            <div
+              key={i}
+              className="bg-white dark:bg-[#1c2229] p-8 rounded-[2.5rem] border border-slate-200 dark:border-[#2d363f] shadow-sm flex flex-col items-center text-center group hover:shadow-xl transition-all"
+            >
+              <div
+                className={`size-16 rounded-2xl ${stat.color} text-white flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}
+              >
+                <span className="material-symbols-outlined text-3xl">
+                  {stat.icon}
+                </span>
               </div>
-              <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">{stat.label}</h4>
+              <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">
+                {stat.label}
+              </h4>
               <span className="text-4xl font-black text-titles dark:text-white italic tracking-tighter">
                 {stat.value}
               </span>
-              <p className="text-[10px] text-slate-400 font-black mt-4 uppercase tracking-widest">{stat.subValue}</p>
+              <p className="text-[10px] text-slate-400 font-black mt-4 uppercase tracking-widest">
+                {stat.subValue}
+              </p>
             </div>
           ))}
         </div>
 
         {/* Section Table/Actions */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          <div className="lg:col-span-8 bg-white dark:bg-[#1c2229] border border-slate-200 dark:border-[#2d363f] rounded-[2.5rem] p-8 shadow-sm">
-            <h3 className="text-lg font-black text-titles dark:text-white mb-6 uppercase italic flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary">list_alt</span>
-              Aperçu de la file d'attente
-            </h3>
-            {queue.length === 0 ? (
-              <div className="py-10 text-center text-slate-400 italic font-medium uppercase tracking-widest text-xs">
-                Aucun patient dans la file aujourd'hui
+          <div className="lg:col-span-8 bg-white dark:bg-[#1c2229] border border-slate-200 dark:border-[#2d363f] rounded-[2.5rem] shadow-sm">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-8">
+              <div className="flex flex-col gap-1">
+                <h3 className="text-lg md:text-xl font-black text-titles dark:text-white tracking-tight uppercase italic">
+                  {queue.length > 0
+                    ? "File d'attente actuelle"
+                    : "Dernières inscriptions"}
+                </h3>
+                <p className="text-xs text-slate-500 font-medium italic">
+                  {queue.length > 0
+                    ? "Patients attendant une consultation"
+                    : "Récemment ajoutés au système"}
+                </p>
               </div>
-            ) : (
-              <div className="space-y-4">
-                 {/* Ton rendu de liste ici */}
-              </div>
-            )}
+              <Link
+                to="/accueil/file-attente"
+                className="px-6 h-10 bg-primary/10 text-primary rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all flex items-center"
+              >
+                Gérer la file
+              </Link>
+            </div>
+
+            <div className="overflow-x-auto px-8 pb-8">
+              {loading ? (
+                <div className="py-12 flex justify-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              ) : (
+                <table className="w-full min-w-[600px]">
+                  <thead>
+                    <tr className="border-b border-slate-100 dark:border-slate-800">
+                      <th className="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">
+                        Patient
+                      </th>
+                      <th className="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">
+                        ID / Contact
+                      </th>
+                      <th className="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">
+                        Statut
+                      </th>
+                      <th className="px-4 py-3 text-right text-[10px] font-black uppercase text-slate-400">
+                        Type
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
+                    {displayList.map((item, i) => {
+                      const patient =
+                        queue.length > 0
+                          ? getPatientInfo(item.patient_id)
+                          : item;
+                      return (
+                        <tr
+                          key={i}
+                          className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors"
+                        >
+                          <td className="px-4 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="size-9 rounded-xl bg-primary/5 flex items-center justify-center text-primary font-black text-xs">
+                                {patient.nom?.[0] || "P"}
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-sm font-bold uppercase italic">
+                                  {patient.nom} {patient.prenom}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 text-xs font-bold text-slate-400">
+                            #{patient.id}
+                          </td>
+                          <td className="px-4 py-4">
+                            <span className="px-3 py-1 bg-primary/10 text-primary text-[9px] font-black rounded-lg uppercase">
+                              {queue.length > 0
+                                ? item.statut || "En attente"
+                                : "Enregistré"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4 text-right">
+                            <span
+                              className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase ${patient.type === "Enfant" ? "bg-indigo-50 text-indigo-600" : "bg-green-50 text-green-600"}`}
+                            >
+                              {patient.type}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {queue.length > 5 && (
+                      <tr>
+                        <td colSpan="4" className="py-3 text-center">
+                          <Link
+                            to="/accueil/file-attente"
+                            className="text-[10px] font-black text-primary hover:underline uppercase tracking-widest"
+                          >
+                            + {queue.length - 5} autre(s) patient(s) dans la
+                            file
+                          </Link>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              )}
+            </div>
           </div>
 
-          <div className="lg:col-span-4 bg-primary rounded-[2.5rem] p-8 text-white shadow-xl">
-            <h4 className="font-black uppercase italic mb-6">Actions Rapides</h4>
-            <div className="flex flex-col gap-3">
-              <Link to="/accueil/enregistrement" className="p-4 bg-white/10 rounded-2xl flex items-center gap-4 hover:bg-white/20 transition-all uppercase text-[10px] font-black italic">
-                <span className="material-symbols-outlined bg-white text-primary p-2 rounded-xl">person_add</span>
-                Inscrire un patient
-              </Link>
-              <Link to="/accueil/rdv" className="p-4 bg-white/10 rounded-2xl flex items-center gap-4 hover:bg-white/20 transition-all uppercase text-[10px] font-black italic">
-                <span className="material-symbols-outlined bg-white text-primary p-2 rounded-xl">calendar_month</span>
-                Planifier un RDV
-              </Link>
+          {/* Sidebar Actions */}
+          <div className="lg:col-span-4 flex flex-col gap-6">
+            <div className="bg-primary rounded-[2.5rem] p-8 text-white shadow-xl">
+              <h4 className="font-black uppercase italic mb-6">
+                Actions Rapides
+              </h4>
+              <div className="flex flex-col gap-3">
+                <Link
+                  to="/accueil/enregistrement"
+                  className="p-4 bg-white/10 rounded-2xl flex items-center gap-4 hover:bg-white/20 transition-all uppercase text-[10px] font-black italic"
+                >
+                  <span className="material-symbols-outlined bg-white text-primary p-2 rounded-xl">
+                    person_add
+                  </span>
+                  Inscrire un patient
+                </Link>
+                <Link
+                  to="/accueil/rdv"
+                  className="p-4 bg-white/10 rounded-2xl flex items-center gap-4 hover:bg-white/20 transition-all uppercase text-[10px] font-black italic"
+                >
+                  <span className="material-symbols-outlined bg-white text-primary p-2 rounded-xl">
+                    calendar_month
+                  </span>
+                  Planifier un RDV
+                </Link>
+                <Link
+                  to="/accueil/demandesrdv"
+                  className="p-4 bg-white/10 rounded-2xl flex items-center gap-4 hover:bg-white/20 transition-all uppercase text-[10px] font-black italic"
+                >
+                  <span className="material-symbols-outlined bg-white text-primary p-2 rounded-xl">
+                    list_alt
+                  </span>
+                  Demandes RDV
+                </Link>
+              </div>
             </div>
           </div>
         </div>

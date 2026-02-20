@@ -18,9 +18,10 @@ class StatistiqueController extends Controller
         $statsStatuts = ['programmé' => 0, 'passé' => 0, 'annulé' => 0];
 
         try {
-            // 2. Comptages globaux
             // 1. Total Patients (Global)
             $totalPatients = Patient::count();
+            $totalAutonomes = Patient::whereNull('enfant_id')->count();
+            $totalEnfants = Patient::whereNotNull('enfant_id')->count();
 
             // 2. Rendez-vous d'AUJOURD'HUI (tous sauf annulés)
             $totalRdvsToday = Rdv::whereDate('dateH_rdv', Carbon::today())
@@ -36,7 +37,8 @@ class StatistiqueController extends Controller
             $repartition = Rdv::select('statut', DB::raw('count(*) as total'))
                 ->groupBy('statut')
                 ->get()
-                ->pluck('total', 'statut');
+                ->pluck('total', 'statut')
+                ->toArray();
 
             $statsStatuts = [
                 'programmé' => $repartition['programmé'] ?? 0,
@@ -66,14 +68,16 @@ class StatistiqueController extends Controller
                 $chartData[] = $activities[$date] ?? 0;
             }
 
-          return response()->json([
-            'total_patients' => $totalPatients,
-            'total_rdv_today' => $totalRdvsToday,
-            'rdvs_passes_today' => $rdvsPassesToday,
-            'avg_time' => 15,
-            'activity' => $chartData,
-            'statuts' => $statsStatuts,
-        ], 200);
+            return response()->json([
+                'total_patients' => $totalPatients,
+                'total_autonomes' => $totalAutonomes,
+                'total_enfants' => $totalEnfants,
+                'total_rdv_today' => $totalRdvsToday,
+                'rdvs_passes_today' => $rdvsPassesToday,
+                'avg_time' => 15,
+                'activity' => $chartData,
+                'statuts' => $statsStatuts,
+            ], 200);
 
         } catch (\Exception $e) {
             return response()->json([

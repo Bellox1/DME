@@ -20,32 +20,62 @@ class PatientController extends Controller
      */
 
 
-    public function index(Request $request)
-    {
-        $query = Patient::with(['utilisateur', 'enfant']);
+    // public function index(Request $request)
+    // {
+    //     $query = Patient::with(['utilisateur', 'enfant']);
 
-        if ($request->has('search') && !empty($request->search)) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->whereHas('utilisateur', function ($sub) use ($search) {
-                    $sub->where('nom', 'like', "%{$search}%")
-                        ->orWhere('prenom', 'like', "%{$search}%");
-                })
-                    ->orWhereHas('enfant', function ($sub) use ($search) {
-                        $sub->where('nom', 'like', "%{$search}%")
-                            ->orWhere('prenom', 'like', "%{$search}%");
-                    })
-                    ->orWhere('id', 'like', "%{$search}%");
-            });
-        }
+    //     if ($request->has('search') && !empty($request->search)) {
+    //         $search = $request->search;
+    //         $query->where(function ($q) use ($search) {
+    //             $q->whereHas('utilisateur', function ($sub) use ($search) {
+    //                 $sub->where('nom', 'like', "%{$search}%")
+    //                     ->orWhere('prenom', 'like', "%{$search}%");
+    //             })
+    //                 ->orWhereHas('enfant', function ($sub) use ($search) {
+    //                     $sub->where('nom', 'like', "%{$search}%")
+    //                         ->orWhere('prenom', 'like', "%{$search}%");
+    //                 })
+    //                 ->orWhere('id', 'like', "%{$search}%");
+    //         });
+    //     }
 
         
 
-        return response()->json(
-            $query->orderBy('date_creation', 'desc')->paginate(20)
-        );
+    //     return response()->json(
+    //         $query->orderBy('date_creation', 'desc')->paginate(20)
+    //     );
+    // }
+
+
+
+    public function index(Request $request)
+{
+    $query = Patient::with(['utilisateur', 'enfant']);
+
+    // 1. Gestion de la recherche (Ton code actuel, conservé)
+    if ($request->has('search') && !empty($request->search)) {
+        $search = $request->search;
+        $query->where(function ($q) use ($search) {
+            $q->whereHas('utilisateur', function ($sub) use ($search) {
+                $sub->where('nom', 'like', "%{$search}%")
+                    ->orWhere('prenom', 'like', "%{$search}%");
+            })
+            ->orWhereHas('enfant', function ($sub) use ($search) {
+                $sub->where('nom', 'like', "%{$search}%")
+                    ->orWhere('prenom', 'like', "%{$search}%");
+            })
+            ->orWhere('id', 'like', "%{$search}%");
+        });
     }
 
+    // 2. RÉPARATION : Gestion dynamique du nombre par page
+    // Si per_page est présent (ex: 500), on l'utilise, sinon on reste sur 20 par défaut.
+    $perPage = $request->query('per_page', 20);
+
+    return response()->json(
+        $query->orderBy('date_creation', 'desc')->paginate($perPage)
+    );
+}
 
 
     public function enregistrer(Request $request)
@@ -156,117 +186,6 @@ class PatientController extends Controller
     /**
      * Création d'un NOUVEAU patient par l'accueil (Création de compte + Dossier)
      */
-    // public function store(Request $request)
-    // {
-    //     // 1. Formatage des numéros (Bénin)
-    //     if ($request->has('tel')) {
-    //         $request->merge(['tel' => \App\Helpers\PhoneHelper::formatBeninTel($request->tel)]);
-    //     }
-    //     if ($request->has('whatsapp')) {
-    //         $request->merge(['whatsapp' => \App\Helpers\PhoneHelper::formatBeninWhatsApp($request->whatsapp)]);
-    //     }
-
-    //     \Illuminate\Support\Facades\Log::info("Requête création patient reçue", $request->all());
-
-    //     // 2. Vérification des permissions
-    //     if (!$request->user()->hasPermission('creer_patients')) {
-    //         return response()->json(['message' => 'Action non autorisée.'], 403);
-    //     }
-
-    //     // 3. Validation des données
-    //     $request->validate([
-    //         'nom' => 'required|string|max:50',
-    //         'prenom' => 'required|string|max:50',
-    //         'tel' => 'nullable|string|unique:utilisateurs,tel',
-    //         'whatsapp' => 'nullable|string|unique:utilisateurs,whatsapp',
-    //         'sexe' => 'required|in:Homme,Femme',
-    //         'date_naissance' => 'nullable|date',
-    //         'ville' => 'nullable|string',
-    //         'adresse' => 'nullable|string',
-    //         'groupe_sanguin' => 'nullable|in:A+,A-,B+,B-,AB+,AB-,O+,O-',
-    //         'taille' => 'nullable|numeric',
-    //         'poids' => 'nullable|numeric',
-    //     ], [
-    //         'tel.unique' => 'Ce numéro de téléphone est déjà utilisé.',
-    //         'whatsapp.unique' => 'Ce numéro WhatsApp est déjà utilisé.',
-    //         'nom.required' => 'Le nom est obligatoire.',
-    //         'prenom.required' => 'Le prénom est obligatoire.',
-    //     ]);
-
-    //     if (empty($request->tel) && empty($request->whatsapp)) {
-    //         return response()->json(['message' => 'Un numéro de téléphone ou WhatsApp est requis.'], 422);
-    //     }
-
-    //     try {
-    //         // Utilisation d'une transaction pour garantir l'intégrité des données
-    //         return DB::transaction(function () use ($request) {
-
-    //             // A. Création Utilisateur (Le mot de passe est haché et ne sera JAMAIS renvoyé)
-    //             $user = Utilisateur::create([
-    //                 'nom' => $request->nom,
-    //                 'prenom' => $request->prenom,
-    //                 'tel' => $request->tel,
-    //                 'whatsapp' => $request->whatsapp,
-    //                 'mot_de_passe' => \Illuminate\Support\Facades\Hash::make('password'), // À changer par le patient
-    //                 'role' => 'patient',
-    //                 'sexe' => $request->sexe,
-    //                 'date_naissance' => $request->date_naissance,
-    //                 'ville' => $request->ville,
-    //                 'date_creation' => now(),
-    //                 'date_modification' => now()
-    //             ]);
-
-    //             // B. Création de l'entrée Patient
-    //             $patient = Patient::create([
-    //                 'utilisateur_id' => $user->id,
-    //                 'adresse' => $request->adresse,
-    //                 'groupe_sanguin' => $request->groupe_sanguin,
-    //                 'taille' => $request->taille,
-    //                 'poids' => $request->poids,
-    //             ]);
-
-    //             // C. Initialisation de la connexion
-    //             \App\Models\Connexion::create([
-    //                 'utilisateur_id' => $user->id,
-    //                 'premiere_connexion' => true
-    //             ]);
-
-    //             // D. ENVOI NOTIFICATION (Isolé dans un try/catch pour ne pas faire échouer la transaction)
-    //             try {
-    //                 $this->sendActivationNotification($user);
-    //             } catch (\Exception $e) {
-    //                 // On log l'erreur mais on laisse la transaction continuer
-    //                 \Illuminate\Support\Facades\Log::error("Erreur Notification Twilio : " . $e->getMessage());
-    //             }
-
-    //             // E. Traçabilité (Audit log)
-    //             Tracabilite::create([
-    //                 'utilisateur_id' => $request->user()->id,
-    //                 'action' => 'création',
-    //                 'nom_table' => 'patients',
-    //                 'nouvelle_valeur' => "Création Patient + Compte User ID: {$user->id} (Numéro: {$patient->numero_patient})"
-    //             ]);
-
-    //             // F. RÉPONSE SÉCURISÉE (On ne renvoie pas le mot de passe, même haché)
-    //             return response()->json([
-    //                 'status' => 'success',
-    //                 'message' => 'Patient et compte utilisateur créés avec succès.',
-    //                 'data' => [
-    //                     'id' => $patient->id,
-    //                     'numero_patient' => $patient->numero_patient,
-    //                     'nom' => $user->nom,
-    //                     'prenom' => $user->prenom,
-    //                     'tel' => $user->tel
-    //                 ]
-    //             ], 201);
-    //         });
-
-    //     } catch (\Exception $e) {
-    //         \Illuminate\Support\Facades\Log::error("Échec critique création patient : " . $e->getMessage());
-    //         return response()->json(['message' => 'Erreur lors de la création : ' . $e->getMessage()], 500);
-    //     }
-    // }
-
 
     public function store(Request $request)
     {
