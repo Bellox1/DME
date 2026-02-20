@@ -89,14 +89,42 @@ import api from '../api';
 
 const accueilService = {
     // Liste des patients
+    // async getPatients(params = {}) {
+    //     try {
+    //         const response = await api.get('/patients', { params });
+    //         const rawData = response.data.data || response.data;
+    //         return rawData.map(p => {
+    //             const info = p.utilisateur || p.enfant || {};
+    //             return {
+    //                 id: p.id,
+    //                 utilisateur_id: p.utilisateur_id,
+    //                 nom: info.nom || 'N/A',
+    //                 prenom: info.prenom || '',
+    //                 tel: info.tel || 'Pas de numéro',
+    //                 type: p.enfant_id ? 'Enfant' : 'Autonome',
+    //                 derniere_visite: p.date_modification || p.date_creation,
+    //                 whatsapp: info.whatsapp || null
+    //             };
+    //         });
+    //     } catch (error) {
+    //         console.error("Erreur mapping patients:", error);
+    //         throw error;
+    //     }
+    // },
+
+
     async getPatients(params = {}) {
         try {
             const response = await api.get('/patients', { params });
-            const rawData = response.data.data || response.data;
-            return rawData.map(p => {
+            const rawResponse = response.data; // L'objet complet de Laravel
+
+            // On récupère les données (les 20 patients)
+            const data = rawResponse.data || [];
+
+            const mappedPatients = data.map(p => {
                 const info = p.utilisateur || p.enfant || {};
                 return {
-                    id: p.id,
+                   id: p.id,
                     utilisateur_id: p.utilisateur_id,
                     nom: info.nom || 'N/A',
                     prenom: info.prenom || '',
@@ -106,11 +134,18 @@ const accueilService = {
                     whatsapp: info.whatsapp || null
                 };
             });
+
+            // TRUC IMPORTANT : On renvoie les patients ET le total
+            return {
+                items: mappedPatients,
+                totalReel: rawResponse.total // C'est ici que Laravel envoie "48"
+            };
         } catch (error) {
-            console.error("Erreur mapping patients:", error);
+            console.error("Erreur mapping:", error);
             throw error;
         }
     },
+
 
     // Récupérer UN patient pour le formulaire d'édition
     async getPatientById(id) {
@@ -305,16 +340,6 @@ const accueilService = {
     },
 
 
-    // Pour créer une demande depuis l'accueil pour un patient précis
-    // async createDemandeRdv(data) {
-    //     try {
-    //         const response = await api.post('/demande-rdv', data);
-    //         return response.data;
-    //     } catch (error) {
-    //         console.error("Erreur création demande:", error);
-    //         throw error;
-    //     }
-    // },
 
     // CREATION
     async createDemandeRdv(data) {
@@ -348,18 +373,18 @@ const accueilService = {
     },
 
     // REJETER (Passer de 'en_attente' à 'rejeter' ou 'annulé')
-   async rejeterDemande(id, motif) {
-    try {
-        const response = await api.patch(`/demande-rdv/${id}/status`, {
-            statut: 'rejeté',
-            motif_rejet: motif || "Non spécifié" // On envoie toujours un motif pour satisfaire la validation PHP
-        });
-        return response.data;
-    } catch (error) {
-        console.error("Erreur rejet Demande:", error.response?.data);
-        throw error;
-    }
-},
+    async rejeterDemande(id, motif) {
+        try {
+            const response = await api.patch(`/demande-rdv/${id}/status`, {
+                statut: 'rejeté',
+                motif_rejet: motif || "Non spécifié" // On envoie toujours un motif pour satisfaire la validation PHP
+            });
+            return response.data;
+        } catch (error) {
+            console.error("Erreur rejet Demande:", error.response?.data);
+            throw error;
+        }
+    },
 
 };
 

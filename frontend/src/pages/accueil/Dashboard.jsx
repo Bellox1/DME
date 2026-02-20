@@ -195,7 +195,7 @@
 //                                     <span className="material-symbols-outlined p-2 bg-white text-primary rounded-xl group-hover:scale-110 transition-transform">calendar_today</span>
 //                                     <span className="text-sm font-black tracking-tight leading-none uppercase text-left italic">Fixer un Rendez-vous</span>
 //                                 </Link>
-//                                 <Link to="/accueil/demandes-rdv" className="flex items-center gap-4 p-4 bg-white/10 hover:bg-white/20 rounded-2xl transition-all border border-white/10 group">
+//                                 <Link to="/accueil/demandesrdv" className="flex items-center gap-4 p-4 bg-white/10 hover:bg-white/20 rounded-2xl transition-all border border-white/10 group">
 //                                     <span className="material-symbols-outlined p-2 bg-white text-primary rounded-xl group-hover:scale-110 transition-transform">list_alt</span>
 //                                     <span className="text-sm font-black tracking-tight leading-none uppercase text-left italic">Demandes RDV</span>
 //                                 </Link>
@@ -211,7 +211,298 @@
 
 // export default ReceptionDashboard;
 
+// import React, { useState, useEffect, useMemo, useCallback } from "react";
+// import { Link } from "react-router-dom";
+// import ReceptionLayout from "../../components/layouts/ReceptionLayout";
+// import accueilService from "../../services/accueil/accueilService";
 
+// const ReceptionDashboard = () => {
+//   const [user] = useState(() => {
+//     const saved = localStorage.getItem("user");
+//     return saved ? JSON.parse(saved) : { nom: "Service", prenom: "Accueil" };
+//   });
+
+//   const [patients, setPatients] = useState([]);
+//   const [queue, setQueue] = useState([]);
+//   const [loading, setLoading] = useState(true);
+
+//   // 1. Récupération des données synchronisée avec accueilService.js
+//   const fetchData = useCallback(async () => {
+//     try {
+//       setLoading(true);
+
+//       // On utilise les noms de fonctions EXACTS de ton fichier service
+//       const [patientsRes, planningRes] = await Promise.all([
+//         accueilService.getPatients().catch(() => []),
+//         accueilService.getPlanning().catch(() => []), // Utilise getPlanning à la place de getQueue
+//       ]);
+
+//       setPatients(Array.isArray(patientsRes) ? patientsRes : []);
+//       setQueue(Array.isArray(planningRes) ? planningRes : []);
+//     } catch (err) {
+//       console.error("Erreur Dashboard:", err);
+//     } finally {
+//       setLoading(false);
+//     }
+//   }, []);
+
+//   useEffect(() => {
+//     fetchData();
+//     // Rafraîchissement automatique toutes les minutes
+//     const interval = setInterval(fetchData, 60000);
+//     return () => clearInterval(interval);
+//   }, [fetchData]);
+
+//   // 2. Recherche d'info patient pour la file d'attente
+//   const getPatientInfo = useCallback(
+//     (patientId) => {
+//       return patients.find((p) => String(p.id) === String(patientId)) || {};
+//     },
+//     [patients],
+//   );
+
+//   // 3. Tes Statistiques (Calculées sur les données mappées de ton service)
+//   const stats = useMemo(() => {
+//     const safePatients = patients || [];
+
+//     // Ton service mappe déjà le type en 'Enfant' ou 'Autonome'
+//     const countEnfants = safePatients.filter((p) => p.type === "Enfant").length;
+//     const countAdultes = safePatients.filter(
+//       (p) => p.type === "Autonome",
+//     ).length;
+
+//     return [
+//       {
+//         label: "Total Patients",
+//         value: loading ? "..." : safePatients.length,
+//         subValue: "Base de données",
+//         icon: "groups",
+//         color: "bg-primary",
+//       },
+//       {
+//         label: "Enfants",
+//         value: loading ? "..." : countEnfants,
+//         subValue: "Dépendants",
+//         icon: "child_care",
+//         color: "bg-blue-500",
+//       },
+//       {
+//         label: "Adultes",
+//         value: loading ? "..." : countAdultes,
+//         subValue: "Autonomes",
+//         icon: "person",
+//         color: "bg-amber-500",
+//       },
+//       {
+//         label: "File d'attente",
+//         value: loading ? "..." : queue.length,
+//         subValue: "Planning du jour",
+//         icon: "hourglass_empty",
+//         color: "bg-rose-500",
+//       },
+//     ];
+//   }, [patients, queue.length, loading]);
+
+//   return (
+//     <ReceptionLayout>
+//       <div className="p-4 md:p-8 max-w-[1600px] mx-auto w-full flex flex-col gap-8 transition-all duration-[800ms]">
+//         {/* Header Original */}
+//         <div className="flex flex-col gap-1">
+//           <h1 className="text-2xl md:text-3xl font-black text-titles dark:text-white tracking-tight leading-none italic uppercase">
+//             Tableau de Bord Accueil
+//           </h1>
+//           <p className="text-sm text-slate-500 font-medium italic">
+//             Session active pour {user.prenom} {user.nom}
+//           </p>
+//         </div>
+
+//         {/* Grille des Stats - Gros Blocs Centrés */}
+//         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+//           {stats.map((stat, i) => (
+//             <div
+//               key={i}
+//               className="bg-white dark:bg-[#1c2229] p-8 rounded-[2.5rem] border border-slate-200 dark:border-[#2d363f] shadow-sm flex flex-col items-center text-center group hover:shadow-xl transition-all"
+//             >
+//               <div
+//                 className={`size-16 rounded-2xl ${stat.color} text-white flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}
+//               >
+//                 <span className="material-symbols-outlined text-3xl">
+//                   {stat.icon}
+//                 </span>
+//               </div>
+//               <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">
+//                 {stat.label}
+//               </h4>
+//               <span className="text-4xl font-black text-titles dark:text-white italic tracking-tighter">
+//                 {stat.value}
+//               </span>
+//               <p className="text-[10px] text-slate-400 font-black mt-4 uppercase tracking-widest">
+//                 {stat.subValue}
+//               </p>
+//             </div>
+//           ))}
+//         </div>
+
+//         {/* Section Table/Actions */}
+//         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+//           <div className="lg:col-span-8 bg-white dark:bg-[#1c2229] border border-slate-200 dark:border-[#2d363f] rounded-[2rem] md:rounded-[2.5rem] shadow-sm">
+//             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-4 md:p-8">
+//               <div className="flex flex-col gap-1">
+//                 <h3 className="text-lg md:text-xl font-black text-titles dark:text-white tracking-tight uppercase italic">
+//                   {queue.length > 0
+//                     ? "File d'attente actuelle"
+//                     : "Dernières inscriptions"}
+//                 </h3>
+//                 <p className="text-xs text-slate-500 font-medium italic">
+//                   {queue.length > 0
+//                     ? "Patients attendant une consultation"
+//                     : "Récemment ajoutés au système"}
+//                 </p>
+//               </div>
+//               <Link
+//                 to="/accueil/file-attente"
+//                 className="w-full sm:w-auto h-10 px-6 bg-primary/10 text-primary rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all flex items-center justify-center"
+//               >
+//                 Gérer la file
+//               </Link>
+//             </div>
+
+//             <div className="overflow-x-auto px-4 md:px-8 pb-4 md:pb-8">
+//               {loading ? (
+//                 <div className="py-12 flex justify-center">
+//                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+//                 </div>
+//               ) : (
+//                 <table className="w-full min-w-[600px]">
+//                   <thead>
+//                     <tr className="border-b border-slate-100 dark:border-slate-800">
+//                       <th className="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400 tracking-widest leading-none">
+//                         Patient
+//                       </th>
+//                       <th className="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400 tracking-widest leading-none">
+//                         ID / Contact
+//                       </th>
+//                       <th className="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400 tracking-widest leading-none">
+//                         Status
+//                       </th>
+//                       <th className="px-4 py-3 text-right text-[10px] font-black uppercase text-slate-400 tracking-widest leading-none">
+//                         Type
+//                       </th>
+//                     </tr>
+//                   </thead>
+//                   <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
+//                     {displayList.map((item, i) => {
+//                       const patient =
+//                         queue.length > 0
+//                           ? getPatientInfo(item.patient_id)
+//                           : item;
+//                       return (
+//                         <tr
+//                           key={i}
+//                           className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors"
+//                         >
+//                           <td className="px-4 py-4">
+//                             <div className="flex items-center gap-3">
+//                               <div className="size-9 rounded-xl bg-primary/5 dark:bg-primary/10 flex items-center justify-center text-primary font-black text-xs shrink-0 uppercase">
+//                                 {patient.nom ? patient.nom[0] : "P"}
+//                               </div>
+//                               <div className="flex flex-col leading-none min-w-0">
+//                                 <span className="text-sm font-bold text-titles dark:text-white uppercase tracking-tighter truncate italic">
+//                                   {patient.nom} {patient.prenom}
+//                                 </span>
+//                                 <span className="text-[10px] text-slate-400 font-bold italic">
+//                                   {patient.tel || "N/A"}
+//                                 </span>
+//                               </div>
+//                             </div>
+//                           </td>
+//                           <td className="px-4 py-4 text-xs font-bold text-slate-600 dark:text-slate-400 italic">
+//                             #{patient.id}
+//                           </td>
+//                           <td className="px-4 py-4">
+//                             <span
+//                               className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase whitespace-nowrap ${
+//                                 queue.length > 0
+//                                   ? "bg-primary/10 text-primary"
+//                                   : "bg-slate-100 text-slate-500"
+//                               }`}
+//                             >
+//                               {queue.length > 0
+//                                 ? item.statut || "En attente"
+//                                 : "Enregistré"}
+//                             </span>
+//                           </td>
+//                           <td className="px-4 py-4 text-right">
+//                             <span
+//                               className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase whitespace-nowrap ${patient.type === "Enfant" ? "bg-indigo-50 text-indigo-600" : "bg-green-50 text-green-600"}`}
+//                             >
+//                               {patient.type === "Enfant"
+//                                 ? "Élement dépendant"
+//                                 : "Autonome"}
+//                             </span>
+//                           </td>
+//                         </tr>
+//                       );
+//                     })}
+//                     {displayList.length === 0 && (
+//                       <tr>
+//                         <td
+//                           colSpan="4"
+//                           className="py-12 text-center text-slate-400 font-bold italic uppercase tracking-widest"
+//                         >
+//                           Aucune donnée disponible
+//                         </td>
+//                       </tr>
+//                     )}
+//                   </tbody>
+//                 </table>
+//               )}
+//             </div>
+//           </div>
+
+//           <div className="lg:col-span-4 bg-primary rounded-[2.5rem] p-8 text-white shadow-xl">
+//             <h4 className="font-black uppercase italic mb-6">
+//               Actions Rapides
+//             </h4>
+//             <div className="flex flex-col gap-3">
+//               <Link
+//                 to="/accueil/enregistrement"
+//                 className="p-4 bg-white/10 rounded-2xl flex items-center gap-4 hover:bg-white/20 transition-all uppercase text-[10px] font-black italic"
+//               >
+//                 <span className="material-symbols-outlined bg-white text-primary p-2 rounded-xl">
+//                   person_add
+//                 </span>
+//                 Inscrire un patient
+//               </Link>
+//               <Link
+//                 to="/accueil/rdv"
+//                 className="p-4 bg-white/10 rounded-2xl flex items-center gap-4 hover:bg-white/20 transition-all uppercase text-[10px] font-black italic"
+//               >
+//                 <span className="material-symbols-outlined bg-white text-primary p-2 rounded-xl">
+//                   calendar_month
+//                 </span>
+//                 Planifier un RDV
+//               </Link>
+//               <Link
+//                 to="/accueil/demandesrdv"
+//                 className="flex items-center gap-4 p-4 bg-white/10 hover:bg-white/20 rounded-2xl transition-all border border-white/10 group"
+//               >
+//                 <span className="material-symbols-outlined p-2 bg-white text-primary rounded-xl group-hover:scale-110 transition-transform">
+//                   list_alt
+//                 </span>
+//                 <span className="text-sm font-black tracking-tight leading-none uppercase text-left italic">
+//                   Demandes RDV
+//                 </span>
+//               </Link>
+//             </div>
+//           </div>
+//         </div>
+//       </div>
+//     </ReceptionLayout>
+//   );
+// };
+
+// export default ReceptionDashboard;
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";

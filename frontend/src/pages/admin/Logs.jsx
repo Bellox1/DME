@@ -1,14 +1,34 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../components/layouts/AdminLayout';
+import api from '../../services/api';
 
 const AdminLogs = () => {
-    const logs = [
-        { time: '21 Jan 2024 - 01:45', user: 'Jean Dupont', action: 'Connexion réussie', level: 'info', ip: '192.168.1.1' },
-        { time: '21 Jan 2024 - 01:20', user: 'Système', action: 'Sauvegarde automatique terminée', level: 'success', ip: '-' },
-        { time: '21 Jan 2024 - 00:55', user: 'Admin central', action: 'Modification des permissions du rôle "Médecin"', level: 'warning', ip: '192.168.1.5' },
-        { time: '20 Jan 2024 - 23:30', user: 'Dr. Martin Durand', action: 'Création dossier patient #P452', level: 'info', ip: '10.0.0.12' },
-        { time: '20 Jan 2024 - 22:15', user: 'Système', action: 'Échec de connexion (tentatives excessives)', level: 'error', ip: '172.16.0.45' },
-    ];
+    const [logs, setLogs] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        fetchLogs();
+    }, []);
+
+    const fetchLogs = async () => {
+        try {
+            const response = await api.get('/admin/logs');
+            setLogs(response.data);
+        } catch (err) {
+            console.error('Error fetching logs:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const formatTime = (isoString) => {
+        if (!isoString) return '-';
+        const date = new Date(isoString);
+        return date.toLocaleString('fr-FR', {
+            day: '2-digit', month: 'short', year: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+        });
+    };
 
     const getLevelStyle = (level) => {
         switch (level) {
@@ -39,22 +59,14 @@ const AdminLogs = () => {
                                     <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">Horodatage</th>
                                     <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">Utilisateur</th>
                                     <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">Événement</th>
-                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">IP</th>
-                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">Niveau</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                                 {logs.map((log, i) => (
                                     <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
-                                        <td className="px-6 py-4 text-xs font-medium text-slate-500 dark:text-slate-400">{log.time}</td>
+                                        <td className="px-6 py-4 text-xs font-medium text-slate-500 dark:text-slate-400">{formatTime(log.time)}</td>
                                         <td className="px-6 py-4 text-sm font-bold text-titles dark:text-white">{log.user}</td>
                                         <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300 font-medium">{log.action}</td>
-                                        <td className="px-6 py-4 text-xs font-mono text-slate-400">{log.ip}</td>
-                                        <td className="px-6 py-4">
-                                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${getLevelStyle(log.level)}`}>
-                                                {log.level}
-                                            </span>
-                                        </td>
                                     </tr>
                                 ))}
                             </tbody>

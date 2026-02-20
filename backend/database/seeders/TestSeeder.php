@@ -23,16 +23,33 @@ class TestSeeder extends Seeder
     public function run(): void
     {
         // Nettoyage complet pour avoir une base saine
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        if (DB::getDriverName() === 'sqlite') {
+            DB::statement('PRAGMA foreign_keys = OFF;');
+        } else {
+            DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        }
         $tables = [
-            'role_permissions', 'permissions', 'roles', 'tracabilites', 
-            'connexions', 'demandes', 'prescriptions', 
-            'consultations', 'rdvs', 'patients', 'enfants', 'utilisateurs'
+            'role_permissions',
+            'permissions',
+            'roles',
+            'tracabilites',
+            'connexions',
+            'demandes',
+            'prescriptions',
+            'consultations',
+            'rdvs',
+            'patients',
+            'enfants',
+            'utilisateurs'
         ];
         foreach ($tables as $table) {
             DB::table($table)->truncate();
         }
-        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        if (DB::getDriverName() === 'sqlite') {
+            DB::statement('PRAGMA foreign_keys = ON;');
+        } else {
+            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        }
 
         // 1. Définition des Rôles
         $roles = ['admin', 'medecin', 'accueil', 'patient'];
@@ -47,15 +64,22 @@ class TestSeeder extends Seeder
 
         // 2. Définition des Permissions strictement basées sur les Tables
         $tables = [
-            'utilisateurs', 'patients', 'rdvs', 'consultations', 
-            'prescriptions', 'enfants', 'demandes', 
-            'tracabilites'
+            'utilisateurs',
+            'patients',
+            'rdvs',
+            'consultations',
+            'prescriptions',
+            'enfants',
+            'demandes',
+            'tracabilites',
+            'roles',
+            'permissions'
         ];
 
         $permIds = [];
         foreach ($tables as $table) {
             $actions = ['voir', 'creer', 'modifier', 'supprimer'];
-            
+
             // Restrictions spécifiques
             if ($table === 'tracabilites') {
                 $actions = ['voir']; // On ne peut que voir les logs d'audit
@@ -72,20 +96,20 @@ class TestSeeder extends Seeder
         }
 
         // 3. Attribution des Permissions aux Rôles
-        
+
         // ADMIN : Accès total sur tout
         $allPerms = array_values($permIds);
         foreach ($allPerms as $pId) {
             DB::table('role_permissions')->insert([
-                'role_id' => $roleIds['admin'], 
-                'permission_id' => $pId, 
-                'date_creation' => now(), 
+                'role_id' => $roleIds['admin'],
+                'permission_id' => $pId,
+                'date_creation' => now(),
                 'date_modification' => now()
             ]);
         }
-        
+
         // Fonction helper pour insérer le mapping par slugs
-        $mapPermissions = function($roleName, $slugs) use ($roleIds, $permIds) {
+        $mapPermissions = function ($roleName, $slugs) use ($roleIds, $permIds) {
             foreach ($slugs as $slug) {
                 if (isset($permIds[$slug])) {
                     DB::table('role_permissions')->insert([
@@ -100,25 +124,51 @@ class TestSeeder extends Seeder
 
         // MEDECIN : Actes médicaux, Patients, RDVs
         $mapPermissions('medecin', [
-            'voir_patients', 'voir_enfants', 'voir_utilisateurs',
-            'voir_rdvs', 'creer_rdvs', 'modifier_rdvs',
-            'voir_consultations', 'creer_consultations', 'modifier_consultations',
-            'voir_prescriptions', 'creer_prescriptions', 'modifier_prescriptions'
+            'voir_patients',
+            'voir_enfants',
+            'voir_utilisateurs',
+            'voir_rdvs',
+            'creer_rdvs',
+            'modifier_rdvs',
+            'voir_consultations',
+            'creer_consultations',
+            'modifier_consultations',
+            'voir_prescriptions',
+            'creer_prescriptions',
+            'modifier_prescriptions',
+            'voir_demande_rdvs',
+            'modifier_demande_rdvs'
         ]);
-        
+
         // ACCUEIL : Patients, RDV, Flux administratif
         $mapPermissions('accueil', [
-            'voir_patients', 'creer_patients', 'modifier_patients',
-            'voir_enfants', 'creer_enfants', 'modifier_enfants',
-            'voir_rdvs', 'creer_rdvs', 'modifier_rdvs',
-            'voir_utilisateurs', 'voir_demandes', 'creer_demandes', 'modifier_demandes'
+            'voir_patients',
+            'creer_patients',
+            'modifier_patients',
+            'voir_enfants',
+            'creer_enfants',
+            'modifier_enfants',
+            'voir_rdvs',
+            'creer_rdvs',
+            'modifier_rdvs',
+            'voir_demande_rdvs',
+            'creer_demande_rdvs',
+            'modifier_demande_rdvs',
+            'voir_utilisateurs',
+            'voir_demandes',
+            'creer_demandes',
+            'modifier_demandes'
         ]);
-        
+
         // PATIENT : Consultation propre (filtré par code), Demandes
         $mapPermissions('patient', [
-            'voir_rdvs', 'voir_consultations', 'voir_prescriptions',
-            'creer_demandes', 'voir_demandes',
-            'voir_utilisateurs', 'modifier_utilisateurs', 'creer_enfants'
+            'voir_rdvs',
+            'voir_consultations',
+            'voir_prescriptions',
+            'creer_demande_rdvs',
+            'voir_demande_rdvs',
+            'creer_demandes',
+            'voir_demandes'
         ]);
 
 
@@ -130,19 +180,19 @@ class TestSeeder extends Seeder
 
         $accueil = Utilisateur::create(['nom' => 'Accueil', 'prenom' => 'Service', 'tel' => '+22900000002', 'mot_de_passe' => Hash::make('password'), 'sexe' => 'Femme', 'role' => 'accueil']);
         Connexion::create(['utilisateur_id' => $accueil->id, 'premiere_connexion' => false]);
-        
+
         // Utilisateur spécifique NON Connecté pour Test Premier Login
         $testUser = Utilisateur::create([
-            'nom' => 'Test', 
-            'prenom' => 'Login', 
-            'tel' => '+2290146862536', 
-            'mot_de_passe' => Hash::make('password'), 
-            'sexe' => 'Homme', 
+            'nom' => 'Test',
+            'prenom' => 'Login',
+            'tel' => '+2290146862536',
+            'mot_de_passe' => Hash::make('password'),
+            'sexe' => 'Homme',
             'role' => 'patient'
         ]);
         Patient::create(['utilisateur_id' => $testUser->id]);
         Connexion::create(['utilisateur_id' => $testUser->id, 'premiere_connexion' => true]);
-        
+
         $medecins = [];
         for ($i = 1; $i <= 5; $i++) {
             $med = Utilisateur::create(['nom' => 'Medecin' . $i, 'prenom' => 'Doc', 'tel' => '+2291000000' . $i, 'mot_de_passe' => Hash::make('password'), 'sexe' => $i % 2 == 0 ? 'Femme' : 'Homme', 'role' => 'medecin', 'ville' => 'Cotonou']);
@@ -157,10 +207,14 @@ class TestSeeder extends Seeder
 
         for ($i = 0; $i < 20; $i++) {
             $user = Utilisateur::create([
-                'nom' => $names[$i], 'prenom' => $prenoms[$i], 
-                'tel' => '+229900000' . str_pad($i, 2, '0', STR_PAD_LEFT), 
-                'mot_de_passe' => Hash::make('password'), 'sexe' => $i % 2 == 0 ? 'Femme' : 'Homme', 
-                'role' => 'patient', 'date_naissance' => Carbon::now()->subYears(rand(20, 60)), 'ville' => 'Cotonou'
+                'nom' => $names[$i],
+                'prenom' => $prenoms[$i],
+                'tel' => '+229900000' . str_pad($i, 2, '0', STR_PAD_LEFT),
+                'mot_de_passe' => Hash::make('password'),
+                'sexe' => $i % 2 == 0 ? 'Femme' : 'Homme',
+                'role' => 'patient',
+                'date_naissance' => Carbon::now()->subYears(rand(20, 60)),
+                'ville' => 'Cotonou'
             ]);
             Connexion::create(['utilisateur_id' => $user->id, 'premiere_connexion' => false]);
             $patients[] = Patient::create(['utilisateur_id' => $user->id, 'taille' => rand(150, 190), 'poids' => rand(50, 100), 'adresse' => rand(1, 100) . ' Rue de la Santé', 'groupe_sanguin' => ['A+', 'B+', 'O+', 'AB+'][rand(0, 3)]]);
@@ -177,7 +231,7 @@ class TestSeeder extends Seeder
                 'sexe' => $i % 2 == 0 ? 'Homme' : 'Femme',
                 'date_naissance' => Carbon::now()->subYears(rand(2, 12))
             ]);
-            
+
             // On crée un profil Patient pour cet enfant
             Patient::create([
                 'enfant_id' => $enfant->id,
@@ -193,37 +247,50 @@ class TestSeeder extends Seeder
         foreach ($allPatients as $idx => $patient) {
             Rdv::create([
                 'dateH_rdv' => Carbon::now()->addDays(rand(-5, 5))->setHour(rand(8, 17)),
-                'statut' => $idx % 2 == 0 ? 'passé' : 'programmé', 
-                'motif' => 'Consultation générale', 
-                'patient_id' => $patient->id, 
+                'statut' => $idx % 2 == 0 ? 'passé' : 'programmé',
+                'motif' => 'Consultation générale',
+                'patient_id' => $patient->id,
                 'medecin_id' => $medecins[rand(0, 4)]->id
             ]);
         }
 
-        // Consultations et Ordonnances
+        // Consultations et Ordonnances (60 consultations réparties sur 12 mois)
         $medicaments = ['Paracétamol', 'Amoxicilline', 'Ibuprofène', 'Artemether', 'Vitamines C', 'Sirop toux'];
-        for ($i = 0; $i < 15; $i++) {
+        for ($i = 0; $i < 60; $i++) {
             $p = $allPatients->random();
             $doc = $medecins[rand(0, 4)];
+
+            // On s'assure d'avoir des données pour chaque période
+            if ($i < 15) {
+                // Forcer des données en Février 2026 (sans déborder sur Janvier)
+                $date = Carbon::now();
+            } else {
+                $date = Carbon::now()->subMonths(rand(0, 11))->subDays(rand(0, 28));
+                // Si par hasard on tombe aujourd'hui, on s'assure que c'est bien passé
+                if ($date->isToday())
+                    $date->subDay();
+            }
+
             $consultation = Consultation::create([
-                'patient_id' => $p->id, 
-                'medecin_id' => $doc->id, 
-                'dateH_visite' => Carbon::now()->subDays(rand(1, 10)), 
-                'motif' => 'Symptômes de routine', 
-                'diagnostic' => 'Affection respiratoire mineure', 
-                'traitement' => 'Repos + Prescription jointe', 
-                'prix' => 5000, 
-                'paye' => true
+                'patient_id' => $p->id,
+                'medecin_id' => $doc->id,
+                'dateH_visite' => $date,
+                'date_creation' => $date,
+                'motif' => 'Symptômes de routine',
+                'diagnostic' => 'Affection respiratoire mineure',
+                'traitement' => 'Repos + Prescription jointe',
+                'prix' => rand(3000, 10000),
+                'paye' => rand(0, 100) > 20
             ]);
 
-            // Ajouter 1-2 prescriptions par consultation
             for ($j = 0; $j < rand(1, 2); $j++) {
                 Prescription::create([
                     'consultation_id' => $consultation->id,
                     'medecin_id' => $doc->id,
-                    'nom_medicament' => $medicaments[rand(0, count($medicaments)-1)],
+                    'nom_medicament' => $medicaments[rand(0, count($medicaments) - 1)],
                     'dosage' => '1 comprimé ' . rand(2, 3) . ' fois par jour',
-                    'instructions' => 'Pendant ' . rand(3, 7) . ' jours'
+                    'instructions' => 'Pendant ' . rand(3, 7) . ' jours',
+                    'date_creation' => $date
                 ]);
             }
         }
