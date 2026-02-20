@@ -39,14 +39,19 @@ const GestionRDV = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const getPatientName = (id) => {
-    // On vérifie si l'id existe pour éviter de chercher inutilement
-    if (!id) return "Patient inconnu";
+  const getPatientName = (patientId) => {
+  if (!patientId) return "🚫 Sans ID";
+  const patient = patients.find((p) => String(p.id) === String(patientId));
 
-    // Utilisation de == pour comparer sans se soucier du type (string vs number)
-    const patient = patients.find((p) => p.id == id);
-    return patient ? `${patient.nom} ${patient.prenom}` : "Patient inconnu";
-  };
+  if (!patient) {
+    return (
+      <span className="text-red-500 font-bold">
+        Inconnu (#{patientId})
+      </span>
+    );
+  }
+  return `${patient.nom} ${patient.prenom}`;
+};
 
   const getDoctorName = (id) => {
     const doctor = doctors.find((d) => d.id === parseInt(id));
@@ -69,7 +74,9 @@ const GestionRDV = () => {
       ]);
 
       const patientsData =
-        results[0].status === "fulfilled" ? results[0].value : [];
+        results[0].status === "fulfilled"
+          ? results[0].value.items || results[0].value
+          : [];
       const planningData =
         results[1].status === "fulfilled" ? results[1].value : [];
       const medecinsData =
