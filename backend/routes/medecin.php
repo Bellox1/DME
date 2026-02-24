@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\Medecin\OrdonnanceController;
 use App\Http\Controllers\Api\Medecin\ResultatController;
 use App\Http\Controllers\Api\Medecin\StatsController;
 use App\Http\Controllers\Api\Medecin\ProfileController;
+use App\Http\Controllers\Api\Medecin\NotificationController;
 
 // Routes protégées par authentification Sanctum
 Route::middleware('auth:sanctum')->group(function () {
@@ -15,6 +16,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/profile/update', [ProfileController::class, 'update']);
     Route::post('/profile/password', [ProfileController::class, 'updatePassword']);
     Route::post('/profile/photo', [ProfileController::class, 'updatePhoto']);
+
+    // Notifications
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
     // Consultations (Medical actions)
     Route::post('/consultations', [ConsultationController::class, 'store']);
     Route::get('/consultations/{id}', [ConsultationController::class, 'show']);
@@ -37,4 +43,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Statistiques
     Route::get('/stats', [StatsController::class, 'index']);
+
+    // Transferts de dossier
+    Route::get('/transferts/recus', [\App\Http\Controllers\Api\Medecin\TransfertController::class, 'index']);
+    Route::get('/transferts/envoyes', [\App\Http\Controllers\Api\Medecin\TransfertController::class, 'sent']);
+    Route::get('/transferts/medecins', [\App\Http\Controllers\Api\Medecin\TransfertController::class, 'doctors']);
+    Route::post('/transferts', [\App\Http\Controllers\Api\Medecin\TransfertController::class, 'store']);
 });
