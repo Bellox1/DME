@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import DoctorLayout from '../../components/layouts/DoctorLayout';
 import medicalService from '../../services/medicalService';
+import medecinService from '../../services/medecin/medecinService';
 
 const DoctorDashboard = () => {
     const [userName, setUserName] = useState({ nom: '', prenom: '' });
@@ -13,6 +14,7 @@ const DoctorDashboard = () => {
         urgent: 0,
         tomorrow: 0
     });
+    const [transfers, setTransfers] = useState([]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -37,6 +39,12 @@ const DoctorDashboard = () => {
                     urgent: 0,
                     tomorrow: 0
                 });
+
+                // Récupérer les transferts reçus
+                const transfersResponse = await medecinService.getReceivedTransfers();
+                if (transfersResponse.success) {
+                    setTransfers(transfersResponse.data);
+                }
 
             } catch (err) {
                 console.error('Erreur tableau de bord médecin:', err);
@@ -112,8 +120,8 @@ const DoctorDashboard = () => {
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-10">
                     {/* Active Consultation Queue - Enhanced */}
-                    <div className="lg:col-span-8 space-y-6">
-                        <div className="bg-white dark:bg-[#1c2229] border border-slate-201 dark:border-[#2d363f] rounded-[3rem] p-8 md:p-10 shadow-sm relative overflow-hidden h-full">
+                    <div className="lg:col-span-8 space-y-8">
+                        <div className="bg-white dark:bg-[#1c2229] border border-slate-200 dark:border-[#2d363f] rounded-[3rem] p-8 md:p-10 shadow-sm relative overflow-hidden">
                             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-10">
                                 <div className="flex flex-col gap-1">
                                     <h3 className="text-2xl font-black text-titles dark:text-white tracking-tight uppercase italic flex items-center gap-3">
@@ -183,6 +191,44 @@ const DoctorDashboard = () => {
                                                     <span className="material-symbols-outlined text-[18px]">stethoscope</span>
                                                 </Link>
                                             </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Received Transfers Section */}
+                        <div className="bg-white dark:bg-[#1c2229] border border-slate-50 dark:border-[#2d363f] rounded-[3rem] p-8 md:p-10 shadow-sm">
+                            <div className="flex items-center gap-3 mb-8">
+                                <div className="size-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
+                                    <span className="material-symbols-outlined">move_to_inbox</span>
+                                </div>
+                                <h3 className="text-xl font-black text-titles dark:text-white uppercase italic tracking-tight">Dossiers Reçus ({transfers.length})</h3>
+                            </div>
+
+                            {transfers.length === 0 ? (
+                                <div className="py-12 text-center bg-slate-50/50 dark:bg-slate-900/40 rounded-[2rem] border-2 border-dashed border-slate-100 dark:border-slate-800">
+                                    <p className="text-slate-400 font-bold italic uppercase tracking-widest text-[10px]">Aucun dossier transféré pour le moment</p>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {transfers.map((transfer, i) => (
+                                        <div key={i} className="flex items-center justify-between p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-transparent hover:border-amber-500/30 transition-all group">
+                                            <div className="flex items-center gap-4">
+                                                <div className="size-12 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center text-amber-500 font-black shadow-sm">
+                                                    {transfer.patient?.nom_complet ? transfer.patient.nom_complet[0] : 'P'}
+                                                </div>
+                                                <div className="flex flex-col">
+                                                    <span className="text-sm font-black text-titles dark:text-white uppercase italic">{transfer.patient?.nom_complet}</span>
+                                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">De: Dr. {transfer.expediteur?.nom}</span>
+                                                </div>
+                                            </div>
+                                            <Link
+                                                to={`/medecin/patient/${transfer.patient_id}`}
+                                                className="size-10 rounded-xl bg-white dark:bg-slate-800 text-slate-400 flex items-center justify-center hover:text-amber-500 hover:bg-amber-500/10 transition-all border border-slate-100 dark:border-slate-700 shadow-sm"
+                                            >
+                                                <span className="material-symbols-outlined text-[20px]">visibility</span>
+                                            </Link>
                                         </div>
                                     ))}
                                 </div>
