@@ -95,6 +95,43 @@ const medecinService = {
             }
         });
         return response.data;
+    },
+
+    // --- NOTIFICATIONS ---
+    async getNotifications() {
+        const response = await api.get('/notifications');
+        return response.data;
+    },
+
+    async markNotificationAsRead(id) {
+        const response = await api.post(`/notifications/${id}/read`);
+        return response.data;
+    },
+
+    async markAllNotificationsAsRead() {
+        const response = await api.post('/notifications/read-all');
+        return response.data;
+    },
+
+    // --- TRANSFERTS ---
+    async getDoctorsForTransfer() {
+        const response = await api.get('/transferts/medecins');
+        return response.data;
+    },
+
+    async getReceivedTransfers() {
+        const response = await api.get('/transferts/recus');
+        return response.data;
+    },
+
+    async getSentTransfers() {
+        const response = await api.get('/transferts/envoyes');
+        return response.data;
+    },
+
+    async createTransfer(data) {
+        const response = await api.post('/transferts', data);
+        return response.data;
     }
 };
 

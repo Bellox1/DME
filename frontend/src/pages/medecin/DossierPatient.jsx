@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import DoctorLayout from '../../components/layouts/DoctorLayout';
 import medicalService from '../../services/medicalService';
 import medecinService from '../../services/medecin/medecinService';
+import TransferModal from '../../components/medecin/TransferModal';
 
 const DossierPatient = () => {
     const { patientId } = useParams();
@@ -11,6 +12,7 @@ const DossierPatient = () => {
     const [loading, setLoading] = useState(true);
     const [printing, setPrinting] = useState(false);
     const [activeTab, setActiveTab] = useState('timeline'); // 'timeline', 'vitals', 'docs'
+    const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
 
     const handlePrint = async (consultationId) => {
         try {
@@ -119,6 +121,13 @@ const DossierPatient = () => {
                                 Consulter
                                 <span className="material-symbols-outlined">stethoscope</span>
                             </Link>
+                            <button
+                                onClick={() => setIsTransferModalOpen(true)}
+                                className="h-16 px-8 bg-white/10 hover:bg-white/20 text-white rounded-3xl text-[11px] font-black uppercase tracking-widest backdrop-blur-md transition-all flex items-center justify-center gap-3 border border-white/20 shadow-xl"
+                            >
+                                Transférer
+                                <span className="material-symbols-outlined">move_up</span>
+                            </button>
                         </div>
                     </div>
 
@@ -280,6 +289,17 @@ const DossierPatient = () => {
 
                 </div>
             </div>
+
+            {/* Transfer Modal */}
+            <TransferModal
+                patient={patientData}
+                isOpen={isTransferModalOpen}
+                onClose={() => setIsTransferModalOpen(false)}
+                onTransferComplete={() => {
+                    // Logic after transfer (e.g., refresh data or show a generic toast)
+                    console.log("Transfer complete");
+                }}
+            />
         </DoctorLayout>
     );
 };
