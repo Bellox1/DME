@@ -119,10 +119,18 @@ const ConsultationForm = () => {
         }
     };
 
-    const handlePrint = () => {
+    const handlePrint = async () => {
         if (!successData?.id) return;
-        const url = medicalService.getOrdonnancePdfUrl(successData.id);
-        window.open(url, '_blank');
+        try {
+            const blob = await medicalService.getOrdonnancePdfBlob(successData.id);
+            const url = window.URL.createObjectURL(blob);
+            window.open(url, '_blank');
+            // Clean up the URL object after some time
+            setTimeout(() => window.URL.revokeObjectURL(url), 100);
+        } catch (error) {
+            console.error('Erreur lors de la génération du PDF:', error);
+            alert('Erreur lors de la génération du PDF. Vérifiez votre connexion.');
+        }
     };
 
     const handleSubmit = async (e) => {
