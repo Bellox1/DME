@@ -96,6 +96,16 @@ const medicalService = {
     getOrdonnancePdfUrl: (consultationId) => {
         const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
         return `${baseUrl}/consultations/${consultationId}/pdf`;
+    },
+
+    /**
+     * Récupère le PDF de l'ordonnance sous forme de Blob (avec authentification).
+     */
+    getOrdonnancePdfBlob: async (consultationId) => {
+        const response = await api.get(`/consultations/${consultationId}/pdf`, {
+            responseType: 'blob'
+        });
+        return response.data;
     }
 };
 
