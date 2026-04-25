@@ -60,10 +60,5 @@ npm run dev -- --port 5174
 *L'application sera accessible sur [http://localhost:5174](http://localhost:5174) et l'API sur [http://localhost:8002](http://localhost:8002).*
 
 ---
-
-## 👨‍💻 Développé par
-**Bellox** - Architecte Solution & Développeur Fullstack.
-
----
 ## 📄 Licence
 Ce projet est sous licence MIT.

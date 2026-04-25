@@ -45,9 +45,7 @@ VITE_API_BASE_URL=http://localhost:8002/api
 npm run dev -- --port 5174
 ```
 
-*L'application sera lancée par défaut sur [http://localhost:5174](http://localhost:5174).*
-
 ---
 
-## 👨‍💻 Développé par
-**Bellox** - Expert Frontend & UI/UX.
+## 📄 Licence
+Ce projet est sous licence MIT.

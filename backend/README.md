@@ -54,5 +54,5 @@ php artisan serve --port=8002
 
 ---
 
-## 👨‍💻 Développé par
-**Bellox** - Architecte Solution.
+## 📄 Licence
+Ce projet est sous licence MIT.
