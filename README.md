@@ -1,63 +1,69 @@
-# DME - Dossier Médical Électronique
+# 🏥 DME - Dossier Médical Électronique
 
-## Description
+**DME (Dossier Médical Électronique)** est une plateforme de santé de pointe conçue pour digitaliser et centraliser l'intégralité du parcours patient. Elle offre une synergie parfaite entre les patients, le corps médical et l'administration hospitalière pour une prise en charge plus rapide et sécurisée.
 
-Plateforme web de gestion des dossiers médicaux pour les établissements de santé. Permet la digitalisation et la centralisation des informations médicales des patients.
+---
 
-## Fonctionnalités
+## 🌟 Fonctionnalités Maîtresses
 
-### Patients
-- Consultation du profil médical
-- Gestion des rendez-vous
-- Accès aux prescriptions
-- etc.
+*   **👨‍⚕️ Parcours Patient Digitalisé** : Gestion complète du dossier médical, de l'enregistrement à la prescription finale.
+*   **📅 Agenda & File d'Attente** : Système intelligent de gestion des rendez-vous et suivi en temps réel de l'attente en clinique.
+*   **🔐 Sécurité Multi-Rôles** : Contrôle d'accès granulaire (RBAC) pour Administrateurs, Médecins, Accueil et Patients.
+*   **📱 Communication Twilio** : Alertes et notifications automatisées transmises par **SMS** et **WhatsApp**.
+*   **💎 Design Premium** : Interfaces immersives fondées sur le Glassmorphism pour un confort visuel optimal.
 
-### Médecins
-- Gestion des dossiers patients
-- Création de consultations et prescriptions
-- Agenda des rendez-vous
-- etc.
+---
 
-### Personnel d'accueil
-- Gestion des rendez-vous
-- Enregistrement des patients
-- etc.
+## 🛠️ Stack Technologique
 
-### Administrateurs
-- Gestion des utilisateurs et rôles
-- Contrôle global de la plateforme
-- etc.
+Le projet repose sur une architecture moderne et découplée pour une scalabilité maximale.
 
-## Technologies
+### Backend (Cœur de Données)
+*   **Framework** : [Laravel 12](https://laravel.com/)
+*   **Communication** : [Twilio API](https://www.twilio.com/) (SMS/WhatsApp)
+*   **Sécurité** : [Laravel Sanctum](https://laravel.com/docs/sanctum) (Authentification API)
+*   **Base de données** : SQLite / MySQL
 
-### Backend
-![Laravel](https://img.shields.io/badge/Laravel-FF2D20?style=for-the-badge&logo=laravel&logoColor=white)
-![MySQL](https://img.shields.io/badge/MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white)
-![REST API](https://img.shields.io/badge/REST_API-009688?style=for-the-badge&logo=fastapi&logoColor=white)
-![PHP](https://img.shields.io/badge/PHP-777BB4?style=for-the-badge&logo=php&logoColor=white)
+### Frontend (Expérience Utilisateur)
+*   **Framework** : [React](https://react.dev/) with [Vite](https://vitejs.dev/)
+*   **Styling** : [Tailwind CSS](https://tailwindcss.com/)
+*   **Gestion d'état** : React Hooks & Services API
 
-### Frontend
-![React](https://img.shields.io/badge/React-61DAFB?style=for-the-badge&logo=react&logoColor=black)
-![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)
+---
 
-## Installation
+## 🚀 Installation Rapide (Mode Dev)
 
-### Backend
+### 1. Récupération du projet
+```bash
+git clone https://github.com/Bellox1/DME.git
+cd DME
+```
+
+### 2. Configuration du Backend
 ```bash
 cd backend
 composer install
 cp .env.example .env
 php artisan key:generate
-
-# Configurer .env avec vos paramètres MySQL
-mysql -u root -p -e "CREATE DATABASE DME;"
-php artisan migrate
-php artisan serve
+touch database/database.sqlite # Version SQLite
+php artisan migrate --seed
+php artisan serve --port=8002
 ```
 
-### Frontend
+### 3. Configuration du Frontend
 ```bash
-cd frontend
+cd ../frontend
 npm install
-npm run dev
+npm run dev -- --port 5174
 ```
+
+*L'application sera accessible sur [http://localhost:5174](http://localhost:5174) et l'API sur [http://localhost:8002](http://localhost:8002).*
+
+---
+
+## 👨‍💻 Développé par
+**Bellox** - Architecte Solution & Développeur Fullstack.
+
+---
+## 📄 Licence
+Ce projet est sous licence MIT.

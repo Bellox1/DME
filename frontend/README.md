@@ -1,54 +1,53 @@
-# DME - Frontend (React + Vite)
+# 🎨 DME - Frontend Experience (React)
 
-## 🏥 Description
-L'interface utilisateur moderne et responsive de la plateforme DME. Conçue pour offrir une expérience premium aux patients, médecins, personnel d'accueil et administrateurs.
+L'interface de nouvelle génération pour la gestion de santé. Conçue avec **React** et **Vite**, cette application offre une expérience utilisateur fluide, rapide et esthétiquement "Premium".
 
-## ✨ Fonctionnalités & Design
+---
 
-### 🎨 Design Premium
-- **Tableaux de Bord Unifiés** : Design cohérent (max-w-[1600px]) pour tous les rôles.
-- **Glassmorphism & Dégradés** : Esthétique soignée avec effets de flou et couleurs harmonieuses.
-- **Responsive** : Adapté aux mobiles, tablettes et grands écrans.
-- **Animations** : Transitions fluides entre les pages et micro-interactions.
+## ✨ Expérience Utilisateur (UX)
 
-### 🔑 Gestion de Compte
-- **Première Connexion** : Page dédiée pour définir son mot de passe après activation.
-- **Mot de Passe Oublié** : Interface pour demander et définir un nouveau mot de passe.
-- **Profil Utilisateur** : Gestion des informations personnelles et sécurité.
+*   **🧪 Glassmorphism UI** : Design moderne avec effets de transparence et dégradés élégants.
+*   **🧩 Composants Unifiés** : Utilisation de **Tailwind CSS** pour une cohérence totale sur tous les tableaux de bord.
+*   **📱 Mobile First** : Entièrement responsive pour permettre aux médecins de consulter les dossiers en déplacement.
+*   **🔄 État Réel** : Interactions instantanées avec le backend pour un suivi des patients sans latence.
 
-### 👥 Espaces Dédiés
-- **Espace Patient** : Suivi des constantes, historique, ordonnances, prise de RDV.
-- **Espace Médecin** : Agenda, consultations, dossiers patients.
-- **Espace Accueil** : Gestion file d'attente, enregistrement rapide.
-- **Espace Admin** : Vue d'ensemble, logs, gestion utilisateurs.
+---
 
-## 🛠️ Installation
+## 🏗️ Structure des Espaces
 
-### Prérequis
-- Node.js (LTS recommandé)
-- npm
+*   **Espace Patient** : Constantes, historiques, ordonnances téléchargables et prise de RDV.
+*   **Espace Médecin** : Dashboard complet, agenda dynamique et outils de diagnostic.
+*   **Espace Accueil** : Enregistrement éclair des patients et gestion simplifiée de la file d'attente.
+*   **Espace Admin** : Monitoring global des comptes et des statistiques de l'établissement.
 
-### Étapes
-1. **Installer les dépendances**
-   ```bash
-   npm install
-   ```
+---
 
-2. **Configuration**
-   Créez un fichier `.env` à la racine si nécessaire pour lier l'API :
-   ```env
-   VITE_API_BASE_URL=http://localhost:8000/api
-   ```
+## 🛠️ Stack Technique
 
-3. **Lancer en développement**
-   ```bash
-   npm run dev
-   ```
+*   **UI Framework** : [React](https://react.dev/)
+*   **Build Tool** : [Vite](https://vitejs.dev/)
+*   **Styling** : [Tailwind CSS](https://tailwindcss.com/)
+*   **Icons** : [Lucide React](https://lucide.dev/)
 
-## 📁 Structure
-- `src/pages/auth` : Pages de connexion, activation, reset mot de passe.
-- `src/pages/patient` : Vues de l'espace Patient.
-- `src/pages/medecin` : Vues de l'espace Médecin.
-- `src/pages/admin` : Vues de l'espace Admin.
-- `src/components` : Composants réutilisables (Layouts, Inputs, Modals...).
-- `src/services` : Services API (AuthService, PatientService...).
+---
+
+## 🚀 Installation & Lancement
+
+```bash
+# 1. Installation
+npm install
+
+# 2. Configuration API
+# Modifiez .env pour pointer sur le port 8002 du backend
+VITE_API_BASE_URL=http://localhost:8002/api
+
+# 3. Lancement
+npm run dev -- --port 5174
+```
+
+*L'application sera lancée par défaut sur [http://localhost:5174](http://localhost:5174).*
+
+---
+
+## 👨‍💻 Développé par
+**Bellox** - Expert Frontend & UI/UX.

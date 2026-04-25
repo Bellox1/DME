@@ -1,67 +1,58 @@
-# DME - Backend (API Laravel)
+# ⚙️ DME - Backend API (Laravel)
 
-## 🏥 Description
-Le backend de la plateforme de Dossier Médical Électronique (DME). Il fournit une API RESTful sécurisée pour gérer les utilisateurs, les patients, les médecins, les rendez-vous et les dossiers médicaux.
+Le cœur de données de la plateforme **DME**. Ce backend fournit une API RESTful sécurisée, hautement performante et intégrée aux services de communication mobile.
 
-## 🚀 Fonctionnalités Clés
+---
 
-### 🔐 Authentification & Sécurité
-- **Connexion unifiée** : Support pour téléphone et WhatsApp.
-- **Première Connexion Sécurisée** : Lien d'activation unique envoyé par SMS/WhatsApp.
-- **Réinitialisation de Mot de Passe** : Flux sécurisé avec code temporaire envoyé par SMS/WhatsApp.
-- **Gestion des Rôles** : Système RBAC (Admin, Médecin, Accueil, Patient).
-- **Protection Sanctum** : Tokens API sécurisés pour toutes les requêtes.
+## ⚡ Fonctionnalités Clés
 
-### 📱 Intégration Twilio
-- Envoi automatique de notifications SMS et WhatsApp.
-- Configuration centralisée via `.env`.
+*   **🔐 Authentification Hybride** : Support natif pour la connexion par téléphone et WhatsApp via **Laravel Sanctum**.
+*   **📱 Moteur de Notification Twilio** : Système d'envoi automatique de codes d'activation et de rappels médicaux par SMS/WhatsApp.
+*   **📂 Gestion Médicale Avancée** : CRUD optimisé pour les Consultations, Ordonnances, Examens et Résultats.
+*   **🛡️ Sécurité RBAC** : Middleware personnalisé gérant les rôles spécifiques (Administrateur, Médecin, Accueil, Patient).
+*   **📊 Logs & Traçabilité** : Suivi des transactions et des activités pour une conformité de données maximale.
 
-### 👨‍⚕️ Gestion Médicale
-- CRUD Patients, Médecins, Consultations, Ordonnances.
-- Suivi des files d'attente en temps réel.
+---
 
-## 🛠️ Installation
+## 🛠️ Stack Technique
 
-### Prérequis
-- PHP 8.2+
-- Composer
-- MySQL
+*   **Logic** : Laravel 12 (PHP 8.3+)
+*   **Database** : Support SQLite/MySQL/PostgreSQL
+*   **SMS/WhatsApp** : Twilio Integration
+*   **Documentation** : API Endpoints structurés
 
-### Étapes
-1. **Installer les dépendances**
-   ```bash
-   composer install
-   ```
+---
 
-2. **Configuration**
-   Copiez le fichier d'exemple et générez la clé :
-   ```bash
-   cp .env.example .env
-   php artisan key:generate
-   ```
+## 🚀 Installation & Lancement
 
-3. **Base de Données**
-   Configurez votre `.env` avec vos accès MySQL, puis migrez :
-   ```bash
-   php artisan migrate --seed
-   ```
-   *Le seed créera les rôles et un administrateur par défaut.*
+```bash
+# 1. Installation
+composer install
 
-4. **Serveur**
-   ```bash
-   php artisan serve
-   ```
+# 2. Configuration
+cp .env.example .env
+php artisan key:generate
 
-## 📡 Endpoints Principaux
+# 3. Base de données (Mode SQLite rapide)
+touch database/database.sqlite
+php artisan migrate --seed
 
-### Auth
-- `POST /api/login` : Connexion
-- `POST /api/register` : Inscription (Patient)
-- `POST /api/check-activation` : Vérifier statut compte
-- `POST /api/forgot-password` : Demande reset
-- `POST /api/reset-password` : Reset effectif
+# 4. Lancement
+php artisan serve --port=8002
+```
 
-### Gestion
-- `GET /api/user` : Info utilisateur courant
-- `GET /api/patients` : Liste patients
-- `GET /api/consultations` : Liste consultations
+---
+
+## 📡 Endpoints Stratégiques
+
+| Méthode | Endpoint | Description |
+| :--- | :--- | :--- |
+| **POST** | `/api/login` | Authentification unifiée |
+| **POST** | `/api/register` | Inscription Patient |
+| **GET** | `/api/patients` | Liste des dossiers patients (Médecin/Admin) |
+| **POST** | `/api/consultations` | Création de consultation & Ordonnance |
+
+---
+
+## 👨‍💻 Développé par
+**Bellox** - Architecte Solution.
